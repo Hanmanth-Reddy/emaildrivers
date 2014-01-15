@@ -19,7 +19,8 @@
 	}
 	// Instance SMTP
 	$smtp=new smtp_class;
-	$smtp->saveCopy=false;	
+	$smtp->saveCopy=false;
+	$path = $WDOCUMENT_ROOT;
 	//$pdf=new FPDF();
    // $pdf->AddPage();
    /***************
@@ -333,7 +334,15 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 								if(($emailopt == 1 || $emailopt == 2) &&  count($template_Time_Values) > 0){	
 									$bill_invoice = $inv_sno;
 									//added by naveen
-
+									
+									$companyLogo = getCompanyLogo($bill_invoice, $path);
+									if($companyLogo != '')
+									{
+										$pdf->SetFont('Arial','B',11);
+										$pdf->Cell(300,6,"{$pdf->Image($companyLogo, $pdf->GetX(), $pdf->GetY(), 30, 10)}");
+										$pdf->Ln();
+										$pdf->Ln();
+									}
 									$template_Time_Values = remove_duplicateKeys("timeParId",$template_Time_Values);
 
 									$rec_cnt = count($template_Time_Values);
@@ -1395,5 +1404,46 @@ function tzRetQueryStringDTime($tbl_col_name,$dt_type,$separator)
 		// if you need a zero-based array, otheriwse work with $_data
 		$data = array_values($_data);
 		return $data;
+	}
+	
+	function getCompanyLogo($addr, $path)
+	{		
+		global $db;
+		$attach_folder=mktime(date("H"),date("i"),date("s"),date("m"),date("d"),date("Y"));
+		$attach_folder_temp="";
+		$isDirEx=$path."/".$attach_folder;
+		
+		while(is_dir($isDirEx))
+		{
+			$attach_folder_temp=rand(0,100);
+			$isDirEx=$path."/".$attach_folder.$attach_folder_temp;
+		}
+		
+		$attach_folder=$attach_folder.$attach_folder_temp;
+		$isDirEx=$path."/".$attach_folder;
+		mkdir($isDirEx,0777);
+		
+		$que="select image_type,image_data from company_logo";
+		$res=mysql_query($que,$db);
+		$row=mysql_fetch_row($res);
+		$ext = split("/",$row[0]);		
+		$content = $row[1]; 
+		$ext[1] = (strtolower($ext[1]) == 'pjpeg') ? 'jpeg' : $ext[1];
+		$fp = fopen($isDirEx."/".$addr.".".$ext[1],"wb");
+		$head = $addr.".".$ext[1]; 
+		fwrite($fp,$content); 
+		fclose($fp);
+		
+		$img = $isDirEx."/".$head;
+		
+		if($content != '')
+		{
+			return $img;
+		}
+		else
+		{
+			return '';
+		}
+		
 	}
 ?>
