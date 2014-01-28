@@ -20,7 +20,19 @@
 	// Instance SMTP
 	$smtp=new smtp_class;
 	$smtp->saveCopy=false;
+	
+	$date=date("YmdHis", time()) - $utzos;
+	$zipfolder = 'INV_'.$date;
 	$path = $WDOCUMENT_ROOT;
+	$folder_name = $path.'/'.$zipfolder;
+	if (is_dir($folder_name)) {
+		rrmdir($folder_name);
+	}
+	if(!is_dir($folder_name))
+	{
+	    mkdir($folder_name, 0777);
+	}
+	
 	//$pdf=new FPDF();
    // $pdf->AddPage();
    /***************
@@ -335,7 +347,7 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 									$bill_invoice = $inv_sno;
 									//added by naveen
 									
-									$companyLogo = getCompanyLogo($bill_invoice, $path);
+									$companyLogo = getCompanyLogo($bill_invoice, $folder_name);
 									if($companyLogo != '')
 									{
 										$pdf->SetFont('Arial','B',11);
@@ -661,7 +673,7 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 
 									if (count($expense_values) > 0) {
 
-										if ($emailopt == 1) {
+										if ($emailopt == 1 &&  count($template_Time_Values) > 0) {
 
 											$expensepdf->Ln();
 
@@ -692,7 +704,7 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 											$i++;
 											$flag++;
 
-										} elseif ($emailopt == 2) {
+										} elseif ($emailopt == 2 &&  count($template_Time_Values) > 0) {
 
 											$expensepdf->Ln();
 
@@ -1406,31 +1418,63 @@ function tzRetQueryStringDTime($tbl_col_name,$dt_type,$separator)
 		return $data;
 	}
 	
-	function getCompanyLogo($addr, $path)
-	{		
+	//function getCompanyLogo($addr, $path)
+	//{		
+	//	global $db;
+	//	$attach_folder=mktime(date("H"),date("i"),date("s"),date("m"),date("d"),date("Y"));
+	//	$attach_folder_temp="";
+	//	$isDirEx=$path."/".$attach_folder;
+	//	
+	//	while(is_dir($isDirEx))
+	//	{
+	//		$attach_folder_temp=rand(0,100);
+	//		$isDirEx=$path."/".$attach_folder.$attach_folder_temp;
+	//	}
+	//	
+	//	$attach_folder=$attach_folder.$attach_folder_temp;
+	//	$isDirEx=$path."/".$attach_folder;
+	//	mkdir($isDirEx,0777);
+	//	
+	//	$que="select image_type,image_data from company_logo";
+	//	$res=mysql_query($que,$db);
+	//	$row=mysql_fetch_row($res);
+	//	$ext = split("/",$row[0]);		
+	//	$content = $row[1]; 
+	//	$ext[1] = (strtolower($ext[1]) == 'pjpeg') ? 'jpeg' : $ext[1];
+	//	$fp = fopen($isDirEx."/".$addr.".".$ext[1],"wb");
+	//	$head = $addr.".".$ext[1]; 
+	//	fwrite($fp,$content); 
+	//	fclose($fp);
+	//	
+	//	$img = $isDirEx."/".$head;
+	//	chmod($isDirEx, 0777);
+	//	chmod($img, 0777);
+	//	
+	//	if($content != '')
+	//	{
+	//		return $img;
+	//	}
+	//	else
+	//	{
+	//		return '';
+	//	}
+	//	
+	//}
+	
+	function getCompanyLogo($addr, $isDirEx)
+	{
 		global $db;
-		$attach_folder=mktime(date("H"),date("i"),date("s"),date("m"),date("d"),date("Y"));
-		$attach_folder_temp="";
-		$isDirEx=$path."/".$attach_folder;
-		
-		while(is_dir($isDirEx))
-		{
-			$attach_folder_temp=rand(0,100);
-			$isDirEx=$path."/".$attach_folder.$attach_folder_temp;
-		}
-		
-		$attach_folder=$attach_folder.$attach_folder_temp;
-		$isDirEx=$path."/".$attach_folder;
-		mkdir($isDirEx,0777);
+		$attach_temp_name=rand(0,100);
+		chmod($isDirEx, 0777);
 		
 		$que="select image_type,image_data from company_logo";
 		$res=mysql_query($que,$db);
 		$row=mysql_fetch_row($res);
 		$ext = split("/",$row[0]);		
 		$content = $row[1]; 
-		$ext[1] = (strtolower($ext[1]) == 'pjpeg') ? 'jpeg' : $ext[1];
-		$fp = fopen($isDirEx."/".$addr.".".$ext[1],"wb");
-		$head = $addr.".".$ext[1]; 
+		$ext[1] = (strtolower($ext[1]) == 'jpeg') ? 'jpeg' : 'jpg';
+		$fp = fopen($isDirEx."/".$attach_temp_name.$addr.".".$ext[1],"wb");
+		$head = $attach_temp_name.$addr.".".$ext[1]; 
 		fwrite($fp,$content); 
 		fclose($fp);
 		
@@ -1444,6 +1488,16 @@ function tzRetQueryStringDTime($tbl_col_name,$dt_type,$separator)
 		{
 			return '';
 		}
-		
 	}
+	
+function rrmdir($dir) 
+{
+    foreach(glob($dir . '/*') as $file) {
+        if(is_dir($file))
+            rrmdir($file);
+        else
+            unlink($file);
+    }
+    rmdir($dir);
+}
 ?>
