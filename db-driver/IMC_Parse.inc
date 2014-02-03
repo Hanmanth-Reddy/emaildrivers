@@ -1499,6 +1499,12 @@ class IMC_Parse
         }
 	}
 
+	function parseRemTime($data)
+	{
+		preg_match('/\d+/', $data, $match);
+		return $match[0]*60;
+	}
+
 	function replyAction($calinfo,$action,$recipient,$efrom,$invitation_extra_datasend)
 	{
 		global $curtime_header,$smtp,$username,$maildb,$db,$act_name,$companyuser,$domainname,$disus,$maildomain,$akken_arec_port,$boun_mixed_part,$boun_alternative_part;
@@ -1608,6 +1614,13 @@ class IMC_Parse
 			$priority = $calinfo["VCALENDAR"]["VEVENT"]["PRIORITY"][0]["value"];
 			$organizer = $calinfo["VCALENDAR"]["VEVENT"]["ORGANIZER"][0]["param"]["CN"]." [".$calinfo["VCALENDAR"]["VEVENT"]["ORGANIZER"][0]["value"]."]";
 			$org_email = trim($calinfo["VCALENDAR"]["VEVENT"]["ORGANIZER"][0]["value"]);
+
+			$tempremtime = $this->parseRemTime($calinfo["VCALENDAR"]["VEVENT"]["VALARM"]["TRIGGER"][0]["value"]);
+			if($tempremtime>0)
+			{
+				$remtime=$tempremtime;
+				$show="Yes";
+			}
 
 			$rrule = $calinfo["VCALENDAR"]["VEVENT"]["RRULE"][0]["value"];
 			if($rrule!="")
