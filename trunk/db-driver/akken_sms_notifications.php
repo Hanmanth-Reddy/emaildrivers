@@ -23,7 +23,7 @@
 		$nque="SELECT p.id, p.type, p.title, p.descri, c.username, c.sno, c.phone, c.smsdomain, p.smsdescri
 		FROM akken_notifications.notifications p 
 		LEFT JOIN akken_notifications.notifications_list c ON p.sno=c.psno 
-		WHERE c.sms_status='N' ORDER BY p.cdate";
+		WHERE c.phone!='' AND c.smsdomain!='' AND c.sms_status='N' ORDER BY p.cdate";
 		$nres=mysql_query($nque,$db);
 		while($nrow=mysql_fetch_row($nres))
 		{
@@ -39,7 +39,6 @@
 
 			if(strlen($nrow[6])==10)
 			{
-				$username = $nrow[4];
 				$to = $nrow[6]."@".$nrow[7];
 				$matter = $nrow[8];
 
