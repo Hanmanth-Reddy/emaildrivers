@@ -23,7 +23,7 @@
 		$nque="SELECT p.id, p.type, p.title, p.descri, c.username, c.sno, c.email 
 		FROM akken_notifications.notifications p 
 		LEFT JOIN akken_notifications.notifications_list c ON p.sno=c.psno 
-		WHERE c.email_status='N' ORDER BY p.cdate";
+		WHERE c.email!='' AND c.email_status='N' ORDER BY p.cdate";
 		$nres=mysql_query($nque,$db);
 		while($nrow=mysql_fetch_row($nres))
 		{
@@ -34,13 +34,10 @@
 			$ntype = $nrow[1];
 			$csno = $nrow[5];
 
-			$username = $nrow[4];
 			$to = $nrow[6];
 			$subject = $nrow[2];
 
-			//$viewlink = "<a target='_blank' href='http://login.akken.com/?access=notification&type=$ntype&id=$nid'>Click to View</a>";
-
-			$matter = "<div style='font-family: arial; font-size: 10pt;'>".str_replace("\n","<br>",$nrow[3])."<br><br>".$viewlink."</div>";
+			$matter = "<div style='font-family: arial; font-size: 10pt;'>".str_replace("\n","<br>",$nrow[3])."<br><br></div>";
 			$ato = explode(",",$to);
 
 			if($to!="")
