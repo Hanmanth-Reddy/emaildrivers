@@ -11,6 +11,12 @@
 	require("emailApplicationTrigger.php");
 	require('phptoPDF/fpdf.php');	
 	
+	require_once('timesheet/class.Timesheet.php');
+	$timesheetObj = new AkkenTimesheet($db, '33');
+	
+	$path_pdf = 'mpdfnew/mpdf.php'; 
+	require_once($path_pdf);
+	
 	$Mysql_DtFormat = setMySQLDateFormat();	
 	$user_timezone = getTimezone();	
 	function stripslashes_deep($value){
@@ -55,6 +61,7 @@
 			require("maildatabase.inc");
 			require("database.inc");
 			$ubque="SELECT DISTINCT users.username FROM users LEFT JOIN email_invoice ON users.username=email_invoice.created_by WHERE users.type NOT IN ('con','cllacc') AND users.status!='DA' AND email_invoice.to_email!='' AND (email_invoice.status='0' or email_invoice.status='1') ";
+			
 			$ubres=mysql_query($ubque,$db);
 			if(mysql_num_rows($ubres)>0){
 				//Checking the Mails count
@@ -80,6 +87,7 @@
 						  $mailidList	= implode(',',$emailids);
                           //$mailidList = substr($mailidList,0,(strlen($mailidList)-1));
 					}
+					
 					 	 $que="select a.bcc,a.from,a.inv_subject,a.id,a.attach,a.to_email,a.status,a.charset,a.body,a.inv_sno,a.inv_number,a.timesheet_attach as timesheet_attach,a.cc,a.filename as inv_filename,staffacc_contact.sno as contactId  from email_invoice a 
 LEFT JOIN  invoice ON a.inv_sno=invoice.sno LEFT JOIN staffacc_cinfo ON staffacc_cinfo.sno = invoice.client_name 
 LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
@@ -231,7 +239,7 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 								$sertodate=	explode("-",$todate);
 								$serfdate1=$serfdate[1]."/".$serfdate[2]."/".$serfdate[0];
 								$sertodate1=$sertodate[1]."/".$sertodate[2]."/".$sertodate[0];
-			
+								
 								if($inv_tmp_selected == "OLD"){
 								//For Timesheet Details
 									$eque="SELECT emp_list.username, emp_list.name, timesheet.assid, SUM( timesheet.thours ) , timesheet.parid, ".tzRetQueryStringDate(' par_timesheet.sdate','Date', '/' )." , invoice_rates.bamount, ".tzRetQueryStringDate(' par_timesheet.edate','Date', '/' )." , '', SUM( timesheet.othours ) , invoice_rates.bperiod, invoice_rates.otrate, invoice_rates.ot_period, sum( SUBSTRING( timesheet.thours, 1, (INSTR( timesheet.thours, '.' ) -1 ) ) ), sum( SUBSTRING( timesheet.thours, (INSTR( timesheet.thours, '.' ) +1 ) ) ), sum( SUBSTRING( timesheet.othours, 1, (INSTR( timesheet.othours, '.' ) -1 ) ) ), sum( SUBSTRING( timesheet.othours, (INSTR( timesheet.othours, '.' ) +1 ) ) ), invoice_rates.double_rate, invoice_rates.double_period, sum( SUBSTRING( timesheet.double_hours, 1, (INSTR( timesheet.double_hours, '.' ) -1 ) ) ), sum( SUBSTRING( timesheet.double_hours, (INSTR( timesheet.double_hours, '.' ) +1 ) ) ), timesheet.tax,SUM(timesheet.double_hours), invoice_rates.diem_total, invoice_rates.diem_billable, invoice_rates.diem_period, SUM(round((ROUND(CAST(timesheet.thours AS DECIMAL(12,2)),2) * IF(invoice_rates.bperiod='YEAR',ROUND((CAST(invoice_rates.bamount AS DECIMAL(12,2))/(8*261)),2),IF(invoice_rates.bperiod='MONTH',ROUND((CAST(invoice_rates.bamount AS DECIMAL(12,2))/(8*(261/12))),2),IF(invoice_rates.bperiod='WEEK',ROUND((CAST(invoice_rates.bamount AS DECIMAL(12,2))/(8*5)),2),IF(invoice_rates.bperiod='DAY',ROUND((CAST(invoice_rates.bamount AS DECIMAL(12,2))/8),2),ROUND(CAST(invoice_rates.bamount AS DECIMAL(12,2)),2)))))),2)), SUM(round((ROUND(CAST(timesheet.othours AS DECIMAL(12,2)),2) * IF(invoice_rates.ot_period='YEAR',ROUND((CAST(invoice_rates.otrate AS DECIMAL(12,2))/(8*261)),2),IF(invoice_rates.ot_period='MONTH',ROUND((CAST(invoice_rates.otrate AS DECIMAL(12,2))/(8*(261/12))),2),IF(invoice_rates.ot_period='WEEK',ROUND((CAST(invoice_rates.otrate AS DECIMAL(12,2))/(8*5)),2),IF(invoice_rates.ot_period='DAY',ROUND((CAST(invoice_rates.otrate AS DECIMAL(12,2))/8),2),ROUND(CAST(invoice_rates.otrate AS DECIMAL(12,2)),2)))))),2)), SUM(round((ROUND(CAST(timesheet.double_hours AS DECIMAL(12,2)),2) * IF(invoice_rates.double_period='YEAR',ROUND((CAST(invoice_rates.double_rate AS DECIMAL(12,2))/(8*261)),2),IF(invoice_rates.double_period='MONTH',ROUND((CAST(invoice_rates.double_rate AS DECIMAL(12,2))/(8*(261/12))),2),IF(invoice_rates.double_period='WEEK',ROUND((CAST(invoice_rates.double_rate AS DECIMAL(12,2))/(8*5)),2),IF(invoice_rates.double_period='DAY',ROUND((CAST(invoice_rates.double_rate AS DECIMAL(12,2))/8),2),ROUND(CAST(invoice_rates.double_rate AS DECIMAL(12,2)),2)))))),2)),project,refcode FROM timesheet LEFT JOIN emp_list ON timesheet.username = emp_list.username LEFT JOIN invoice_rates ON (invoice_rates.pusername = timesheet.assid AND timesheet.billable = invoice_rates.invid) LEFT JOIN par_timesheet ON ( par_timesheet.sno = timesheet.parid ) WHERE timesheet.billable ='".$hrow[0]."' AND timesheet.billable != '' AND timesheet.type != 'EARN' AND invoice_rates.invid ='".$hrow[0]."' GROUP BY timesheet.username,timesheet.parid,timesheet.assid ORDER BY emp_list.name, timesheet.sdate";
@@ -269,9 +277,16 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 								$expensepdf	= new FPDF();
 
 								$expensepdf->AddPage();
-
-								if (($emailopt == 1 || $emailopt == 2) &&  count($expense_values) > 0) {
-
+									
+								if (($emailopt == 1 || $emailopt == 2 || $emailopt == 3) &&  count($expense_values) > 0) {
+									$bill_invoice = $inv_sno;
+									$companyLogo = getCompanyLogo($bill_invoice, $folder_name);
+									if($companyLogo != '')
+									{
+										$expensepdf->SetFont('Arial','B',11);
+										$expensepdf->Cell(300,10,"{$expensepdf->Image($companyLogo, $expensepdf->GetX(), $expensepdf->GetY(), 44, 14)}");
+										$expensepdf->Ln();
+									}
 									foreach ($expense_values as $assignmentid) {
 
 										$expensepdf->Ln();
@@ -343,7 +358,9 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 									}
 								}
 
-								if(($emailopt == 1 || $emailopt == 2) &&  count($template_Time_Values) > 0){	
+
+								if(($emailopt == 1 || $emailopt == 2 || $emailopt == 3) &&  count(
+								$template_Time_Values) > 0){	
 									$bill_invoice = $inv_sno;
 									//added by naveen
 									
@@ -356,214 +373,135 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 										$pdf->Ln();
 									}
 									$template_Time_Values = remove_duplicateKeys("timeParId",$template_Time_Values);
-
+									
 									$rec_cnt = count($template_Time_Values);
 									for($rr=0; $rr<$rec_cnt; $rr++){
 											 $total = 0;
 										$addr1 = $template_Time_Values[$rr]['timeParId'];
-										$qu="select ".tzRetQueryStringDate('par_timesheet.sdate','ShMonth','/').", ".tzRetQueryStringDate('par_timesheet.edate','ShMonth','/').", ".tzRetQueryStringDTime('par_timesheet.stime','DateTime','/').", par_timesheet.issues, par_timesheet.astatus, par_timesheet.pstatus, emp_list.name, ".tzRetQueryStringDTime('par_timesheet.atime','DateTime','/').", ".tzRetQueryStringSTRTODate('par_timesheet.ptime','%m/%d/%Y %H:%i','DateTime','/').", par_timesheet.puser, par_timesheet.auser, par_timesheet.notes, par_timesheet.ts_multiple  from par_timesheet LEFT JOIN emp_list ON emp_list.username=par_timesheet.username where par_timesheet.sno='".$addr1."'";
-											
-									    $result=mysql_query($qu,$db);
+										
+										$qu="select ".tzRetQueryStringDate('par_timesheet.sdate','ShMonth','/').", ".tzRetQueryStringDate('par_timesheet.edate','ShMonth','/').", DATE_FORMAT( par_timesheet.stime, '%m/%d/%Y %H:%i:%s' ), par_timesheet.issues, par_timesheet.astatus, par_timesheet.pstatus, emp_list.name, ".tzRetQueryStringDTime('par_timesheet.atime','DateTime24','/').", ".tzRetQueryStringDTime('par_timesheet.ptime','DateTime24','/').", par_timesheet.puser, par_timesheet.auser, par_timesheet.notes from par_timesheet LEFT JOIN emp_list ON emp_list.username=par_timesheet.username where par_timesheet.sno='".$addr1."'";
+										
+										$result=mysql_query($qu,$db);
 										$myrow=mysql_fetch_row($result);
 										mysql_free_result($result);
-										
 										$que2="select name from time_attach where parid='".$addr1."'";
 										$res2=mysql_query($que2,$db);
 										$row2=mysql_fetch_row($res2);
 										$filename=$row2[0];
+										$CompInfoQry="select company_name from company_info";
+										$CompInfoRes=mysql_query($CompInfoQry,$db);
+										$CompInfoRow=mysql_fetch_row($CompInfoRes);
+										$EmpCompanyName=$CompInfoRow[0];
+										$logopath = getCompanyLogo($companyuser, $WDOCUMENT_ROOT);
 										
-										$pdf->SetFont('Arial','B',11);
-										$pdf->Cell(300,3,"{$myrow[6]}");
-										$pdf->Ln();
-										$pdf->Ln();
-										$pdf->SetFont('Arial','',10);
-										$pdf->Cell(50,5,"Time Sheets Submitted by");
-										$pdf->Cell(60,5,"{$myrow[6]}");
-										$pdf->Cell(100,5,"{$myrow[2]}");
-										$pdf->Ln();
-										$pdf->Ln();
-										$pdf->SetFont('Arial','',8);
-										$pdf->Cell(30,6,"Date");
-										
-										$pdf->Cell(20,6,"Type");
-										$pdf->Cell(10,6,"Hours");
-										$pdf->Cell(40,6,"Approved By");
-										$pdf->Cell(30,6,"Approved Date");
-										$pdf->Cell(45,6,"Assignments");
-										$pdf->Ln();
-										/*$timesheet ='	<tr><td class="afontstyle" align="left" colspan="2">'.$myrow[6].'</td></tr>
-															<tr>
-																<td class="afontstyle" align="right" colspan="2">Time Sheets Submitted by <strong>'.$myrow[6].'</strong> on <strong>'.$myrow[2].'</strong></td>
-															</tr>
-														<tr>
-															<td colspan="2" align="center">
-															<table width="100%" cellspacing="0" cellpadding="0" border="0">
-													  <tr class="hthbgcolor" height="20">
-																<th width="14%" class="afontstyle">Date </th>
-																<th width="22%" class="afontstyle">Assignments</th>
-																<th width="10%" class="afontstyle">Type</th>
-																<th width="7%" class="afontstyle">Hours</th>
-																<th width="6%" class="afontstyle">Billable</th>
-																<th width="21%" class="afontstyle">Approved By</th>
-																<th width="11%" class="afontstyle">Approved Date</th>
-															</tr>'; */
-					
+										$timesheet .= "
+											<style>@page {
+												margin: 0px, 35px, 35px, 35px;
+											}</style>
+										";
+										$timesheet .= '<table width="99%" border="0" cellspacing="0" cellpadding="0">
+													  <tr>
+														<td width="50%" align="left" valign="top"><div></div></td>
+														<td width="50%" align="right">&nbsp;</td>
+													  </tr>
+													   <tr>
+														<td width="50%" align="left" valign="top"><div><img src="'.$logopath.'" border=0 height=48 width=165></div></td>
+														<td width="50%" align="right">&nbsp;</td>
+													  </tr>
+													  <tr>
+														<td><font class=afontstylee>Company Name : <b>'.stripslashes($EmpCompanyName).'</b></font></td>
+														<td align="right"><font class=afontstylee>Time Sheet Submitted by <b>'.$myrow[6].'</b> on <b>'.$myrow[2].'</b></font></td>
+													  </tr>
+												 </table>
+												 </td>
+											</tr>    	
+											</table>
+										';
 										if(bill_invoice != '')
 											$chk_condi_bill = "AND billable='".$bill_invoice."'";
 										else
 											$chk_condi_bill = "AND billable='Yes'";
-											
-										 $query="select a.sno,a.client,'',".tzRetQueryStringDate('a.sdate','DateDay','/').",a.task,a.hours,'',a.type,'',a.billable,a.assid,a.hourstype,a.auser,'',a.status,".tzRetQueryStringDTime('a.approvetime','DateTime','/').",classid,".tzRetQueryStringDate('a.edate','Date','/')." from timesheet_hours a LEFT JOIN par_timesheet ON par_timesheet.sno = a.parid WHERE  a.parid='".$addr1."'  AND par_timesheet.astatus IN ('Approved','Billed','ER')  AND a.status IN ('Approved','Billed') ".$chk_condi_bill ." order by a.sdate,a.edate DESC";
-											$res1=mysql_query($query,$db);
-											$sno=0;$dhours=0; $dmin=0;$dhours1=0; $dmin1=0;	
-											if(mysql_num_rows($res1) > 0 ){
-												$incW = 0;
-													while($dataArr[$incW] = mysql_fetch_array($res1)){														
-														if($dataArr[$incW][1] != '0'){															
-															$que = "SELECT cname from staffacc_cinfo where sno=".$dataArr[$incW][1];															$resOpt=mysql_query($que,$db);
-															$rowOpt=mysql_fetch_row($resOpt);
-															$companyname1=$rowOpt[1];
-														}else{
-															$companyname1 = '--';	
-														}
-														if($dataArr[$incW][7]=="EARN"){
-													 	  $dataArr[$incW][1] = $dataArr[$incW][1]." ( Benefits )";
-														}else{
-														if($dataArr[$incW][10]=="AS"){
-															$dataArr[$incW][1]=$companyname1." ( Administrative Staff ) ";
-														}else if($dataArr[$incW][10]=="OB"){
-															$dataArr[$incW][1]=$companyname1." ( On Bench ) ";
-														}else if($$dataArr[$incW][10]=="OV"){
-															$dataArr[$incW][1]=$companyname1." ( On Vacation ) ";
-														}else{
-															$qu="select cname from staffacc_cinfo where sno=".$dataArr[$incW][1];
-															$resOpt1=mysql_query($qu,$db);
-															$cliOpt=mysql_fetch_row($resOpt1);
-															if($dataArr[$incW][10]==""){
-																$dataArr[$incW][10]=" N/A ";
-															}
-															$dataArr[$incW][1]=" ( ".$dataArr[$incW][10]." )".$cliOpt[1];
-														}
-													} // end of if loop
-													$getProject = "SELECT project FROM hrcon_jobs WHERE pusername = '".$dataArr[$incW][10]."'";
-													$resProject = mysql_query($getProject,$db);
-													$rowProject = mysql_fetch_row($resProject);
-														if($rowProject[0]!=""){
-															$project=" - ".$rowProject[0];
-														}else{
-															$project="";
-														}
-													$dataArr[$incW][1] = $dataArr[$incW][1].$project;
-													$total=$total+$dataArr[$incW][5];
-												//$total1=$total1+$data[11];
-												//$total2=$total2+$data[16];
-													if($sno%2==0)
-													 $timesheet .="<tr class=tr1bgcolor>";
-												else
-													 $timesheet .= "<tr class=tr2bgcolor>";
-												$sno++;
-												if($dataArr[$incW][9] == "" || is_null($dataArr[$incW][9]))
-													$strbil = "No";
-												else
-													$strbil = "Yes";
-												$sql_user = "SELECT name,type from users WHERE username=".$dataArr[$incW][12];
-												$res_user=mysql_query($sql_user,$db);
-												$nameAndsource=mysql_fetch_row($res_user);
-				
-									//$responseName=getUserName($myrow[13],$db);
-									//$nameAndsource=explode("|",$responseName);
-				
-											if($nameAndsource[1]=="cllacc" && $dataArr[$incW][12]!=""){
-												if($dataArr[$incW][14]=="Approved" || $dataArr[$incW][14]=="Billed")
-													$disSource="Self Svc (".$nameAndsource[0].")";
-												if($dataArr[$incW][14]=="Rejected")
-												$disSource="Rejected (".$nameAndsource[0].")";
-											}else if($nameAndsource[1]!="cllacc" && $dataArr[$incW][12]!=""){
-												if($dataArr[$incW][14]=="Approved" || $dataArr[$incW][14]=="Billed")
-													$disSource="Accounting (".$nameAndsource[0].")";
-												if($dataArr[$incW][14]=="Rejected")
-													$disSource="Rejected (".$nameAndsource[0].")";
+										$timesheet .= $timesheetObj->displayTimesheetDetailsEmail($addr1, "approved",$chk_condi_bill);
 										
-											}
-											if($dataArr[$incW][17]!="" && $dataArr[$incW][17]!="00/00/0000"){
-												$dateRangeArr = explode(' ',$dataArr[$incW][3]);
-												$dateRangeShow = $dateRangeArr[0]." - ".$dataArr[$incW][17];
-											}
-											else
-												$dateRangeShow =$dataArr[$incW][3];
-								   
-											$dataArr[$incW][4]= htmlspecialchars($dataArr[$incW][4],ENT_QUOTES);
-											$typedata = getHoursType($dataArr[$incW][11]);
-											$hourdata = number_format($dataArr[$incW][5],2,'.','');
-											$pdf->Cell(30,6,"{$dateRangeShow}");
-											$pdf->Cell(20,6,"{$typedata}");
-											$pdf->Cell(10,6,"{$hourdata}");
-											$pdf->Cell(40,6,"{$disSource}");
-											$pdf->Cell(30,6,"{$dataArr[$incW][15]}");
-											$pdf->MultiCell(45,6,"{$dataArr[$incW][1]} Task Details:{$dataArr[$incW][4]}"); 
-
-								
-										/*$timesheet .= '
-											<td valign="top" class=afontstyle><?php echo'. $dateRangeShow.'</td>
-											<td class=afontstyle>'.$dataArr[$incW][1].'"<br>Task Details: "'.htmlspecialchars($dataArr[$incW][4],ENT_QUOTES); 
-											$timesheet .= '</td>
-											<td class=afontstyle>'.getHoursType($dataArr[$incW][11]);
-											$timesheet .='</td>
-											<td class=afontstyle>'. number_format($dataArr[$incW][5],2,'.','');
-											$timesheet .='</td>
-											<td class=afontstyle>'.$strbil.'</td>
-											<td class=afontstyle>'.$disSource.'</td>
-											<td class=afontstyle>'.$dataArr[$incW][15].'</td>
-										  </tr>'; */	
-														$incW++;													
-										}													
-									}										
-											
-										 $total =number_format($total,2,'.','');
-										   $pdf->Ln();
-										   $pdf->Cell(30,7,"Total Hours:");
-										   $pdf->Cell(50,7,"{$total}");
-										   
-										   $pdf->Ln();
-										   $pdf->Cell(100,8,"Office Use");
-										   
-										   $pdf->Ln();
-										   $pdf->Cell(60,8,"Signature :");
-										   $pdf->Cell(60,8,"Signature :");
-										   
-										   $pdf->Ln();
-										   $pdf->Cell(60,8,"Date :");
-										   $pdf->Cell(60,8,"Date :");
-											/*$timesheet .= '<tr>
-											<td class=afontstyle>&nbsp;</td>
-											<td align=right class=hfontstyle>Total Hours: &nbsp;&nbsp;</td>
-											<td class=hfontstyle>&nbsp;</td>
-											<td class=hfontstyle>'.number_format($total,2,'.','').'</td>
-											<td class=hfontstyle colspan="3">&nbsp;</td>                
-										  </tr>
-										<tr>
-											<td class="hthbgcolor afontstyle"><strong>Office Use</strong></td>
-											<td colspan="6">&nbsp;</td>
+										 if($Biltotal>"0")
+										{
+											$timesheet .=  '<tr>
+								<td colspan=1><font class=afontstyle>&nbsp;</font></td><td colspan="1">&nbsp;</td><td align=right><font class=hfontstyle >Billable Hours: &nbsp;&nbsp;</font></td><td><font class=hfontstyle>'.number_format($Biltotal,2,"."," ").'</font></td><td>&nbsp;</td><td>&nbsp;</td>
+								</tr>';
+										}
+										$timesheet .=  '<tr>
+								<td colspan="8">
+									<table width="99%" border="0">
+									<tr>
+										<td colspan="2">&nbsp;</td>
 										</tr>
+										<tr class=hthbgcolor>
+										<td colspan="2"><font class=afontstylee><b>Office Use</b></font></td>
+									</tr>
 										
-										<tr>
-											<td class="afontstyle" align="left" colspan="3">Signature :</td>
-											<td>&nbsp;</td>
-											<td class="afontstyle" align="left" colspan="3">Signature :</td>
-										</tr>
-										
-										<tr>
-											<td class="afontstyle" align="left" colspan="3">Date :</td>
-											<td>&nbsp;</td>
-											<td class="afontstyle" align="left" colspan="3">Date :</td>				
-									  </tr>
-									</table>
-								</td>
-								</tr>
-								<tr><td>'; */
+									<tr height="25">
+											<td width="54%" height="40"><font class=afontstylee>Employee Signature&nbsp;&nbsp; :________________________________</font></td>
+											<td width="46%"><font class=afontstylee>Date :___________</font></td>
+									</tr>
+									<tr height="25">
+											<td height="40"><font class=afontstylee>Supervisor Signature :________________________________</font></td>
+											<td><font class=afontstylee>Date :___________</font></td>
+									</tr>
+									</table></td>
+								</tr>  </table></table>';
+								if ($rr==$rec_cnt-1){
+									$timesheet .=  "";
+								}else{
+									$timesheet .=   "delimiterforakken<pagebreak />";
+								}
 								
-
+								
+								
+							
 					} //End for()--loop of records	
+						$html_arr = explode('delimiterforakken',$timesheet);
+						if($emailopt == 3){
+							$mpdf=new mPDF('utf-8');
+							
+							$mpdf->SetDisplayMode('fullpage');
+							$stylesheet = file_get_contents('/usr/bin/db-driver/timesheet/educeit.css');
+							$mpdf->WriteHTML($stylesheet,1);
+							
+							$stylesheet = file_get_contents('/usr/bin/db-driver/timesheet/tab.css');
+							$mpdf->WriteHTML($stylesheet,1);
+							
+							$stylesheet = file_get_contents('/usr/bin/db-driver/timesheet/timesheet.css');
+							$mpdf->WriteHTML($stylesheet,1);
+
+							$mpdf->list_indent_first_level = 0;	
+								
+							for($n=0; $n<count($html_arr); $n++){
+								$mpdf->WriteHTML($html_arr[$n]);
+							}
+							$timesheet = '';
+						}
+						elseif($emailopt == 1 || $emailopt == 2){
+							$mpdf=new mPDF('utf-8', 'A4-L');
+							$mpdf->SetDisplayMode('fullpage');
+						
+							$stylesheet = file_get_contents('/usr/bin/db-driver/timesheet/educeit.css');
+							$mpdf->WriteHTML($stylesheet,1);
+							
+							$stylesheet = file_get_contents('/usr/bin/db-driver/timesheet/tab.css');
+							$mpdf->WriteHTML($stylesheet,1);
+							
+							$stylesheet = file_get_contents('/usr/bin/db-driver/timesheet/timesheet.css');
+							$mpdf->WriteHTML($stylesheet,1);
+
+							$mpdf->list_indent_first_level = 0;	
+								
+							for($n=0; $n<count($html_arr); $n++){
+								$mpdf->WriteHTML($html_arr[$n]);
+								
+							}
+							$timesheet = '';
+						}
+						
 				
 				}//if(;;) 
 							
@@ -585,10 +523,14 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 										fwrite($fp, $arow['filecontent']);
 										
 										fclose($fp);
-										$file_size[$i]=filesize($file);
-										$tempfile[$i]=$tfile."|-".stripslashes($replace_sub);
+										if($emailopt != 3){
+											$file_size[$i]=filesize($file);
+											$tempfile[$i]=$tfile."|-".stripslashes($replace_sub);
+										}
+										
 										$i++;
 										$flag++;
+										$file1 = $file;
 									}									
 									if($emailopt == 1 &&  count($template_Time_Values) > 0){									
 										$pdf->Ln();
@@ -604,15 +546,19 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 										$file= $isDirEx."/".$tfile;
 										$fp1 = fopen($file,"w");
 										fwrite($fp1, '');
-										$output = $pdf->Output($file,'F');
+										//$output = $pdf->Output($file,'F');
+										$output = $mpdf->Output($file,'F');
 										fclose($fp1);
-										$file_size[$i]=filesize($file);
-										$tempfile[$i]=$tfile."|-".stripslashes($replace_timesheet);
+										//$file2 = $file;
+										if($emailopt != 3){
+											$file_size[$i]=filesize($file);
+											$tempfile[$i]=$tfile."|-".stripslashes($replace_timesheet);
+										}
 										$i++;
 										$flag++;
 									}
 									
-									if($emailopt == 2 &&  count($template_Time_Values) > 0) {											
+									if($emailopt == 2 &&  count($template_Time_Values) > 0 || $emailopt == 3) {											
 									
 										$pdf->Ln();
 										//$pdf->Cell(1000,6,"{$timesheet}");
@@ -627,10 +573,16 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 										$file= $isDirEx."/".$tfile;
 										$fp1 = fopen($file,"w");
 										fwrite($fp1, '');
-										$output = $pdf->Output($file,'F');
+										$output = $mpdf->Output($file,'F');
 										fclose($fp1);
-										$file_size[$i]=filesize($file);
-										$tempfile[$i]=$tfile."|-".stripslashes($replace_timesheet);
+										$file3 = $file;
+										
+										if($emailopt != 3){
+											$file_size[$i]=filesize($file);
+											$tempfile[$i]=$tfile."|-".stripslashes($replace_timesheet);
+										}
+										
+										
 										$i++;
 										$flag++;
 									
@@ -657,8 +609,12 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 												$fp = fopen($file,"w");
 												fwrite($fp,$row2['data']);										
 												fclose($fp);	
-												$file_size[$i]=filesize($file);
-												$tempfile[$i]=$tfile."|-".stripslashes($row2['name']);
+												
+												if($emailopt != 3){
+													$file_size[$i]=filesize($file);
+													$tempfile[$i]=$tfile."|-".stripslashes($row2['name']);
+												}
+												$file4 = $file;
 
 												if (!in_array($parid, $timesheet_parid)) {
 
@@ -671,9 +627,9 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 										}
 									}
 
-									if (count($expense_values) > 0) {
+									if(count($expense_values) > 0) {
 
-										if ($emailopt == 1 &&  count($template_Time_Values) > 0) {
+										if ($emailopt == 1) {
 
 											$expensepdf->Ln();
 
@@ -685,26 +641,27 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 											$folder_path	= $WDOCUMENT_ROOT . '/' . $attach_folder;
 
 											if (!is_dir($folder_path)) {
-
 												mkdir($folder_path, 0777);
 											}
 
 											$file	= $folder_path . '/' . $expense_file;
 											$handle	= fopen($file, 'w');
-
 											fwrite($handle, '');
 
 											$output	= $expensepdf->Output($file, 'F');
 
 											fclose($handle);
+											//$file5 = $file;
 
-											$file_size[$i]	= filesize($file);
-											$tempfile[$i]	= $expense_file .'|-'. stripslashes($replace_expense);
-
+											if($emailopt != 3){
+												$file_size[$i]	= filesize($file);
+												$tempfile[$i]	= $expense_file .'|-'. stripslashes($replace_expense);
+											}
+											
 											$i++;
 											$flag++;
 
-										} elseif ($emailopt == 2 &&  count($template_Time_Values) > 0) {
+										} elseif ($emailopt == 2 || $emailopt == 3) {
 
 											$expensepdf->Ln();
 
@@ -726,9 +683,13 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 											$output	= $expensepdf->Output($file, 'F');
 
 											fclose($handle);
+											$file6 = $file;
 
-											$file_size[$i]	= filesize($file);
-											$tempfile[$i]	= $expense_file .'|-'. stripslashes($replace_expense);
+											if($emailopt != 3){
+												$file_size[$i]	= filesize($file);
+												$tempfile[$i]	= $expense_file .'|-'. stripslashes($replace_expense);
+											}
+											
 
 											$i++;
 											$flag++;
@@ -776,13 +737,109 @@ LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno
 														fwrite($fp, $row['data']);
 														fclose($fp);
 
-														$file_size[$i]	= filesize($file);
-														$tempfile[$i]	= $row['name'] .'|-'. stripslashes($row['name']);
+														if($emailopt != 3){
+															$file_size[$i]	= filesize($file);
+															$tempfile[$i]	= $row['name'] .'|-'. stripslashes($row['name']);
+														}
+														
 													}
 												}
 											}
+											
 										}
+										
 									}
+								
+								//if(($emailopt == 1 &&  count($template_Time_Values) > 0 ) || $emailopt == 3 || ($emailopt == 2 &&  count($template_Time_Values) > 0 )){
+									
+								if($emailopt == 3){	
+								
+										$path_pdf = 'mpdfnew/mpdf.php'; 
+										//$path_pdf = '/var/www/companies/naveend/include/mpdfnew/mpdf.php'; 
+										require_once($path_pdf);
+										$mpdf = new mPDF('utf-8', 'A4', '8', '', 10, 10, 7, 7, 10, 10);
+										$mpdf->SetImportUse();
+										
+										$pagecount = $mpdf->SetSourceFile($file1);
+										for ($i=1;$i<=$pagecount;$i++) {
+											$mpdf->AddPage();
+											$tplId = $mpdf->ImportPage($i);
+											$mpdf->UseTemplate($tplId);
+											$mpdf->WriteHTML();
+										}
+										
+										if($file2){
+											$pagecount = $mpdf->SetSourceFile($file2);
+											for ($i=1;$i<=$pagecount;$i++) {
+												$mpdf->AddPage();
+												$tplId = $mpdf->ImportPage($i);
+												$mpdf->UseTemplate($tplId);
+												$mpdf->WriteHTML();
+											}
+										}
+
+										if($file3){
+											$pagecount = $mpdf->SetSourceFile($file3);
+											for ($i=1;$i<=$pagecount;$i++) {
+												$mpdf->AddPage();
+												$tplId = $mpdf->ImportPage($i);
+												$mpdf->UseTemplate($tplId);
+												$mpdf->WriteHTML();
+											}
+										}
+										
+										// if($file4){
+											// $pagecount = $mpdf->SetSourceFile($file4);
+											// for ($i=1;$i<=$pagecount;$i++) {
+												// $mpdf->AddPage();
+												// $tplId = $mpdf->ImportPage($i);
+												// $mpdf->UseTemplate($tplId);
+												// $mpdf->WriteHTML();
+											// }
+										// }
+										
+										if($file5){
+											$pagecount = $mpdf->SetSourceFile($file5);
+											for ($i=1;$i<=$pagecount;$i++) {
+												$mpdf->AddPage();
+												$tplId = $mpdf->ImportPage($i);
+												$mpdf->UseTemplate($tplId);
+												$mpdf->WriteHTML();
+											}
+										}
+										
+										if($file6){
+											$pagecount = $mpdf->SetSourceFile($file6);
+											for ($i=1;$i<=$pagecount;$i++) {
+												$mpdf->AddPage();
+												$tplId = $mpdf->ImportPage($i);
+												$mpdf->UseTemplate($tplId);
+												$mpdf->WriteHTML();
+											}
+										}
+										
+										//$single_pdf = 'Invoice and Timesheet.pdf';
+										$single_pdf  = str_replace("/","",str_replace(' : INV',' _INV',$filesubject)).".pdf";
+										$folder_path	= $WDOCUMENT_ROOT .'/'. $attach_folder;
+										if (!is_dir($folder_path))
+											mkdir($folder_path,0777);
+										
+										$file7 = $folder_path.'/'.$single_pdf;
+										$file_name[$i] = $single_pdf;
+										$file_type[$i] = 'application/pdf';
+										chmod($file7, 0777);
+										$fp5 = fopen($file7,"w");
+										fwrite($fp5, '');
+										$output = $mpdf->Output($file7,'F');
+										fclose($fp5);
+
+										$file_size[$i]=filesize($file7);
+										$tempfile[$i]=$single_pdf.'|-'. stripslashes($single_pdf);
+										$i++;
+										$flag++;
+								}
+								
+								
 							}// end of if loop ($mail_attach=="A")
 
 							if (count($email_attachments) > 0) {
