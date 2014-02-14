@@ -1,0 +1,38 @@
+@charset "utf-8";
+/* CSS Document */
+.nowrap{ white-space:nowrap} /*  */
+.t-r{text-align:right}
+.bold{font-weight:bold}
+a {
+    display: inline-block;
+    position: relative;
+}
+.caption {
+    display: none;
+    position: absolute;
+    top:15;
+	 font-family: Arial;
+    font-size: 8pt;
+    font-style: normal;
+    left: 20;
+    right: 0;
+  
+    color:#000000;
+   
+	
+}
+a:hover .caption {
+    display: inline-block;
+}
+	.afontstylee {
+    color: black;
+    font-family: Arial;
+    font-size: 7pt;
+    font-style: normal;
+	
+	}
+	.modcaption { FONT-SIZE: 12pt; FONT-FAMILY: Arial; FONT-WEIGHT: bold; COLOR: #F02933; }
+
+	.hthbgcolorr {background-color:#00B9F2;}
+	.tr2bgcolor,tr1bgcolor {background-color:#FFFFFF;}
+	.grid_forms {width:100%;overflow-x:scroll;overflow-x:scroll\9;}
