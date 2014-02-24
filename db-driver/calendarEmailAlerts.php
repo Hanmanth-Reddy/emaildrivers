@@ -45,11 +45,13 @@
 		$companyuser=strtolower($drow[0]);
 		require("database.inc");
 
-		$uque="SELECT users.username, timezone.phpvar FROM users LEFT JOIN orgsetup ON users.username=orgsetup.userid LEFT JOIN timezone ON orgsetup.timezone=timezone.sno WHERE users.usertype!='' AND users.status!='DA' AND notify_email!=''";
+		$uque="SELECT users.username, timezone.phpvar, orgsetup.notify_email, orgsetup.notify_val FROM users LEFT JOIN orgsetup ON users.username=orgsetup.userid LEFT JOIN timezone ON orgsetup.timezone=timezone.sno WHERE users.usertype!='' AND users.status!='DA' AND orgsetup.notify_email!=''";
 		$ures=mysql_query($uque,$db);
 		while($urow=mysql_fetch_row($ures))
 		{
 			$username = $urow[0];
+			$notify_to = $urow[2];
+			$notify_val = $urow[3];
 
 			if(in_array($urow[1],$us_tz))
 				$usertime = $starttime + $us_tz_value;
@@ -60,19 +62,19 @@
 			$qsdatetime = $usertime - $slot_time;
 			$qedatetime = $usertime;
 
-			$nque="SELECT orgsetup.notify_email, orgsetup.notify_val, appointments.title, DATE_FORMAT(FROM_UNIXTIME(IF(appointments.recurrence='none',(appointments.sdatetime + '$utzos'),(recurrences.otime + '$utzos'))),'%W, %m/%d/%Y %h:%i%p') stime, DATE_FORMAT(FROM_UNIXTIME(IF(appointments.recurrence='none',(appointments.edatetime + '$utzos'),(recurrences.etime + '$utzos'))),'%W, %m/%d/%Y %h:%i%p') etime, appointments.descri FROM appointments LEFT JOIN orgsetup ON appointments.username=orgsetup.userid LEFT JOIN recurrences ON recurrences.ano = appointments.sno WHERE orgsetup.notify_email!='' AND appointments.status='active' AND (appointments.username='".$username."' OR FIND_IN_SET('".$username."',appointments.approved) > 0 OR FIND_IN_SET('".$username."',appointments.tentative) > 0 OR FIND_IN_SET('".$username."',appointments.pending) > 0) AND ((appointments.recurrence='none' AND ((appointments.sdatetime - orgsetup.notify_val)>=$qsdatetime AND (appointments.sdatetime - orgsetup.notify_val)<=$qedatetime)) OR (appointments.recurrence='recurrence' AND ((recurrences.otime - orgsetup.notify_val)>=$qsdatetime AND (recurrences.otime - orgsetup.notify_val)<=$qedatetime))) ORDER BY stime,appointments.title ASC";
+			$nque="SELECT appointments.title, DATE_FORMAT(FROM_UNIXTIME(IF(appointments.recurrence='none',(appointments.sdatetime + '$utzos'),(recurrences.otime + '$utzos'))),'%W, %m/%d/%Y %h:%i%p') stime, DATE_FORMAT(FROM_UNIXTIME(IF(appointments.recurrence='none',(appointments.edatetime + '$utzos'),(recurrences.etime + '$utzos'))),'%W, %m/%d/%Y %h:%i%p') etime, appointments.descri FROM appointments LEFT JOIN recurrences ON recurrences.ano = appointments.sno WHERE appointments.status='active' AND (appointments.username='".$username."' OR FIND_IN_SET('".$username."',appointments.approved) > 0 OR FIND_IN_SET('".$username."',appointments.tentative) > 0 OR FIND_IN_SET('".$username."',appointments.pending) > 0) AND ((appointments.recurrence='none' AND ((appointments.sdatetime - $notify_val)>=$qsdatetime AND (appointments.sdatetime - $notify_val)<=$qedatetime)) OR (appointments.recurrence='recurrence' AND ((recurrences.otime - $notify_val)>=$qsdatetime AND (recurrences.otime - $notify_val)<=$qedatetime))) ORDER BY stime,appointments.title ASC";
 			$nres=mysql_query($nque,$db);
 			while($nrow=mysql_fetch_row($nres))
 			{
-				$to = $nrow[0];
-				$nval = $nrow[1]/60;
+				$to = $notify_to;
+				$nval = $notify_val/60;
 				$ato = explode(",",$to);
 
-				$subject = "Event Reminder: ".$nrow[2];
-				$notify_body="Your event <b>".$nrow[2]."</b>, will start in <b>".$nval."</b> mins"."<BR><BR><b>Start Time: </b>".$nrow[3]."<br>"."<b>End Time: </b>".$nrow[4];
+				$subject = "Event Reminder: ".$nrow[0];
+				$notify_body="Your event <b>".$nrow[0]."</b>, will start in <b>".$nval."</b> mins"."<BR><BR><b>Start Time: </b>".$nrow[1]."<br>"."<b>End Time: </b>".$nrow[2];
 
-				if(trim($nrow[5])!="")
-					$notify_body.="<BR><b>Description:</b><BR><BR>".$nrow[5];
+				if(trim($nrow[3])!="")
+					$notify_body.="<BR><b>Description:</b><BR><BR>".$nrow[3];
 
 				$matter = "<div style='font-family: arial; font-size: 10pt;'>".str_replace("\n","<br>",$notify_body)."<br><br></div>";
 
