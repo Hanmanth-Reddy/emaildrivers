@@ -18,20 +18,22 @@
 	require("IMC_Parse.inc");
 	require("emailApplicationTrigger.php");
 	require("ConvertCharset.class.php");
-
+	require("pushEmailFunctions.php"); // Push Email Notification Functions
+	
 	$def_pop_suidl = "|^|";
 
-	$dque="select capp_info.comp_id from company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno where company_info.status='ER' AND capp_info.comp_id NOT IN ('qss','pentacan','youngh2h','matlensilver','ysol','sforce','wbr','hsg','native','cci','marecruit') AND SUBSTR(capp_info.comp_id,1,1) REGEXP '$filter_list' ".$version_clause." ORDER BY capp_info.comp_id";
+	$dque="select capp_info.comp_id from company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno where company_info.status='ER' AND SUBSTR(capp_info.comp_id,1,1) REGEXP '$filter_list' ".$version_clause." ORDER BY capp_info.comp_id";
 	$dres=mysql_query($dque,$maindb);
 	while($drow=mysql_fetch_row($dres))
 	{
 		$autoReplyChkArr = array();
 		$companyuser=strtolower($drow[0]);
-
+		$PushWooshCompanyUser=strtolower($drow[0]);
+		
 		require("maildatabase.inc");
 		require("database.inc");
 
-		$que="select external_mail.imaddress,external_mail.import,external_mail.account,external_mail.passwd,external_mail.lcopy,external_mail.username,external_mail.sno,external_uidls.uidls,external_mail.imsslchk,external_mail.mtype,external_mail.last_rdate,external_mail.luidl,if(external_mail.folder is NULL,'inbox',external_mail.folder),external_mail.host_exchange,external_mail.stime,external_mail.lcount from external_mail LEFT JOIN users ON external_mail.username=users.username LEFT JOIN external_uidls ON external_uidls.extsno=external_mail.sno where ((UNIX_TIMESTAMP()-(UNIX_TIMESTAMP(external_mail.cdate)+external_mail.reminder))>0) and external_mail.lockm='No' and external_mail.reminder!='0' and users.usertype!='' and users.status!='DA'";
+		$que="select external_mail.imaddress,external_mail.import,external_mail.account,external_mail.passwd,external_mail.lcopy,external_mail.username,external_mail.sno,external_uidls.uidls,external_mail.imsslchk,external_mail.mtype,external_mail.last_rdate,external_mail.luidl,if(external_mail.folder is NULL,'inbox',external_mail.folder),external_mail.host_exchange,external_mail.stime,external_mail.lcount,users.userid from external_mail LEFT JOIN users ON external_mail.username=users.username LEFT JOIN external_uidls ON external_uidls.extsno=external_mail.sno where ((UNIX_TIMESTAMP()-(UNIX_TIMESTAMP(external_mail.cdate)+external_mail.reminder))>0) and external_mail.lockm='No' and external_mail.reminder!='0' and users.usertype!='' and users.status!='DA'";
 		$res=mysql_query($que,$db);
 		while($row=mysql_fetch_row($res))
 		{
@@ -61,7 +63,8 @@
 				$hosted_exchange=$row[13];
 				$acc_stime=$row[14];
 				$lcount=$row[15];
-
+				$PushWooshUserId = $username;
+				
 				if($row[12]=="")
 					$dfolder="inbox";
 				else
@@ -199,7 +202,8 @@
 						$uque="update external_uidls set uidls='".addslashes($u_uidls)."' where extsno=$extsno";
 						mysql_query($uque,$db);
 					}
-
+					
+					$totalPushEmails = 0;
 					foreach($req_uidls as $i => $uid)
 					{
 						$msgid=$server_uidls[$i];
@@ -233,7 +237,9 @@
 							if($mbox !== FALSE && trim($mbox)!="")
 							{
 								$rrdate=insertMainData($mbox,0,0);
-
+								
+								if($rrdate!="") $totalPushEmails = $totalPushEmails+1;
+								
 								if($rrdate=="")
 									$uque="update external_mail set cdate=NOW() where sno=$extsno";
 								else
@@ -255,6 +261,14 @@
 							{
 								break;
 							}
+						}
+					}
+					if($totalPushEmails!=0)
+					{
+						$checkMobilePushAccess = checkMobilePush($username, $db);
+						if($checkMobilePushAccess==1)
+						{
+							pushMailMessage($totalPushEmails, $PushWooshCompanyUser, $PushWooshUserId);
 						}
 					}
 				}
