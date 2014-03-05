@@ -63,5 +63,9 @@
 	
 	//*********  Regular expreesion for E-Mail ********************************
 	define("EMAIL_REG_EXP","/(([a-z0-9_]|\\-|\\.|\\')+@([^[:space:]]*)([[:alnum:]-]))/i",true);
-
+	
+	// Set PushWoosh defines
+	define('PW_AUTH', '0xF45s4arIuam9Fqr1WCiKWcWpWz0x0aA68ZHBOJueebMc1qTHn15xTHUcQd1EzDcKdYJHp1Pn4kWJo44lMf');
+    define('PW_APPLICATION', '296D7-4C7A8');
+	define('AKKEN_MOBI_URL', 'akken.mobi');
 ?>
