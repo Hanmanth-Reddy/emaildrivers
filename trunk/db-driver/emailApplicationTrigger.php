@@ -81,4 +81,65 @@
 		$UpdCnt_sys_keys_qry="UPDATE e_folder SET unread=0,total=0 WHERE (total!=0 or unread!=0) AND username='".$username."' AND FID!='' AND ((fid NOT IN(".$UpdCnt_user_keys_string.") AND parent!='system') OR (foldername NOT IN(".$UpdCnt_sys_keys_string.") AND parent='system'))";
 		$UpdRows_sys=mysql_query($UpdCnt_sys_keys_qry,$db);
 	}
+
+	function update_efolder_all($userid)
+	{
+		global $sysflist,$db;
+
+		$UpdCntFolderIds=array();
+
+		if($userid=="all")
+			$wclause = "";
+		else
+			$wclause = " AND m.username='$userid' ";
+
+		$que="SELECT count(1),e.fid,m.seen FROM mail_headers m LEFT JOIN e_folder e ON m.username=e.username LEFT JOIN users u ON e.username=u.username WHERE u.usertype!='' AND u.status!='DA' AND m.folder=e.foldername AND e.parent='system' AND m.status='Active' ".$wclause." GROUP BY m.username,m.folder,m.seen";
+		$res=mysql_query($que,$db);
+		while($row=mysql_fetch_row($res))
+		{
+			if(array_key_exists($row[1],$UpdCntFolderIds))
+			{
+				if($row[2]=="U")
+					$UpdCntFolderIds[$row[1]][1]=($UpdCntFolderIds[$row[1]][1]+$row[0]);
+				else 
+					$UpdCntFolderIds[$row[1]][0]=($UpdCntFolderIds[$row[1]][0]+$row[0]);
+			}
+			else
+			{
+				if($row[2]=="U")
+					$UpdCntFolderIds[$row[1]]=array(0,$row[0]);
+				else 
+					$UpdCntFolderIds[$row[1]]=array($row[0],0);
+			}
+		}
+
+		$que="SELECT count(1),e.fid,m.seen FROM mail_headers m LEFT JOIN e_folder e ON m.username=e.username LEFT JOIN users u ON e.username=u.username WHERE u.usertype!='' AND u.status!='DA' AND m.folder=e.fid AND e.parent!='system' AND m.status='Active' ".$wclause." GROUP BY m.username,m.folder,m.seen";
+		$res=mysql_query($que,$db);
+		while($row=mysql_fetch_row($res))
+		{
+			if(array_key_exists($row[1],$UpdCntFolderIds))
+			{
+				if($row[2]=="U")
+					$UpdCntFolderIds[$row[1]][1]=($UpdCntFolderIds[$row[1]][1]+$row[0]);
+				else 
+					$UpdCntFolderIds[$row[1]][0]=($UpdCntFolderIds[$row[1]][0]+$row[0]);
+			}
+			else
+			{
+				if($row[2]=="U")
+					$UpdCntFolderIds[$row[1]]=array(0,$row[0]);
+				else 
+					$UpdCntFolderIds[$row[1]]=array($row[0],0);
+			}
+		}
+
+		foreach($UpdCntFolderIds as $UpdFldId=>$UpdFldDet)
+		{	
+			$uque="UPDATE e_folder SET unread='".$UpdFldDet[1]."',total='".($UpdFldDet[0]+$UpdFldDet[1])."' WHERE fid='".$UpdFldId."'";
+			mysql_query($uque,$db);
+		}
+
+		$uque="UPDATE e_folder SET unread=0,total=0 WHERE fid NOT IN (".implode(",",array_keys($UpdCntFolderIds)).")";
+		mysql_query($uque,$db);
+	}
 ?>
