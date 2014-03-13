@@ -20,6 +20,7 @@ class POP3
 	var $SENT_BOX	= "Sent Items";	//  Sent Items folder to save sent items on IMAP Server
 	var $MUST_UPDATE= false;		//  Optional for us, we do not switch over the folders for IMAP
 	var $STAGE		= "INIT";		//  Not required
+	var $TRASH_BOX		= "[Gmail]/Trash";		//  Not required
 
 	function POP3 ( $server = "localhost", $port = "110", $timeout = "" )
 	{
@@ -100,8 +101,6 @@ class POP3
 		}
 		else
 		{
-			if($this->DEBUG) { error_log("IMAP SEND [connect: $server] GOT [$reply]",0); }
-
 			if(!$this->is_imap_ok($reply))
 			{
 				unset($this->FP);
@@ -602,13 +601,8 @@ class POP3
 		$fp = $this->FP;
 
 		$cmd=$this->TAG." LOGIN $login $pass";
-
-		if($this->DEBUG) { @error_log("IMAP SEND [$cmd]",0); }
-
 		if($this->imap_put_line($cmd))
 		{
-	                if($this->DEBUG) { @error_log("IMAP LOGIN COMMAND SENT, WAITING FOR AUTH RESPONSE",0); }
-
 			$reply=$this->imap_get_server_responce();
 
 			if($this->DEBUG) { @error_log("IMAP SEND [$cmd] GOT [$reply]",0); }
@@ -716,8 +710,11 @@ class POP3
 					$flags_str = eregi_replace("[\\\"]", "", $flags_str);
 					$flags_a = explode(" ", $flags_str);
 
+					/*
 					$uidl_flags["seen"][$id]=false;
 					$uidl_flags["answered"][$id]=false;
+					$uidl_flags["flagged"][$id]=false;
+					*/
 
 					if (is_array($flags_a))
 					{
@@ -725,9 +722,11 @@ class POP3
 						while (list($key,$val)=each($flags_a))
 						{
 							if (strcasecmp($val,"Seen")==0)
-								$uidl_flags["seen"][$id]=true;
+								$uidl_flags["seen"][$id]=$uidl_flags["uid"][$id];
 							else if (strcasecmp($val, "Answered")==0)
-								$uidl_flags["answered"][$id]=true;
+								$uidl_flags["answered"][$id]=$uidl_flags["uid"][$id];
+							else if (strcasecmp($val, "Flagged")==0)
+								$uidl_flags["flagged"][$id]=$uidl_flags["uid"][$id];
 						}
 					}
 				}
@@ -800,8 +799,10 @@ class POP3
 					$flags_str = eregi_replace("[\\\"]", "", $flags_str);
 					$flags_a = explode(" ", $flags_str);
 
+					/*
 					$uidl_flags["seen"][$id]=false;
 					$uidl_flags["answered"][$id]=false;
+					*/
 
 					if (is_array($flags_a))
 					{
@@ -809,9 +810,9 @@ class POP3
 						while (list($key,$val)=each($flags_a))
 						{
 							if (strcasecmp($val,"Seen")==0)
-								$uidl_flags["seen"][$id]=true;
+								$uidl_flags["seen"][$id]=$uidl_flags["uid"][$id];
 							else if (strcasecmp($val, "Answered")==0)
-								$uidl_flags["answered"][$id]=true;
+								$uidl_flags["answered"][$id]=$uidl_flags["uid"][$id];
 						}
 					}
 				}
@@ -1132,12 +1133,6 @@ class POP3
 		return $reply;
 	}
 
-	function imap_delete_message($msgno)
-	{
-		$this->MUST_UPDATE=true;
-		return $this->imap_store_mail_flag($msgno,"+Flags","\\Deleted" );
-	}
-
 	function imap_store_mail_flag($msg_set,$msg_data_name,$value)
 	{
 		$msg_set =trim($msg_set);
@@ -1160,6 +1155,73 @@ class POP3
 			return false;
 		}
 		return $reply;
+	}
+
+	function imap_delete_message($msgno,$uid)
+	{
+		$this->MUST_UPDATE=true;
+		return $this->imap_store_mail_flag($msgno,"+Flags","\\Deleted");
+	}
+
+	function imap_seen_message($msgno)
+	{
+		return $this->imap_store_mail_flag($msgno,"+Flags","\\Seen");
+	}
+
+	function imap_unseen_message($msgno)
+	{
+		return $this->imap_store_mail_flag($msgno,"-Flags","\\Seen");
+	}
+
+	function imap_answered_message($msgno)
+	{
+		return $this->imap_store_mail_flag($msgno,"+Flags","\\Answered");
+	}
+
+	function imap_flagged_message($msgno)
+	{
+		return $this->imap_store_mail_flag($msgno,"+Flags","\\Flagged");
+	}
+
+	function imap_move_messages($messages, $tofolder)
+	{
+		$cmd=$this->TAG." MOVE $messages \"$tofolder\"";
+
+		if($this->imap_put_line($cmd))
+		{
+			$reply=$this->imap_get_server_responce();
+
+			if($this->DEBUG) { @error_log("IMAP SEND [$cmd] GOT [$reply]",0); }
+
+			if(!$this->imap_is_ok($reply))
+				return false;
+			else
+				return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	function imap_search_uid($uid)
+	{
+		$cmd=$this->TAG." SEARCH UID $uid";
+
+		if($this->imap_put_line($cmd))
+		{
+			$reply=$this->imap_get_server_responce();
+
+			if(!$this->imap_is_ok($reply))
+				return false;
+		}
+		else
+		{
+			return false;
+		}
+
+		$reply=spliti("SEARCH",$reply);
+		return intval($reply[1]);
 	}
 }
 ?>

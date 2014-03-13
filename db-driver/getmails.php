@@ -29,9 +29,16 @@
 		$autoReplyChkArr = array();
 		$companyuser=strtolower($drow[0]);
 		$PushWooshCompanyUser=strtolower($drow[0]);
-		
+
 		require("maildatabase.inc");
 		require("database.inc");
+
+		$ique = "SELECT imapsync FROM options WHERE comp_id='$companyuser'";
+		$ires = mysql_query($ique,$maindb);
+		$irow = mysql_fetch_row($ires);
+
+		$irow[0] = ($irow[0]=="") ? "N" : $irow[0];
+		define("DEFAULT_IMAPSYNC",$irow[0]);
 
 		$que="select external_mail.imaddress,external_mail.import,external_mail.account,external_mail.passwd,external_mail.lcopy,external_mail.username,external_mail.sno,external_uidls.uidls,external_mail.imsslchk,external_mail.mtype,external_mail.last_rdate,external_mail.luidl,if(external_mail.folder is NULL,'inbox',external_mail.folder),external_mail.host_exchange,external_mail.stime,external_mail.lcount,users.userid from external_mail LEFT JOIN users ON external_mail.username=users.username LEFT JOIN external_uidls ON external_uidls.extsno=external_mail.sno where ((UNIX_TIMESTAMP()-(UNIX_TIMESTAMP(external_mail.cdate)+external_mail.reminder))>0) and external_mail.lockm='No' and external_mail.reminder!='0' and users.usertype!='' and users.status!='DA'";
 		$res=mysql_query($que,$db);
@@ -125,6 +132,9 @@
 					}
 					else
 					{
+						if($ext_type=="imap" && DEFAULT_IMAPSYNC=="Y")
+							require("imapsync.php");
+
 						$cdb_uidls=array_intersect($server_uidls,$db_uidls); // Common UIDLS
 						$suidlpos=array_search($last_uidl,$server_uidls); // Server UIDL position with last processed UIDL
 						$cuidlpos=array_search($last_uidl,$db_uidls); // Client UIDL position with last processed UIDL
@@ -263,12 +273,17 @@
 							}
 						}
 					}
+
 					if($totalPushEmails!=0)
 					{
-						$checkMobilePushAccess = checkMobilePush($username, $db);
-						if($checkMobilePushAccess==1)
+						$oque="SELECT email FROM notify_options WHERE username='$username'";
+						$ores=mysql_query($oque,$db);
+						$orow=mysql_fetch_row($ores);
+						if($orow[0]=="Y")
 						{
-							pushMailMessage($totalPushEmails, $PushWooshCompanyUser, $PushWooshUserId);
+							$checkMobilePushAccess = checkMobilePush($username, $db);
+							if($checkMobilePushAccess==1)
+								pushMailMessage($totalPushEmails, $PushWooshCompanyUser, $PushWooshUserId);
 						}
 					}
 				}
@@ -282,6 +297,9 @@
 
 				$uque="update external_mail set lockm='No',cdate=NOW(),lcount=0 where sno=$extsno";
 				mysql_query($uque,$db);
+
+				if($ext_type=="imap" && DEFAULT_IMAPSYNC=="Y")
+					update_efolder();
 			}
 		}
 	}
