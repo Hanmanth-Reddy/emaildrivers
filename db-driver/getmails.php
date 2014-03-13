@@ -22,7 +22,7 @@
 
 	$def_pop_suidl = "|^|";
 
-	$dque="select capp_info.comp_id from company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno where company_info.status='ER' AND SUBSTR(capp_info.comp_id,1,1) REGEXP '$filter_list' ".$version_clause." ORDER BY capp_info.comp_id";
+	$dque="SELECT capp_info.comp_id FROM company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno WHERE company_info.status='ER' AND capp_info.comp_id NOT IN ('qss','pentacan','youngh2h','matlensilver','ysol','sforce','wbr','hsg','native','cci','marecruit','wforce','mmd') AND SUBSTR(capp_info.comp_id,1,1) REGEXP '$filter_list' ".$version_clause." ORDER BY capp_info.comp_id";
 	$dres=mysql_query($dque,$maindb);
 	while($drow=mysql_fetch_row($dres))
 	{
@@ -37,7 +37,7 @@
 		$ires = mysql_query($ique,$maindb);
 		$irow = mysql_fetch_row($ires);
 		$irow[0] = ($irow[0]=="") ? "N" : $irow[0];
-		define("DEFAULT_IMAPSYNC",$irow[0]);
+		$DEFAULT_IMAPSYNC = $irow[0];
 
 		$que="select external_mail.imaddress,external_mail.import,external_mail.account,external_mail.passwd,external_mail.lcopy,external_mail.username,external_mail.sno,external_uidls.uidls,external_mail.imsslchk,external_mail.mtype,external_uidls.last_rdate,external_uidls.luidl,if(external_mail.folder is NULL,'inbox',external_mail.folder),external_mail.host_exchange,external_mail.stime,external_mail.lcount,external_uidls.sno, external_uidls.afolder,external_uidls.sfolder from external_mail LEFT JOIN external_uidls ON external_uidls.extsno=external_mail.sno LEFT JOIN users ON external_mail.username=users.username where external_uidls.afolder!='sentmessages' AND ((UNIX_TIMESTAMP()-(UNIX_TIMESTAMP(external_mail.cdate)+external_mail.reminder))>0) and external_mail.lockm='No' and external_mail.reminder!='0' and users.usertype!='' and users.status!='DA'";
 		$res=mysql_query($que,$db);
@@ -143,7 +143,7 @@
 					}
 					else
 					{
-						if($ext_type=="imap" && DEFAULT_IMAPSYNC=="Y")
+						if($ext_type=="imap" && $DEFAULT_IMAPSYNC=="Y")
 							require("imapsync.php");
 
 						$cdb_uidls=array_intersect($server_uidls,$db_uidls); // Common UIDLS
@@ -286,15 +286,9 @@
 
 					if($totalPushEmails!=0)
 					{
-						$oque="SELECT email FROM notify_options WHERE username='$username'";
-						$ores=mysql_query($oque,$db);
-						$orow=mysql_fetch_row($ores);
-						if($orow[0]=="Y")
-						{
-							$checkMobilePushAccess = checkMobilePush($username, $db);
-							if($checkMobilePushAccess==1)
-								pushMailMessage($totalPushEmails, $PushWooshCompanyUser, $PushWooshUserId);
-						}
+						$checkMobilePushAccess = checkMobilePush($username, $db);
+						if($checkMobilePushAccess==1)
+							pushMailMessage($totalPushEmails, $PushWooshCompanyUser, $PushWooshUserId);
 					}
 				}
 
@@ -310,7 +304,7 @@
 			}
 		}
 
-		if(DEFAULT_IMAPSYNC=="Y")
+		if($DEFAULT_IMAPSYNC=="Y")
 			update_efolder_all("all");
 	}
 

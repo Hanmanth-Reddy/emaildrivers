@@ -8,7 +8,7 @@
 	$iuidls="'".implode("','",$cdb_uidls)."'";
 	$duidls="'".implode("','",$ddb_uidls)."'";
 
-	$que1="SELECT GROUP_CONCAT(messageid) FROM mail_headers WHERE status='Active' AND folder='trash' AND extid='$extsno' AND sfolder='$sextno'";
+	$que1="SELECT GROUP_CONCAT(messageid) FROM mail_headers WHERE inlineid=0 AND status='Active' AND folder='trash' AND extid='$extsno' AND sfolder='$sextno'";
 	$res1=mysql_query($que1,$db);
 	$row1=mysql_fetch_row($res1);
 	if($row1[0]!="")
@@ -26,7 +26,7 @@
 		}
 	}
 
-	$que1="SELECT MIN(messageid) FROM mail_headers WHERE status='Active' AND folder!='sentmessages' AND extid='$extsno' AND sfolder='$sextno'";
+	$que1="SELECT MIN(CAST(messageid AS SIGNED)) FROM mail_headers WHERE status='Active' AND folder!='sentmessages' AND extid='$extsno' AND sfolder='$sextno' AND inlineid=0";
 	$res1=mysql_query($que1,$db);
 	$row1=mysql_fetch_row($res1);
 	$am_uidl = $row1[0];

@@ -2,7 +2,7 @@
 class POP3
 {
 	var $ERROR		= "";			//	Error string.
-	var $TIMEOUT	= 60;			//	Default timeout before giving up on a network operation.
+	var $TIMEOUT	= 30;			//	Default timeout before giving up on a network operation.
 	var $COUNT		= -1;			//	Mailbox msg count
 	var $BUFFER		= 8192;			//	Socket buffer for socket fgets() calls. Per RFC 1939 the returned line a POP3 server can send is 512 bytes.
 	var $UID_BUFFER		= 128;			//	UIDL Buffer Length

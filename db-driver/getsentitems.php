@@ -12,7 +12,7 @@
 	$dfolder="sentmessages";
 	$def_pop_suidl = "|^|";
 
-	$dque="select capp_info.comp_id from company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno where company_info.status='ER' AND capp_info.comp_id NOT IN ('cacjobs','coiexecutives') ".$version_clause;
+	$dque="SELECT capp_info.comp_id FROM company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno WHERE company_info.status='ER' AND capp_info.comp_id NOT IN ('cacjobs','coiexecutives') ".$version_clause." ORDER BY capp_info.comp_id";
 	$dres=mysql_query($dque,$maindb);
 	while($drow=mysql_fetch_row($dres))
 	{
