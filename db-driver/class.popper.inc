@@ -47,7 +47,7 @@ class popper extends mimepart
 		{
 			if (sizeof($mailer->mimeparts[$i]->mimeparts) > 0)
 			{
-				$this->get_body($mailer->mimeparts[$i],&$text_body,&$html_body);
+				$this->get_body($mailer->mimeparts[$i],&$text_body,&$html_body,&$calendar_body);
 				$i++;
 				continue;
 			}

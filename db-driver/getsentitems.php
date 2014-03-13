@@ -20,7 +20,7 @@
 		require("maildatabase.inc");
 		require("database.inc");
 
-		$que="select external_mail.imaddress,external_mail.import,external_mail.account,external_mail.passwd,external_mail.lcopy,external_mail.username,external_mail.sno,external_uidls_sent.uidls,external_mail.imsslchk,external_mail.sentfolder,external_uidls_sent.last_rdate,external_uidls_sent.luidl,external_mail.host_exchange,external_mail.stime,external_mail.lcount FROM external_mail LEFT JOIN users ON external_mail.username=users.username LEFT JOIN external_uidls_sent ON external_uidls_sent.extsno=external_mail.sno WHERE external_mail.lockm!='ERR' AND external_mail.reminder>0 AND external_mail.mtype='imap' AND external_mail.sentfolder!='' AND users.usertype!='' AND users.status!='DA'";
+		$que="select external_mail.imaddress,external_mail.import,external_mail.account,external_mail.passwd,external_mail.lcopy,external_mail.username,external_mail.sno,external_uidls.uidls,external_mail.imsslchk,external_uidls.sfolder,external_uidls.last_rdate,external_uidls.luidl,external_mail.host_exchange,external_mail.stime,external_mail.lcount,external_uidls.sno FROM external_mail LEFT JOIN users ON external_mail.username=users.username LEFT JOIN external_uidls ON external_uidls.extsno=external_mail.sno WHERE external_mail.lockm!='ERR' AND external_mail.reminder>0 AND external_mail.mtype='imap' AND external_uidls.sfolder!='' AND external_uidls.afolder='sentmessages' AND users.usertype!='' AND users.status!='DA'";
 		$res=mysql_query($que,$db);
 		while($row=mysql_fetch_row($res))
 		{
@@ -39,6 +39,7 @@
 			$hosted_exchange=$row[12];
 			$acc_stime=$row[13];
 			$lcount=$row[14];
+			$sextno=$row[15];
 
 			$pop3 = new pop3($imaddress,$im_port);
 			if($imsslchk=="Yes")
@@ -109,7 +110,7 @@
 					{
 						$u_uidls=implode($def_pop_suidl,$cdb_uidls);
 
-						$uque="update external_uidls_sent set uidls='".addslashes($u_uidls)."' where extsno=$extsno";
+						$uque="update external_uidls set uidls='".addslashes($u_uidls)."' where sno=$sextno";
 						mysql_query($uque,$db);
 					}
 				}
@@ -141,7 +142,7 @@
 					$cdb_uidls=array_diff($server_uidls,$req_uidls);
 					$u_uidls=implode($def_pop_suidl,$cdb_uidls);
 
-					$uque="update external_uidls_sent set uidls='".addslashes($u_uidls)."' where extsno=$extsno";
+					$uque="update external_uidls set uidls='".addslashes($u_uidls)."' where sno=$sextno";
 					mysql_query($uque,$db);
 				}
 
@@ -169,14 +170,14 @@
 
 						if($mbox !== FALSE)
 						{
-							$rrdate=insertMainData($mbox,0,0);
+							$rrdate=insertMainData($mbox,0,0,$sextno);
 							if($rrdate!="")
 							{
-								$uque="update external_uidls_sent set luidl='".addslashes($server_uidls[$i])."',last_rdate=$rrdate where extsno=$extsno";
+								$uque="update external_uidls set luidl='".addslashes($server_uidls[$i])."',last_rdate=$rrdate where sno=$sextno";
 								mysql_query($uque,$db);
 							}
 
-							$uque="update external_uidls_sent set uidls=TRIM(LEADING '|^|' FROM CONCAT_WS('$def_pop_suidl',uidls,'".addslashes($server_uidls[$i])."')) where extsno=$extsno";
+							$uque="update external_uidls set uidls=TRIM(LEADING '|^|' FROM CONCAT_WS('$def_pop_suidl',uidls,'".addslashes($server_uidls[$i])."')) where sno=$sextno";
 							mysql_query($uque,$db);
 						}
 						else
@@ -213,7 +214,7 @@
 	}
 
 	// Parsing the original mail and store into the database
-	function insertMainData($mbox,$last_id,$xmlattachid)
+	function insertMainData($mbox,$last_id,$xmlattachid,$sextno)
 	{
 		global $maildb,$db,$username,$extsno,$msgid,$dfolder,$CharSet_mail,$mail_answered,$mail_seen,$acc_stime;
 
@@ -321,7 +322,7 @@
 			$CharSet_mail=$sCharSet_mail[0];
 
 			// We need to check the result set after inserting into mail_headers is true or false, because we are doing check with complex key on (messageid,username,extid,udate) to avoid duplication of mail insertion incase when driver tries to download the same mail from external mail server. This won't be happen in email driver though at email driver the external server id is allways empty, in this case also it will do the same process. So if the result set is false we assume that the mail is already been downloaded from the external server.
-			$rque="insert into mail_headers (mailid,username,folder,messageid,attach,seen,reply,forward,flag,fromadd,toadd,ccadd,bccadd,subject,date,udate,size,mailtype,inlineid,conid,status,xmltype,xmlbody,extid,sent,charset) values ('','$username','$fid','".addslashes($msgid)."','$attach','$seen','$reply','$forward','$flag','".addslashes($from)."','".addslashes($to)."','".addslashes($cc)."','','".addslashes($subject)."','".addslashes($date)."','".addslashes($udate)."','".addslashes($size)."','".addslashes($mailtype)."','$last_id','','".addslashes($status)."','', '','$extsno','$sent_status','".addslashes($CharSet_mail)."')";
+			$rque="insert into mail_headers (mailid,username,folder,messageid,attach,seen,reply,forward,flag,fromadd,toadd,ccadd,bccadd,subject,date,udate,size,mailtype,inlineid,conid,status,xmltype,xmlbody,extid,sent,charset,sfolder) values ('','$username','$fid','".addslashes($msgid)."','$attach','$seen','$reply','$forward','$flag','".addslashes($from)."','".addslashes($to)."','".addslashes($cc)."','','".addslashes($subject)."','".addslashes($date)."','".addslashes($udate)."','".addslashes($size)."','".addslashes($mailtype)."','$last_id','','".addslashes($status)."','', '','$extsno','$sent_status','".addslashes($CharSet_mail)."','$sextno')";
 			$rres=mysql_query($rque,$db);
 			if($rres)
 			{

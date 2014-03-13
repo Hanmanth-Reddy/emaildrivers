@@ -19,7 +19,7 @@
 	require("emailApplicationTrigger.php");
 	require("ConvertCharset.class.php");
 	require("pushEmailFunctions.php"); // Push Email Notification Functions
-	
+
 	$def_pop_suidl = "|^|";
 
 	$dque="select capp_info.comp_id from company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno where company_info.status='ER' AND SUBSTR(capp_info.comp_id,1,1) REGEXP '$filter_list' ".$version_clause." ORDER BY capp_info.comp_id";
@@ -36,11 +36,10 @@
 		$ique = "SELECT imapsync FROM options WHERE comp_id='$companyuser'";
 		$ires = mysql_query($ique,$maindb);
 		$irow = mysql_fetch_row($ires);
-
 		$irow[0] = ($irow[0]=="") ? "N" : $irow[0];
 		define("DEFAULT_IMAPSYNC",$irow[0]);
 
-		$que="select external_mail.imaddress,external_mail.import,external_mail.account,external_mail.passwd,external_mail.lcopy,external_mail.username,external_mail.sno,external_uidls.uidls,external_mail.imsslchk,external_mail.mtype,external_mail.last_rdate,external_mail.luidl,if(external_mail.folder is NULL,'inbox',external_mail.folder),external_mail.host_exchange,external_mail.stime,external_mail.lcount,users.userid from external_mail LEFT JOIN users ON external_mail.username=users.username LEFT JOIN external_uidls ON external_uidls.extsno=external_mail.sno where ((UNIX_TIMESTAMP()-(UNIX_TIMESTAMP(external_mail.cdate)+external_mail.reminder))>0) and external_mail.lockm='No' and external_mail.reminder!='0' and users.usertype!='' and users.status!='DA'";
+		$que="select external_mail.imaddress,external_mail.import,external_mail.account,external_mail.passwd,external_mail.lcopy,external_mail.username,external_mail.sno,external_uidls.uidls,external_mail.imsslchk,external_mail.mtype,external_uidls.last_rdate,external_uidls.luidl,if(external_mail.folder is NULL,'inbox',external_mail.folder),external_mail.host_exchange,external_mail.stime,external_mail.lcount,external_uidls.sno, external_uidls.afolder,external_uidls.sfolder from external_mail LEFT JOIN external_uidls ON external_uidls.extsno=external_mail.sno LEFT JOIN users ON external_mail.username=users.username where external_uidls.afolder!='sentmessages' AND ((UNIX_TIMESTAMP()-(UNIX_TIMESTAMP(external_mail.cdate)+external_mail.reminder))>0) and external_mail.lockm='No' and external_mail.reminder!='0' and users.usertype!='' and users.status!='DA'";
 		$res=mysql_query($que,$db);
 		while($row=mysql_fetch_row($res))
 		{
@@ -70,12 +69,21 @@
 				$hosted_exchange=$row[13];
 				$acc_stime=$row[14];
 				$lcount=$row[15];
+				$sextno=$row[16];
+
 				$PushWooshUserId = $username;
-				
-				if($row[12]=="")
-					$dfolder="inbox";
+	
+				if($row[17]=="inbox")
+				{			
+					if($row[12]=="")
+						$dfolder="inbox";
+					else
+						$dfolder=$row[12];
+				}
 				else
-					$dfolder=$row[12];
+				{
+					$dfolder=$row[17];
+				}
 
 				$spam_header=getSpamHeader($username,$db);
 				$mail_rules=getMailRules($username,$db);
@@ -83,6 +91,9 @@
 				$pop3 = new pop3($imaddress,$im_port);
 				if($imsslchk=="Yes")
 					$pop3->TLS=1;
+
+				if($row[17]!="inbox")
+					$pop3->MAIL_BOX = $row[18];
 
 				if($ext_type=="imap")
 					$count = $pop3->imap_login($account,$passwd);
@@ -139,7 +150,6 @@
 						$suidlpos=array_search($last_uidl,$server_uidls); // Server UIDL position with last processed UIDL
 						$cuidlpos=array_search($last_uidl,$db_uidls); // Client UIDL position with last processed UIDL
 
-						// Merged converting underscore(_) into space if the mail is quoted printable -- kumar raju k.
 						// Added condition to pull new mails from poop account. 					
 						if((count($cdb_uidls)>0 && $suidlpos!==FALSE && $cuidlpos!==FALSE) || $lcopy=="")
 						{
@@ -174,7 +184,7 @@
 						{
 							$u_uidls=implode($def_pop_suidl,$cdb_uidls);
 
-							$uque="update external_uidls set uidls='".addslashes($u_uidls)."' where extsno=$extsno";
+							$uque="update external_uidls set uidls='".addslashes($u_uidls)."' where sno=$sextno";
 							mysql_query($uque,$db);
 						}
 					}
@@ -209,7 +219,7 @@
 						$cdb_uidls=array_diff($server_uidls,$req_uidls);
 						$u_uidls=implode($def_pop_suidl,$cdb_uidls);
 
-						$uque="update external_uidls set uidls='".addslashes($u_uidls)."' where extsno=$extsno";
+						$uque="update external_uidls set uidls='".addslashes($u_uidls)."' where sno=$sextno";
 						mysql_query($uque,$db);
 					}
 					
@@ -246,17 +256,17 @@
 
 							if($mbox !== FALSE && trim($mbox)!="")
 							{
-								$rrdate=insertMainData($mbox,0,0);
+								$rrdate=insertMainData($mbox,0,0,$sextno);
 								
 								if($rrdate!="") $totalPushEmails = $totalPushEmails+1;
-								
-								if($rrdate=="")
-									$uque="update external_mail set cdate=NOW() where sno=$extsno";
-								else
-									$uque="update external_mail set luidl='".addslashes($server_uidls[$i])."', last_rdate=$rrdate, cdate=NOW() where sno=$extsno";
+
+								$uque="update external_mail set cdate=NOW() where sno=$extsno";
 								mysql_query($uque,$db);
 
-								$uque="update external_uidls set uidls=TRIM(LEADING '|^|' FROM CONCAT_WS('$def_pop_suidl',uidls,'".addslashes($server_uidls[$i])."')) where extsno=$extsno";
+								if($rrdate=="" || $rrdate<=$last_rdate)
+									$uque="update external_uidls set uidls=TRIM(LEADING '|^|' FROM CONCAT_WS('$def_pop_suidl',uidls,'".addslashes($server_uidls[$i])."')) where sno=$sextno";
+								else
+									$uque="update external_uidls set luidl='".addslashes($server_uidls[$i])."', last_rdate=$rrdate, uidls=TRIM(LEADING '|^|' FROM CONCAT_WS('$def_pop_suidl',uidls,'".addslashes($server_uidls[$i])."')) where sno=$sextno";
 								mysql_query($uque,$db);
 
 								if($lcopy=="")
@@ -297,11 +307,11 @@
 
 				$uque="update external_mail set lockm='No',cdate=NOW(),lcount=0 where sno=$extsno";
 				mysql_query($uque,$db);
-
-				if($ext_type=="imap" && DEFAULT_IMAPSYNC=="Y")
-					update_efolder();
 			}
 		}
+
+		if(DEFAULT_IMAPSYNC=="Y")
+			update_efolder_all("all");
 	}
 
 	function isNewMail($content,$last_rdate)
@@ -319,7 +329,7 @@
 	}
 
 	// Parsing the original mail and store into the database
-	function insertMainData($mbox,$last_id,$xmlattachid)
+	function insertMainData($mbox,$last_id,$xmlattachid,$sextno)
 	{
 		global $maildb,$db,$username,$extsno,$msgid,$mail_rules,$spam_header,$dfolder,$CharSet_mail,$mail_answered,$mail_seen,$acc_stime;
 
@@ -574,11 +584,11 @@
 			$sentval="";
 		
 		if($last_id!=0 && trim($subject)=="")
-		$subject="No Subject";
+			$subject="No Subject";
 
 		// We need to check the result set after inserting into mail_headers is true or false, because we are doing check with complex key on (messageid,username,extid,udate) to avoid duplication of mail insertion incase when driver tries to download the same mail from external mail server. This won't be happen in email driver though at email driver the external server id is allways empty, in this case also it will do the same process. So if the result set is false we assume that the mail is already been downloaded from the external server.
 	
-		$rque="insert into mail_headers (mailid,username,folder,messageid,attach,seen,reply,forward,flag,fromadd,toadd,ccadd,bccadd,subject,date,udate,size,mailtype,inlineid,conid,status,xmltype,xmlbody,extid,sent,charset) values ('','$username','$fid','".addslashes($msgid)."','$attach','$seen','$reply','$forward','$flag','".addslashes($from)."','".addslashes($to)."','".addslashes($cc)."','','".addslashes($subject)."','".addslashes($date)."','".addslashes($udate)."','".addslashes($size)."','".addslashes($mailtype)."','$last_id','','".addslashes($status)."','', '','$extsno','".$sentval."','".addslashes($CharSet_mail)."')";
+		$rque="insert into mail_headers (mailid,username,folder,messageid,attach,seen,reply,forward,flag,fromadd,toadd,ccadd,bccadd,subject,date,udate,size,mailtype,inlineid,conid,status,xmltype,xmlbody,extid,sent,charset,sfolder) values ('','$username','$fid','".addslashes($msgid)."','$attach','$seen','$reply','$forward','$flag','".addslashes($from)."','".addslashes($to)."','".addslashes($cc)."','','".addslashes($subject)."','".addslashes($date)."','".addslashes($udate)."','".addslashes($size)."','".addslashes($mailtype)."','$last_id','','".addslashes($status)."','', '','$extsno','".$sentval."','".addslashes($CharSet_mail)."','$sextno')";
 		$rres=mysql_query($rque,$db);
 		if($rres)
 		{

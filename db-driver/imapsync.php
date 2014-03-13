@@ -8,7 +8,7 @@
 	$iuidls="'".implode("','",$cdb_uidls)."'";
 	$duidls="'".implode("','",$ddb_uidls)."'";
 
-	$que1="SELECT GROUP_CONCAT(messageid) FROM mail_headers WHERE status='Active' AND folder='trash' AND extid='$extsno'";
+	$que1="SELECT GROUP_CONCAT(messageid) FROM mail_headers WHERE status='Active' AND folder='trash' AND extid='$extsno' AND sfolder='$sextno'";
 	$res1=mysql_query($que1,$db);
 	$row1=mysql_fetch_row($res1);
 	if($row1[0]!="")
@@ -26,12 +26,12 @@
 		}
 	}
 
-	$que1="SELECT MIN(messageid) FROM mail_headers WHERE status='Active' AND folder!='sentmessages' AND extid='$extsno'";
+	$que1="SELECT MIN(messageid) FROM mail_headers WHERE status='Active' AND folder!='sentmessages' AND extid='$extsno' AND sfolder='$sextno'";
 	$res1=mysql_query($que1,$db);
 	$row1=mysql_fetch_row($res1);
 	$am_uidl = $row1[0];
 
-	$que1="SELECT GROUP_CONCAT(mailid) FROM mail_headers WHERE status='Active' AND folder NOT IN ('sentmessages','trash') AND extid='$extsno' AND messageid NOT IN ('".implode("','",$db_uidls)."')";
+	$que1="SELECT GROUP_CONCAT(mailid) FROM mail_headers WHERE status='Active' AND folder NOT IN ('sentmessages','trash') AND extid='$extsno' AND sfolder='$sextno' AND messageid NOT IN ('".implode("','",$db_uidls)."')";
 	$res1=mysql_query($que1,$db);
 	$row1=mysql_fetch_row($res1);
 	if($row1[0]!="")
@@ -42,31 +42,31 @@
 
 	if($duidls!="''" && $am_uidl!="" && $am_uidl>0)
 	{
-		$que1="UPDATE mail_headers SET folder='trash' WHERE folder!='sentmessages' AND status='Active' AND extid='$extsno' AND messageid>'$am_uidl' AND messageid IN (".$duidls.")";
+		$que1="UPDATE mail_headers SET folder='trash' WHERE folder!='sentmessages' AND status='Active' AND extid='$extsno' AND sfolder='$sextno' AND messageid>'$am_uidl' AND messageid IN (".$duidls.")";
 		mysql_query($que1,$db);
 	}
 
 	if(count($uidl_flags["seen"])>0)
 	{
-		$usque="UPDATE mail_headers SET seen='S' WHERE seen='U' AND status='Active' AND folder!='sentmessages' AND extid=$extsno AND messageid IN ('".implode("','",$uidl_flags["seen"])."')";
+		$usque="UPDATE mail_headers SET seen='S' WHERE seen='U' AND status='Active' AND folder!='sentmessages' AND extid=$extsno AND sfolder='$sextno' AND messageid IN ('".implode("','",$uidl_flags["seen"])."')";
 		mysql_query($usque,$db);
 	}
 
 	if(count($uidl_flags["flagged"])>0)
 	{
-		$usque="UPDATE mail_headers SET flag='RF' WHERE flag='N' AND status='Active' AND folder!='sentmessages' AND extid=$extsno AND messageid IN ('".implode("','",$uidl_flags["flagged"])."')";
+		$usque="UPDATE mail_headers SET flag='RF' WHERE flag='N' AND status='Active' AND folder!='sentmessages' AND extid=$extsno AND sfolder='$sextno' AND messageid IN ('".implode("','",$uidl_flags["flagged"])."')";
 		mysql_query($usque,$db);
 	}
 
 	if(count($uidl_flags["answered"])>0)
 	{
-		$usque="UPDATE mail_headers SET reply='A' WHERE reply='N' AND status='Active' AND folder!='sentmessages' AND extid=$extsno AND messageid IN ('".implode("','",$uidl_flags["answered"])."')";
+		$usque="UPDATE mail_headers SET reply='A' WHERE reply='N' AND status='Active' AND folder!='sentmessages' AND extid=$extsno AND sfolder='$sextno' AND messageid IN ('".implode("','",$uidl_flags["answered"])."')";
 		mysql_query($usque,$db);
 	}
 
 	if($iuidls!="''")
 	{
-		$que1="SELECT GROUP_CONCAT(messageid) FROM mail_headers WHERE seen='S' AND status='Active' AND folder!='sentmessages' AND extid='$extsno' AND messageid IN (".$iuidls.")";
+		$que1="SELECT GROUP_CONCAT(messageid) FROM mail_headers WHERE seen='S' AND status='Active' AND folder!='sentmessages' AND extid='$extsno' AND sfolder='$sextno' AND messageid IN (".$iuidls.")";
 		$res1=mysql_query($que1,$db);
 		$row1=mysql_fetch_row($res1);
 		if($row1[0]!="")
@@ -85,7 +85,7 @@
 			}
 		}
 
-		$que1="SELECT GROUP_CONCAT(messageid) FROM mail_headers WHERE flag!='N' AND status='Active' AND folder!='sentmessages' AND extid='$extsno' AND messageid IN (".$iuidls.")";
+		$que1="SELECT GROUP_CONCAT(messageid) FROM mail_headers WHERE flag!='N' AND status='Active' AND folder!='sentmessages' AND extid='$extsno' AND sfolder='$sextno' AND messageid IN (".$iuidls.")";
 		$res1=mysql_query($que1,$db);
 		$row1=mysql_fetch_row($res1);
 		if($row1[0]!="")
@@ -104,7 +104,7 @@
 			}
 		}
 
-		$que1="SELECT GROUP_CONCAT(messageid) FROM mail_headers WHERE reply!='N' AND status='Active' AND folder!='sentmessages' AND extid='$extsno' AND messageid IN (".$iuidls.")";
+		$que1="SELECT GROUP_CONCAT(messageid) FROM mail_headers WHERE reply!='N' AND status='Active' AND folder!='sentmessages' AND extid='$extsno' AND sfolder='$sextno' AND messageid IN (".$iuidls.")";
 		$res1=mysql_query($que1,$db);
 		$row1=mysql_fetch_row($res1);
 		if($row1[0]!="")
