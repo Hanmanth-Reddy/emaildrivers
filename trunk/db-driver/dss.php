@@ -3,16 +3,6 @@
 	$include_path=dirname(__FILE__);
 	ini_set("include_path",$include_path);
 
-	$filter_list=$argv[1];
-	if($filter_list=="")
-	{
-		print "*****************************************************************************************\n";
-		print "You need to pass list of companies as a command line argument. EX : 'getmails.php [a-b]'.\n";
-		print "Where [a-b] is the list companies that starts with a and b in their Company ID\n";
-		print "*****************************************************************************************\n";
-		exit();
-	}
-
 	require("global.inc");
 	require("class.pop3.inc");
 	require("IMC_Parse.inc");
@@ -22,7 +12,7 @@
 
 	$def_pop_suidl = "|^|";
 
-	$dque="SELECT capp_info.comp_id FROM company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno WHERE company_info.status='ER' AND capp_info.comp_id NOT IN ('qss','pentacan','youngh2h','matlensilver','ysol','sforce','wbr','hsg','native','cci','marecruit','wforce','mmd','dss','xfire') AND SUBSTR(capp_info.comp_id,1,1) REGEXP '$filter_list' ".$version_clause." ORDER BY capp_info.comp_id";
+	$dque="SELECT capp_info.comp_id FROM company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno WHERE company_info.status='ER' AND capp_info.comp_id = 'dss' ".$version_clause." ORDER BY capp_info.comp_id";
 	$dres=mysql_query($dque,$maindb);
 	while($drow=mysql_fetch_row($dres))
 	{
