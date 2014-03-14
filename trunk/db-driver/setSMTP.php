@@ -68,6 +68,12 @@
 				}
 			}
 		}
+		else
+		{
+			$from=$act_name." <".$reqemail.">";
+			$hostname=$maildomain;
+			$hostport=$akken_arec_port;
+		}
 	}
 
 	if($from=="")
