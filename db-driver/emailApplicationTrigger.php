@@ -89,9 +89,15 @@
 		$UpdCntFolderIds=array();
 
 		if($userid=="all")
+		{
+			$eclause = "";
 			$wclause = "";
+		}
 		else
+		{
+			$eclause = " AND username='$userid' ";
 			$wclause = " AND m.username='$userid' ";
+		}
 
 		$que="SELECT count(1),e.fid,m.seen FROM mail_headers m LEFT JOIN e_folder e ON m.username=e.username LEFT JOIN users u ON e.username=u.username WHERE u.usertype!='' AND u.status!='DA' AND m.folder=e.foldername AND e.parent='system' AND m.status='Active' ".$wclause." GROUP BY m.username,m.folder,m.seen";
 		$res=mysql_query($que,$db);
@@ -139,7 +145,7 @@
 			mysql_query($uque,$db);
 		}
 
-		$uque="UPDATE e_folder SET unread=0,total=0 WHERE fid NOT IN (".implode(",",array_keys($UpdCntFolderIds)).")";
+		$uque="UPDATE e_folder SET unread=0,total=0 WHERE fid NOT IN (".implode(",",array_keys($UpdCntFolderIds)).")".$eclause;
 		mysql_query($uque,$db);
 	}
 ?>

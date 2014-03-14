@@ -17,14 +17,14 @@ class smtp_class
 	var $password="";
 	var $workstation="";
 	var $authentication_mechanism="";
-	var $host_name="smtp.akken.com";
+	var $host_name="pop-mail.akken.com";
 	var $host_port=25;
 	var $ssl=0;
-	var $localhost="smtp.akken.com";
+	var $localhost="pop-mail.akken.com";
 	var $timeout=10;
 	var $data_timeout=300;
 	var $error="";
-	var $debug=1;
+	var $debug=0;
 	var $html_debug=1;
 	var $esmtp=1;
 	var $esmtp_host="";
@@ -473,14 +473,16 @@ class smtp_class
 				else
 					$fallback=0;
 			}
+
 			if($fallback)
 			{
 				if($this->PutLine("HELO $localhost") && $this->VerifyResultLines("250",$responses)>0)
 					$success=1;
 			}
+
 			if($success && strlen($this->user) && strlen($this->pop3_auth_host)==0)
 			{
-				if(!IsSet($this->esmtp_extensions["AUTH"]))
+				if(!IsSet($this->esmtp_extensions["AUTH"]) && !IsSet($this->esmtp_extensions["STARTTLS"]))
 				{
 					$this->error="server does not require authentication";
 					$success=1;
@@ -488,22 +490,29 @@ class smtp_class
 				else
 				{
 					if(strlen($this->authentication_mechanism))
+					{
 						$mechanisms=array($this->authentication_mechanism);
+					}
 					else
 					{
 						$mechanisms=array();
 						for($authentication=$this->Tokenize($this->esmtp_extensions["AUTH"]," ");strlen($authentication);$authentication=$this->Tokenize(" "))
 							$mechanisms[]=$authentication;
 					}
+
 					$credentials=array(
 						"user"=>$this->user,
 						"password"=>$this->password
 					);
+
 					if(strlen($this->realm))
 						$credentials["realm"]=$this->realm;
+
 					if(strlen($this->workstation))
 						$credentials["workstation"]=$this->workstation;
+
 					$success=$this->SASLAuthenticate($mechanisms,$credentials,$authenticated,$mechanism);
+
 					if(!$success && !strcmp($mechanism,"PLAIN"))
 					{
 						$mechanisms=array("PLAIN");
@@ -511,10 +520,12 @@ class smtp_class
 							"user"=>$this->user,
 							"password"=>$this->password
 						);
+
 						if(strlen($this->realm))
 						{
 							$success=$this->SASLAuthenticate($mechanisms,$credentials,$authenticated,$mechanism);
 						}
+
 						if(!$success)
 						{
 							$credentials["mode"]=SASL_PLAIN_EXIM_DOCUMENTATION_MODE;
@@ -735,7 +746,11 @@ class smtp_class
 	{
 		for($rcptm=0;$rcptm<count($recipients);$rcptm++)
 		{
-			preg_match(EMAIL_REG_EXP,$recipients[$rcptm],$eemail);
+			$srec = explode("<",$recipients[$rcptm]);
+			if(count($srec)>1)
+				preg_match(EMAIL_REG_EXP,$srec[1],$eemail);
+			else
+				preg_match(EMAIL_REG_EXP,$recipients[$rcptm],$eemail);
 
 			if($eemail[0]!="")
 				$recipients[$rcptm]=$eemail[0];
