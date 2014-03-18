@@ -12,7 +12,7 @@
 		$companyuser=strtolower($drow[0]);
 		require("database.inc");
 
-		$ubque="SELECT external_mail.sno, external_mail.stime, external_mail.last_rdate FROM external_mail LEFT JOIN users ON external_mail.username=users.username WHERE external_mail.stime < (external_mail.last_rdate-3600) AND users.usertype!='' AND users.status!='DA'";
+		$ubque="SELECT external_mail.sno, external_mail.stime, external_uidls.last_rdate FROM external_mail LEFT JOIN external_uidls ON external_mail.sno=external_uidls.extsno LEFT JOIN users ON external_mail.username=users.username WHERE external_mail.stime < (external_uidls.last_rdate-3600) AND users.usertype!='' AND users.status!='DA'";
 		$ubres=mysql_query($ubque,$db);
 		while($ubrow=mysql_fetch_row($ubres))
 		{
