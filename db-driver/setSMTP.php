@@ -12,12 +12,13 @@
 	$smtp->password="";
 	$smtp->imapExtSno=0;
 
+	$ogsslchk="";
 	$pophost="";
 	$popport="";
 	$popuser="";
 	$poppwd="";
-
 	$imapExtSno = "";
+
 	$sdomain=explode("@",$reqemail);
 	if($domainname==trim($sdomain[1]))
 	{
@@ -93,7 +94,6 @@
 	$smtp->pop3_auth_host=$pophost;		/* Set to the POP3 authentication host if your SMTP server requires prior POP3 authentication */
 	$smtp->pop3_auth_port=$popport;		/* Set to the POP3 authentication port if your SMTP server requires prior POP3 authentication */
 	$smtp->user=$popuser;				/* Set to the user name if the server requires authetication */
-	//$smtp->realm=$realm;				/* Set to the authetication realm, usually the authentication user e-mail domain */
 	$smtp->password=$poppwd;			/* Set to the authetication password */
 
 	if($smtp->saveCopy)
