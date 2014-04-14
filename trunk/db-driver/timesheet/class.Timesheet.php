@@ -1561,7 +1561,7 @@ function GetDays($strDateFrom,$strDateTo)
     
     function buildMainHeaders($mainHeaders,$mode)
     {
-	$arrMode = array('approved' => 'Approved','exported' => 'Approved','rejected' => 'Rejected','deleted' => 'Deleted','Rejected' => 'Rejected');
+	$arrMode = array('approved' => 'Approved','exported' => 'Approved','rejected' => 'Rejected','deleted' => 'Deleted','Rejected' => 'Rejected','approvedexp'=>'Approved');
 	$str = '<tr class=hthbgcolorr>';
 	if($mode == 'create')
 	{
@@ -1584,7 +1584,7 @@ function GetDays($strDateFrom,$strDateTo)
     
     function buildSubHeaders($mainHeaders, $headerCount,$mode)
     {
-	$arrMode = array('approved' => 'Approved','exported' => 'Approved','rejected' => 'Rejected','deleted' => 'Deleted');
+	$arrMode = array('approved' => 'Approved','exported' => 'Approved','rejected' => 'Rejected','deleted' => 'Deleted','approvedexp' => 'Approved');
 	$str = '<tr>';
 	if($mode == 'create')
 	{
@@ -1622,10 +1622,10 @@ function GetDays($strDateFrom,$strDateTo)
 
 	//$modeArr = array('pending'=>' and pt.astatus="ER" and th.status ="ER"','approved' =>'AND pt.astatus IN ("Approved","Billed","ER") AND th.status IN ("Approved","Billed")','exported' =>'AND pt.astatus IN ("Approved","Billed","ER") AND th.status IN ("Approved","Billed") and th.exported_status ="YES"','deleted'=>'AND pt.astatus IN ("Deleted") and th.status IN ("Deleted")','rejected'=>'AND pt.astatus IN ("Rejected") and th.status IN ("Rejected")','backup'=>' and th.status IN ("Backup")','errejected'=>'AND pt.astatus IN ("ER","Rejected") and th.status IN ("Rejected")','erer'=>'AND pt.astatus IN ("ER","Rejected") and th.status IN ("ER")');
 	
-	if($accountingExport == 'Exported' && $module != 'Client' && $module != 'MyProfile') {
-	$modeArr = array('pending'=>' and th.status ="ER"','approved' =>' AND th.status IN ("Approved","Billed") and th.exported_status !="YES"','exported' =>' AND th.status IN ("Approved","Billed") and th.exported_status ="YES"','deleted'=>' and th.status IN ("Deleted")','rejected'=>' and th.status IN ("Rejected")','backup'=>' and th.status IN ("Backup")','errejected'=>' and th.status IN ("Rejected")','erer'=>' and th.status IN ("ER")');
+	if($accountingExport == 'Exported' && $module != 'Client' && $module != 'MyProfile' ) {
+	$modeArr = array('pending'=>' and th.status ="ER"','approved' =>' AND th.status IN ("Approved","Billed") and th.exported_status !="YES"','approvedexp' =>' AND th.status IN ("Approved","Billed")','exported' =>' AND th.status IN ("Approved","Billed") and th.exported_status ="YES"','deleted'=>' and th.status IN ("Deleted")','rejected'=>' and th.status IN ("Rejected")','backup'=>' and th.status IN ("Backup")','errejected'=>' and th.status IN ("Rejected")','erer'=>' and th.status IN ("ER")');
 	} else {
-     $modeArr = array('pending'=>' and th.status ="ER"','approved' =>' AND th.status IN ("Approved","Billed") ','exported' =>' AND th.status IN ("Approved","Billed") and th.exported_status ="YES"','deleted'=>' and th.status IN ("Deleted")','rejected'=>' and th.status IN ("Rejected")','backup'=>' and th.status IN ("Backup")','errejected'=>' and th.status IN ("Rejected")','erer'=>' and th.status IN ("ER")');
+     $modeArr = array('pending'=>' and th.status ="ER"','approved' =>' AND th.status IN ("Approved","Billed") ','exported' =>' AND th.status IN ("Approved","Billed") and th.exported_status ="YES"','deleted'=>' and th.status IN ("Deleted")','rejected'=>' and th.status IN ("Rejected")','backup'=>' and th.status IN ("Backup")','errejected'=>' and th.status IN ("Rejected")','erer'=>' and th.status IN ("ER")','approvedexp' =>' AND th.status IN ("Approved","Billed")');
 
     }
 	
@@ -1895,9 +1895,9 @@ if($mode != 'pending' && $mode !='errejected' && $mode !='erer')
 	{
 		global  $accountingExport;
 		if($accountingExport == 'Exported' && $module !='Client' && $module !='MyProfile') {
-			$modeArr = array('pending'=>' and th.status ="ER"','approved' =>' AND th.status IN ("Approved","Billed") and  th.exported_status !="YES"','exported' =>' AND  th.status IN ("Approved","Billed") and th.exported_status ="YES"','deleted'=>' AND   th.status IN ("Deleted")','rejected'=>' AND th.status IN ("Rejected")','errejected'=>' and th.status IN ("Rejected")','erer'=>' and th.status IN ("ER")','Saved'=>' and  th.status ="Saved"');
+			$modeArr = array('pending'=>' and th.status ="ER"','approved' =>' AND th.status IN ("Approved","Billed") and  th.exported_status !="YES"','exported' =>' AND  th.status IN ("Approved","Billed") and th.exported_status ="YES"','deleted'=>' AND   th.status IN ("Deleted")','rejected'=>' AND th.status IN ("Rejected")','errejected'=>' and th.status IN ("Rejected")','erer'=>' and th.status IN ("ER")','Saved'=>' and  th.status ="Saved"','approvedexp' =>' AND th.status IN ("Approved","Billed")');
 		} else {
-			 $modeArr = array('pending'=>' and th.status ="ER"','approved' =>' AND th.status IN ("Approved","Billed") ','exported' =>' AND  th.status IN ("Approved","Billed") and th.exported_status ="YES"','deleted'=>' and th.status IN ("Deleted")','rejected'=>' AND th.status IN ("Rejected")','errejected'=>' and th.status IN ("Rejected")','erer'=>' and th.status IN ("ER")','Saved'=>' and  th.status ="Saved"');
+			 $modeArr = array('pending'=>' and th.status ="ER"','approved' =>' AND th.status IN ("Approved","Billed") ','exported' =>' AND  th.status IN ("Approved","Billed") and th.exported_status ="YES"','deleted'=>' and th.status IN ("Deleted")','rejected'=>' AND th.status IN ("Rejected")','errejected'=>' and th.status IN ("Rejected")','erer'=>' and th.status IN ("ER")','Saved'=>' and  th.status ="Saved"','approvedexp' =>' AND th.status IN ("Approved","Billed")');
 
 		}
 	
@@ -1939,8 +1939,15 @@ LEFT JOIN users u ON u.username = th.auser
  
 	}
     
-function displayTimesheetDetailsPrint($sno, $mode,$condinvoice ='',$conjoin='', $module='', $print=True)
+function displayTimesheetDetailsPrint($sno, $mode,$condinvoice ='',$conjoin='', $module='', $print=True, $invoice='')
     {
+	$exportStatus = $this->getExported_status($sno);
+    
+	if($exportStatus == 'YES' && $invoice != '' && $mode!='approvedexp')
+	{
+	    $mode = 'exported';
+	}
+	
 	$table = '<table id="grid_form" class="grid_forms" style="white-space:nowrap">';
 	echo '<table cellspacing="1" cellpadding="5" width="100%"  border=0 style="text-align:left;"> ';
 	if($module=='MyProfile'){
@@ -2114,9 +2121,26 @@ function displayTimesheetDetailsPrint($sno, $mode,$condinvoice ='',$conjoin='', 
 	
 	return $table;	
     }
+    function getExported_status($sno)
+    {	
 	
-   function displayTimesheetDetails($sno, $mode,$condinvoice ='',$conjoin='', $module='')
+	$sql = "SELECT distinct exported_status FROM timesheet_hours WHERE STATUS IN('Billed', 'Approved') and parid = ".$sno;
+	$result = mysql_query($sql, $this->db);
+	
+	$row = mysql_fetch_row($result);
+	
+	return $row[0];
+	
+    }
+   function displayTimesheetDetails($sno, $mode, $condinvoice ='', $conjoin='', $module='', $invoice='')
     {
+	$exportStatus = $this->getExported_status($sno);
+    
+	if($exportStatus == 'YES' && $invoice != ''&& $mode!='approvedexp')
+	{
+	    $mode = 'exported';
+	}
+	
 	$table = '<div id="grid_form" class="grid_forms" style="white-space:nowrap">';
 	$table .= '<table cellspacing="1" cellpadding="5" width="100%"  border=0 style="text-align:left;"> ';
 	if($module=='MyProfile'){

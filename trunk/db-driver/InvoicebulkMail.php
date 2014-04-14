@@ -574,7 +574,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 										$chk_condi_bill = "AND billable='".$bill_invoice."'";
 									else
 										$chk_condi_bill = "AND billable='Yes'";
-									$timesheet .= $timesheetObj->displayTimesheetDetailsEmail($addr1, "approved",$chk_condi_bill);
+									$timesheet .= $timesheetObj->displayTimesheetDetailsEmail($addr1, "approvedexp",$chk_condi_bill);
 								
 									if($Biltotal>"0")
 										$timesheet .=  '<tr><td colspan=1><font class=afontstyle>&nbsp;</font></td><td colspan="1">&nbsp;</td><td align=right><font class=hfontstyle >Billable Hours: &nbsp;&nbsp;</font></td><td><font class=hfontstyle>'.number_format($Biltotal,2,"."," ").'</font></td><td>&nbsp;</td><td>&nbsp;</td></tr>';
