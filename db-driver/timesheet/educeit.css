@@ -1,0 +1,914 @@
+/*
+Modifed Date:June 10, 2009
+Modified By:Swetha
+Purpose:Added styles classes for job boards nodata message
+TS Task Id:3285
+
+Modifed Date:10/06/2009
+Modified By:Sandeep Boora
+Purpose:Added styles for Changing the display from Grid to normal HTML table,and added 2 new fields Compnay Id, Contact ID.
+TS Task Id:3286.
+*/
+body select {font-size:12px;}
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+	body select {font-size:12px;}
+} /* above 2 nag shiva added*/
+
+#leftpref a.first {float:left;text-align:left;}
+#leftpref ul {list-style:none;margin:1px 0;padding:0 3px;}
+#leftpref li a, li a {color: #000000; text-decoration:none;}
+#leftpref li.link a, li:link a {color: #000000; text-decoration:none;}
+#leftpref li.visited a, li:visited a {color: #000000; text-decoration:none;}
+#leftpref li.hover a, li:hover a {color: #000000; text-decoration:none;}
+#leftpref li {border-color:#FFF;background-color:#FFF; text-decoration:none;}
+#leftpref li.selected {background-color:#E7E7F7; text-decoration:none;}
+#leftpref li {border-style:solid;border-width:1px;margin:0;background-repeat:no-repeat;background-position: 4% 50%;cursor:pointer; padding-left:2px; padding-right:2px; padding-top:2px; padding-bottom:2px;}
+#leftpref li.hover, #leftpref li:hover {background-color:#00B9F2; text-decoration:none;}
+#leftpref #mainmenu {font-family: arial; font-size: 8pt; font-weight:bold;}
+#leftpref #submenu {font-family: arial; font-size: 8pt; font-weight:normal;}
+#leftpref #submenu1 {font-family: arial; font-size: 7pt; font-weight:normal;}
+
+/*** These are the Style sheets for Collaboration left preferences background colors ***/
+#leftprefmail a.first {float:left;text-align:left;}
+#leftprefmail ul {list-style:none;margin:1px 0;padding:0 3px;}
+#leftprefmail li a, li a {color: #000000; text-decoration:none;}
+#leftprefmail li.link a, li:link a {color: #000000; text-decoration:none;}
+#leftprefmail li.visited a, li:visited a {color: #000000; text-decoration:none;}
+#leftprefmail li.hover a, li:hover a {color: #000000; text-decoration:none;}
+#leftprefmail li {border-color:#FFF;background-color:#FFF; text-decoration:none;}
+#leftprefmail li.selected {background-color:#E7E7F7; text-decoration:none;}
+#leftprefmail li {border-style:solid;border-width:1px;margin:0;background-repeat:no-repeat;background-position: 4% 50%;cursor:pointer; padding-left:2px; padding-right:2px; padding-top:2px; padding-bottom:2px;}
+#leftprefmail li.hover, #leftprefmail li:hover {background-color:#FFFFFF; text-decoration:none;}
+#leftprefmail #mainmenu {font-family: arial; font-size: 8pt; font-weight:bold;}
+#leftprefmail #submenu {font-family: arial; font-size: 8pt; font-weight:normal;}
+#leftprefmail #submenu1 {font-family: arial; font-size: 7pt; font-weight:normal;}
+
+
+a { TEXT-DECORATION: underline; }
+a:link { COLOR: #000000; TEXT-DECORATION: underline; }
+a:visited { COLOR: #000000; TEXT-DECORATION: underline; }
+a:hover { COLOR: #000000; TEXT-DECORATION: underline; }
+
+.drpdwn { BACKGROUND-COLOR: #D2DEEB; COLOR: #000066; FONT-FAMILY: Arial; FONT-SIZE: 10px }
+.drpdwnacc { BACKGROUND-COLOR: #FFFFFF; COLOR: #000000; FONT-FAMILY: Arial; FONT-SIZE: 11px }
+.drpdwne { FONT-FAMILY: Arial; FONT-SIZE: 10px }
+.tfontstyle { FONT-SIZE: 9pt; FONT-FAMILY: Verdana; FONT-WEIGHT: bold; COLOR: #000000; }
+
+.bstrip { FONT-SIZE: 4pt; FONT-FAMILY: Arial;}
+.lfontstyle { FONT-SIZE: 8pt; FONT-FAMILY: Arial; FONT-WEIGHT: bold; COLOR: #000000; }
+.lfontstyle1 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; FONT-WEIGHT: bold; COLOR: #ffffff; }
+.hdfontstyle { FONT-SIZE: 8pt; FONT-FAMILY: Arial; FONT-WEIGHT: bold; COLOR: #00B9F2; }
+.hdfontstyle1 { FONT-SIZE: 11pt; FONT-FAMILY: sans-serif; FONT-WEIGHT: bold; COLOR: #ffffff; }
+.hdfontstyle2 { FONT-SIZE: 10pt; FONT-FAMILY: sans-serif; FONT-WEIGHT: noraml; COLOR: #ffffff; }
+.hdfontstyle3 { FONT-SIZE: 13pt; FONT-FAMILY: sans-serif; FONT-WEIGHT: bold; COLOR: #00B9F2; }
+.hfontstyle1 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; FONT-WEIGHT: bold; COLOR: #00B9F2 }
+.hfontstyle2 { FONT-SIZE: 10pt; FONT-FAMILY: sans-serif; FONT-WEIGHT: bold; COLOR: #000000 }
+.lfontstyle2 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: #000000; }
+.lfontstyle3 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: #000000; }
+.lfontstyle4 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: #ffffff; }
+.hfontstyle { FONT-SIZE: 8pt; FONT-FAMILY: Arial; FONT-WEIGHT: bold; COLOR: #FFFFF }
+.hfontstyle3 { FONT-SIZE: 8pt; FONT-FAMILY: Verdana; FONT-WEIGHT: 500; COLOR: #FFFFF }
+
+
+
+.hfontstyle1 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; FONT-WEIGHT: bold; COLOR: #00B9F2 }
+.hfontstyle2 { FONT-SIZE: 10pt; FONT-FAMILY: sans-serif; FONT-WEIGHT: bold; COLOR: #000000 }
+.ffontstyle { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: #FFFFFF; }
+.bfontstyle { FONT-SIZE: 0.5pt; FONT-FAMILY: Arial; COLOR: #ffffff; }
+.hifontstyle { FONT-SIZE: 2pt; FONT-FAMILY: Arial; COLOR: black;}
+.afontstyle { FONT-SIZE: 8pt; FONT-FAMILY: Arial;COLOR: black; font-style: normal;	line-height: 16px;display: inline-block;}
+fieldset legend .afontstyle, .tabTitle { FONT-SIZE: 9pt;font-weight:bold;}
+
+.afontstyle1 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: white;}
+.afontstyle9{ FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: black;}
+.afontstyle2 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: #003399;}
+.afontstyle3 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: red;}
+.afontstyle4 { FONT-SIZE: 8pt; FONT-FAMILY: Verdana; COLOR: red;}
+.afontstyle5 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: white;text-decoration:underline;FONT-WEIGHT: bold;}
+.nfontstyle { FONT-SIZE: 8pt; FONT-FAMILY: Arial; FONT-WEIGHT: bold; }
+.sfontstyle { FONT-SIZE: 8pt; FONT-FAMILY: Verdana; COLOR: red }
+.strbr { BACKGROUND-COLOR: #000000 }
+.strbr1 { BACKGROUND-COLOR: #D2DEEB; BACKGROUND: url(/BSOS/images/rs_menubg.gif)}
+.tdbgcolor { BACKGROUND-COLOR: #00B9F2;}
+.htblbgcolor { BACKGROUND-COLOR: #5A5656;}
+.tabbgcolor { BACKGROUND-COLOR: #AAAAAA; height: 18; }
+.hthbgcolor { BACKGROUND-COLOR: #CCCCCC; height: 18; BACKGROUND: url(/BSOS/images/rs_leftbg.gif)}
+.hthbgcolor0 { BACKGROUND-COLOR: #999999; height: 18;}
+.hthbgcolor1 { BACKGROUND-COLOR: white; height:21; }
+.hthbgcolor2 { BACKGROUND-COLOR: #9999CC; height: 18;}
+.lblfontstyle { FONT-SIZE: 8pt; FONT-FAMILY: Arial; FONT-WEIGHT: bold; COLOR: #000000; BACKGROUND-COLOR: #9999CC}
+.tr1bgcolor { BACKGROUND-COLOR: #ffffff; height: 21;}
+.tbldata { BACKGROUND-COLOR: #ffffff }
+.tr2bgcolor { BACKGROUND-COLOR: #EBEBEB; height: 21; }
+.fontstyle {FONT-FAMILY: Arial; FONT-SIZE: 10pt }
+.hbgcolor { BACKGROUND-COLOR: #00B9F2; height: 5;}
+.embgcolor { BACKGROUND-COLOR: #F5F9FE; height: 21; }
+.modcaption { FONT-SIZE: 12pt; FONT-FAMILY: Arial; FONT-WEIGHT: bold; COLOR: #F02933; }
+.modcaption1 { FONT-SIZE: 10pt; FONT-FAMILY: Arial; FONT-WEIGHT: bold; COLOR: #000000; }
+.modcaption2 { FONT-SIZE: 10pt; FONT-FAMILY: Arial, Helvetica, sans-serif; FONT-WEIGHT: normal; COLOR: #121212; }
+.headerbluebg {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-weight: bold;
+	color: #030303;
+	background-color: #5A5656;
+	padding-left: 5px;
+
+
+}
+.aemailfont1 {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 11px;
+	line-height: 17px;
+	font-weight: normal;
+	color: #333333;
+	text-align: left;
+	vertical-align: top;
+}
+.aemailfont2 {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	line-height: 16px;
+	font-weight: bold;
+	color: #8080C0;
+	text-align: right;
+	text-indent: 0pt;
+	vertical-align: top;
+	display: table-cell;
+	background-position: right;
+	white-space: normal;
+}
+.headerltbluebg {
+
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-weight: bold;
+	color: #FFFFFF;
+	background-color: #9999CC;
+	padding-left: 5px;
+}
+.tableborder {
+	height: auto;
+	width: 650px;
+	background-position: 10px;
+	margin: 2px;
+	padding: 5px;
+	float: left;
+	border: thin solid #9999CC;
+
+}
+.headerltrbluebg {
+
+
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-weight: bold;
+	color: #FFFFFF;
+	background-color: #ADACE3;
+	padding-left: 5px;
+}
+.afontstyleTBL {
+	FONT-SIZE: 8pt;
+	FONT-FAMILY: Arial;
+	COLOR: black;
+	font-style: normal;
+	line-height: 20pt;
+
+}
+.afontstyleTBLblue {
+	FONT-SIZE: 8pt;
+	FONT-FAMILY: Arial;
+	COLOR: black;
+	font-style: normal;
+	line-height: 22pt;
+	background-color: 8b8bd5;
+	font-weight: bold;
+
+}
+.tableborderEMAIL {
+
+	height: 100%;
+	width: 100%;
+	background-position: left;
+	margin: 2px;
+	padding: 5px;
+	float: none;
+	border: thin solid #9999CC;
+}
+.tr3bgcolor {
+	FONT-SIZE: 8pt;
+	FONT-FAMILY: Arial;
+	COLOR: black;
+	font-style: normal;
+	line-height: 22pt;
+	background-color: 8b8bd5;
+	font-weight: bold;
+
+}
+
+.tr4bgcolor {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-weight: bold;
+	color: #FFFFFF;
+	background-color: #D5D5EA;
+	padding-left: 5px;
+}
+.tr5bgcolor {
+	FONT-SIZE: 8pt;
+	FONT-FAMILY: Arial, Helvetica, sans-serif;
+	COLOR: black;
+	font-style: normal;
+	line-height: 22pt;
+	background-color: #D5D5EA;
+	font-weight: bold;
+	padding-left:96pt;
+
+}
+
+.tr6bgcolor {
+	FONT-SIZE: 8pt;
+	FONT-FAMILY: Arial, Helvetica, sans-serif;
+	COLOR: black;
+	font-style: normal;
+	line-height: 22pt;
+	background-color: #D5D5EA;
+	font-weight: bold;
+	padding-left:46pt;
+
+}
+
+
+.aemailform {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 11px;
+	line-height: 17px;
+	font-weight: normal;
+	color: #333333;
+	text-align: left;
+	vertical-align: top;
+	background-color: #FFFFFF;
+	display: block;
+}
+
+.aemailbutton {
+	FONT-SIZE: 10pt;
+	FONT-FAMILY: Arial;
+	COLOR: white;
+	font-style: normal;
+	line-height: normal;
+	background-color: 8b8bd5;
+	border-bottom:none;
+	border-top:none;
+	border-right:none;
+	border-left:none;
+	width:100px;
+    height:25px;
+	font-weight: bold;
+}
+
+.aemailbutton3 {
+
+	FONT-SIZE: 10pt;
+	FONT-FAMILY: Arial;
+	COLOR: white;
+	font-style: normal;
+	line-height: normal;
+	background-color: 8b8bd5;
+	border-bottom:none;
+	border-top:none;
+	border-right:none;
+	border-left:none;
+	width:120px;
+    height:15px;
+	font-weight: bold;
+}
+
+.aemailbutton2 {
+	FONT-SIZE: 11px;
+	FONT-FAMILY: Arial;
+	COLOR: white;
+	font-style: normal;
+	line-height: normal;
+	background-color: 8b8bd5;
+	border-bottom:none;
+	border-top:none;
+	border-right:none;
+	border-left:none;
+	font-weight: bold;
+	width:120px;
+    height:15px;
+}
+.aemailbutton1 {
+	FONT-SIZE: 11px;
+	FONT-FAMILY: Arial;
+	COLOR: white;
+	font-style: normal;
+	line-height: normal;
+	background-color: 8b8bd5;
+	border-bottom:none;
+	border-top:none;
+	border-right:none;
+	border-left:none;
+	font-weight: bold;
+	width:50px;
+    height:15px;
+}
+
+.aemailtext {
+            border: 1px solid black;
+            font-family: arial;
+            font-size:12px;
+}
+
+.aemailfont3 {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 11px;
+	line-height: 17px;
+	font-weight: bold;
+	color: #333333;
+	text-align: right;
+	vertical-align: top;
+}
+.tableheaderlevel2 {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 8pt;
+	font-weight: bolder;
+	font-style: normal;
+	text-decoration: underline;
+	background-color: 8a89d7;
+	line-height: 9pt;
+	background-position: center;
+}
+.aemailltblbg {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-weight: bold;
+	color: #FFFFFF;
+	background-color: #D5D5EA;
+	padding-left: 5px;
+}
+.afontstyleTBLgrey {
+	FONT-SIZE: 8pt;
+	FONT-FAMILY: Arial;
+	COLOR: black;
+	font-style: normal;
+	line-height: 20pt;
+	background-color: #CCCCCC;
+}
+.afontstylebldTBL {
+	FONT-SIZE: 8pt;
+	FONT-FAMILY: Geneva, Arial, Helvetica, sans-serif;
+	COLOR: #000000;
+	font-style: normal;
+	line-height: 22pt;
+	font-weight: normal;
+	letter-spacing: 1px;
+}
+
+.link1 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: #003399;}
+a.link1:link { COLOR: #003399; TEXT-DECORATION: none; }
+a.link1:visited { COLOR: #003399; TEXT-DECORATION: none; }
+a.link1:hover { COLOR: #003399; TEXT-DECORATION: underline; }
+
+.link2 { FONT-SIZE: 12pt; FONT-FAMILY: Arial; COLOR: #003399;}
+a.link2:link { COLOR: #003399; TEXT-DECORATION: none; }
+a.link2:visited { COLOR: #003399; TEXT-DECORATION: none; }
+a.link2:hover { COLOR: #003399; TEXT-DECORATION: underline; }
+
+.link3 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: black; FONT-WEIGHT:bold;}
+a.link3:link { COLOR: black; TEXT-DECORATION: none;  FONT-WEIGHT:bold;}
+a.link3:visited { COLOR: black; TEXT-DECORATION: none;  FONT-WEIGHT:bold;}
+a.link3:hover { COLOR: black; TEXT-DECORATION: underline;  FONT-WEIGHT:bold;}
+
+.linkhelp { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: #FF0000; FONT-WEIGHT:bold;}
+a.linkhelp:link { COLOR: #FF0000; TEXT-DECORATION: none;  FONT-WEIGHT:bold;}
+a.linkhelp:visited { COLOR: #FF0000; TEXT-DECORATION: none;  FONT-WEIGHT:bold;}
+a.linkhelp:hover { COLOR: #FF0000; TEXT-DECORATION: underline;  FONT-WEIGHT:bold;}
+
+.link5 { FONT-SIZE: 9pt; FONT-FAMILY: Arial; COLOR: black; FONT-WEIGHT:bold;}
+a.link5:link { COLOR: black; TEXT-DECORATION: none; FONT-WEIGHT:bold;}
+a.link5:visited { COLOR: black; TEXT-DECORATION: none; FONT-WEIGHT:bold;}
+a.link5:hover { COLOR: black; TEXT-DECORATION: underline; FONT-WEIGHT:bold;}
+
+.link4 { FONT-SIZE: 9pt; FONT-FAMILY: Arial; COLOR: white; FONT-WEIGHT:bold;}
+a.link4:link { COLOR: white; TEXT-DECORATION: none; FONT-WEIGHT:bold;}
+a.link4:visited { COLOR: white; TEXT-DECORATION: none; FONT-WEIGHT:bold;}
+a.link4:hover { COLOR: white; TEXT-DECORATION: underline; FONT-WEIGHT:bold;}
+
+.link6 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: white; FONT-WEIGHT:bold;}
+a.link6:link { COLOR: white; TEXT-DECORATION: none;  FONT-WEIGHT:bold;}
+a.link6:visited { COLOR: white; TEXT-DECORATION: none;  FONT-WEIGHT:bold;}
+a.link6:hover { COLOR: white; TEXT-DECORATION: underline;  FONT-WEIGHT:bold;}
+
+.link7 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: black;}
+a.link7:link { COLOR: black; TEXT-DECORATION: none;}
+a.link7:visited { COLOR: black; TEXT-DECORATION: none;}
+a.link7:hover { COLOR: black; TEXT-DECORATION: underline;}
+
+.link8 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: black;}
+a.link8:link { COLOR: black; TEXT-DECORATION: none;}
+a.link8:visited { COLOR: black; TEXT-DECORATION: none;}
+a.link8:hover { COLOR: black; TEXT-DECORATION: underline;}
+
+.link9 { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: black; FONT-WEIGHT:bold;}
+a.link9:link { COLOR: black; TEXT-DECORATION: none;  FONT-WEIGHT:bold;}
+a.link9:visited { COLOR: black; TEXT-DECORATION: none;  FONT-WEIGHT:bold;}
+a.link9:hover { COLOR: black; TEXT-DECORATION: underline;  FONT-WEIGHT:bold;}
+
+.link10 { FONT-SIZE: 15pt; FONT-FAMILY: Arial; COLOR: #003399; FONT-WEIGHT:bold;}
+a.link10:link { COLOR: #003399; TEXT-DECORATION: none;  FONT-WEIGHT:bold;}
+a.link10:visited { COLOR: #003399; TEXT-DECORATION: none;  FONT-WEIGHT:bold;}
+a.link10:hover { COLOR: #003399; TEXT-DECORATION: underline;  FONT-WEIGHT:bold;}
+
+.campleftcol {
+	width: 155px; height: 18px; float: left;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-weight: bold;
+	color: #FFFFFF;
+	background-color: #9999CC;
+	padding-top: 2px;}
+
+.camprightcol {
+	width: 610px; height: 18px; float: right;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-weight: bold;
+	color: #FFFFFF;
+	background-color: #9999CC;
+	padding-top: 2px;}
+
+.campleftwhite {
+	width: 135px; height: 18px; float: left;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-weight: bold;
+	color: #FFFFFF;
+	padding-top: 5px;}
+
+.camprightwhite {
+	width: 614px; height: 18px; float: right;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #FFFFFF;
+	padding-top: 5px;}
+
+.campcentercol {
+	width: 250px; height: 18px; float: left;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-weight: bold;
+	color: #FFFFFF;
+	background-color: #9999CC;
+	padding-top: 2px;}
+
+.campright {
+	width: 360px; height: 18px; float: right;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-weight: bold;
+	color: #FFFFFF;
+	background-color: #9999CC;
+	padding-top: 2px;}
+
+.campleftalg {
+	width: 245px; height: 18px; float: left;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #000000;
+	padding-top: 5px;
+	padding-left: 7px;}
+
+.camprightalg {
+	width: 240px; height: 18px; float: right;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #000000;
+	padding-top: 5px;
+	padding-left: 7px;}
+
+.skill1 {
+	width: 320px; height: 18px; float: left;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #000000;
+	padding-left: 7px;}
+
+.skill2 {
+	width: 97px; height: 18px; float: left;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #000000;
+	padding-left: 7px;}
+
+.skill3 {
+	width: 85px; height: 18px; float: left;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #000000;
+	padding-left: 7px;}
+
+.boxboarder {
+	position: relative;
+	top: 0; left: 0;
+	padding: 0px 3px 5px 3px;
+	margin: 0;
+	width: 769px;
+	border: none;}
+	
+.boxboarder1 {
+	position: relative;
+	top: 0; left: 0;
+	padding: 0px 3px 5px 3px;
+	margin: 0;
+	width: 650px;
+	border: none;}
+	
+.summarytext
+{
+	padding-top: 2px;
+	padding-bottom: 2px;
+
+}
+.summarytext1
+{
+	padding-left: 8px;
+	padding-top: 2px;
+	padding-bottom: 2px;
+	background: #fff;
+	line-height: 15px;
+
+}
+.summaryrow
+{
+    padding-right:7px;
+    text-align:right;
+    font-family:verdana;
+    color:#00B8F2;
+    font-size:8pt;
+    font-weight:bold
+   }
+    .summaryrow123
+{
+    padding-right:7px;
+    text-align:left;
+    font-family:verdana;
+    font-size:8pt;
+    font-weight:bold
+   }
+.linkrow
+{
+   font-family:verdana;
+   color:#0099ff;
+   font-size:8pt;
+  text-decoration: underline;
+
+}
+.panel-tabledata-new {
+	border:0;
+	border-collapse: collapse;
+	padding: 0;
+	width: 99%;
+}
+ .panel-table-content-new {
+	background: #fff;
+	line-height: 15px;
+}
+.panel-table-content-new td{
+	font-family:Arial, Helvetica, sans-serif;
+	font-size:8pt;
+	border-bottom:#e4f8ff 1px solid;
+	border-right: #e4f8ff 1px solid;
+}
+.summaryrow1
+{
+    text-align:left;
+    font-family:verdana;
+    color:#00B8F2;
+    font-size:7pt;
+    font-weight:bold;
+}
+.summaryrow2
+{
+    text-align:center;
+    font-family:verdana;
+    color:#00B8F2;
+    font-size:8pt;
+    font-weight:bold
+}
+
+#remind-txtinput-width {
+width: 110px;
+}
+
+*html #remind-txtinput-width {
+width: 160px;
+}
+
+
+/* used for  divisions in company summary*/
+.crmsummary-contentlnk {
+	font-size:8.5pt;
+	color: #0099ff;
+}
+
+.crmsummary-lnk 
+{
+	font-size: 8pt;
+	text-decoration: none;
+	color: #0273fd;
+	vertical-align:middle;	
+}
+
+
+a.crmsummary-contentlnk:link
+{
+	font-size: 8pt;
+	text-decoration: none;
+	color: #0273fd;
+	vertical-align:middle;
+	cursor: pointer;
+}
+
+a.crmsummary-contentlnk:visited
+{
+	font-size: 8pt;
+	text-decoration: none;
+	color: #0273fd;
+	vertical-align:middle;
+	cursor: pointer;
+}
+
+a.crmsummary-contentlnk:hover
+{
+	font-size: 8pt;
+	text-decoration: underline;
+	color: #99ccff;
+	vertical-align:middle;
+	cursor: pointer;
+}
+
+.crmsummary-contentbolddata1 {
+	
+	font-family:verdana;
+    color:#000000;
+	font-size: 8pt;
+	vertical-align:middle;
+    font-weight:bold
+}
+.afontstyleinfo {
+	FONT-SIZE: 9pt;
+	FONT-FAMILY: Arial;
+	COLOR: #00c3c4;
+	font-style: normal;
+	line-height: 36px;
+}
+.afontstyleblack {
+	FONT-SIZE: 9pt;
+	FONT-FAMILY: Arial;
+	COLOR: black;
+	font-style: normal;
+	line-height: 36px;
+}
+.afontstylesubinfo {
+	FONT-SIZE: 8pt;
+	FONT-FAMILY: Arial, Helvetica, sans-serif;
+	COLOR: #666666;
+	font-style: normal;
+	line-height: 16px;
+}
+.afontstylesubhistry {
+	FONT-SIZE: 9pt;
+	FONT-FAMILY: Arial, Helvetica, sans-serif;
+	COLOR: #999999;
+	font-style: normal;
+	line-height: 22px;
+}
+.afontstylelinks {
+	FONT-SIZE: 9pt;
+	FONT-FAMILY: Arial;
+	COLOR: #00b8f2;
+	font-style: normal;
+	line-height: 16px;
+}
+.afontstylelinks1 {
+	FONT-SIZE: 8pt;
+	FONT-FAMILY: Arial;
+	COLOR: #5555ff;
+	font-style: normal;
+	line-height: 16px;
+}
+ .panel-table-contentsub-new {
+	background: #fff;
+	line-height: 15px;
+}
+.panel-table-contentsub-new td{
+	font-family:Arial, Helvetica, sans-serif;
+	font-size:8pt;
+	border-bottom:#e4f8ff 1px solid;
+}
+ .panel-table-contentsubinfo-new {
+	background: #fff;
+	line-height: 15px;
+	padding-left: 10px;
+}
+.panel-table-contentsubinfo-new td{
+	font-family:Arial, Helvetica, sans-serif;
+	font-size:8pt;
+	border-bottom: #CCCCCC  1px solid;
+}
+
+.paneltitle {
+	height: 20px;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 7.5pt;
+	color: #666666;
+	background:#eee;
+	padding-top: 2px;
+	padding-bottom:2px;
+	padding-left:4px;
+}
+.paneltitle td{
+	border-bottom: #666666  1px solid;
+}
+.summaryrowprofile
+{
+padding-right:7px;
+text-align:left;
+font-family:verdana;
+color:#00B8F2;
+font-size:8pt;
+font-weight:bold
+}
+
+.afontstyle_chk { FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: #999999;}
+.hfontstylegreen { FONT-SIZE: 7.5pt; FONT-FAMILY: verdana; COLOR: #339966 }
+/*----- below class is for editable dropdown editpage SYSTEM fields PROPERTIEY ---DEEPAK--*/
+.inactiverow1
+{ 
+	font-family:verdana;
+	color:#CCCCCC;
+	font-size:7pt;
+	font-weight:bold;
+	line-height: 20px; 
+}
+/* ENDED DEEPAK CODE*/
+/* Download features link and menu  */
+.DownHelpMenu { background-color: #d0d0d0;   border: 2px solid;   border-color: #909090 #909090 #909090 #909090;  padding: opx 1px 1px 0px;  position:inherit; z-index: 1000;}
+.DownItemSep { border-bottom: 1px solid #f0f0f0;   margin: 4px 2px;}
+.DownItem a.DownItem:hover,  a.DownHighlight {   background-color: #000080;   color: #ffffff; }
+.DownItemOver{ height:190px; width:250px; overflow:auto;}
+.DownHelp{ FONT-SIZE: 8pt; FONT-FAMILY: Arial; color: #3300cc; cursor: pointer; text-decoration: underline;}
+.downafontstyle a{ FONT-SIZE: 8pt; FONT-FAMILY: Arial; COLOR: black;}
+.downafontstyle a::visited{ FONT-SIZE: 8pt; FONT-FAMILY: Arial;COLOR: black; }
+.reportname { FONT-SIZE: 10pt; FONT-FAMILY: Arial; COLOR: red;}
+/* prasadd-merged style classes for job boards nodata message(link-class,link-class2,link-class3) */
+.link-class {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 10px;
+	text-decoration: underline;
+	color: #3399FF;
+}
+.link-class2 {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 10px;
+	font-weight:500;
+	color: #040404;
+}
+.link-class3 {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 10px;
+	font-weight:600;
+	color: #040404;
+}
+/*New Styles for eCampaigns*/
+.tabstyle{color:#2d419b; font-family:Verdana; font-size:16px; font-weight:bold;}
+.databorders{border:2px solid #00b9f2;}
+.notifier{font-family:Arial; font-size:13px; line-height:20px;}
+.aemailtext2{border:1px solid #00b9f2;}
+.elabels{color:#00c5f6; font-family:Verdana; font-weight:bold; font-size:13px;}
+.chklabel{font-family:Verdana, Arial, Helvetica, sans-serif; font-weight:bold; font-size:11px;}
+.smallchkfont{font-family:Verdana;font-size:10px;}
+.aemailbuttonnew {
+	FONT-SIZE: 11px;
+	FONT-FAMILY: Arial;
+	COLOR: #c5f7ff;
+	font-style: normal;
+	line-height: normal;
+	background-color: #0980a6;
+	border-bottom:none;
+	border-top:none;
+	border-right:none;
+	border-left:none;
+	font-weight: bold;
+	width:60px;
+    height:18px;
+}
+/*Ends here*/
+
+.apply-priority {
+	FONT-SIZE: 8pt; 
+	FONT-FAMILY: Arial; 
+	COLOR: black;
+	FONT-WEIGHT: bold;
+}
+
+.appt-panel-table-td-left {
+	background-color: #ffffff;
+	line-height: 15px;
+	font-family:Arial, Helvetica, sans-serif;
+	font-size: 8pt;
+	border-bottom: #e4f8ff 1px solid;
+	border-right: #e4f8ff 1px solid;
+}
+.appt-panel-table-td-bottom {
+	background-color: #ffffff;
+	line-height: 15px;
+	font-family:Arial, Helvetica, sans-serif;
+	font-size: 8pt;
+	border-bottom: #e4f8ff 1px solid;
+}
+.appt-panel-table-td-right {
+	background-color: #ffffff;
+	line-height: 15px;
+	font-family:Arial, Helvetica, sans-serif;
+	font-size: 8pt;
+	border-bottom: #e4f8ff 1px solid;
+	padding-left:5px
+}
+.jbacctxtbox{width: 97%; height: 17px; font-family: Arial; font-size:10px;}
+.jbaccselbox{width: 100%; font-face: Arial; font-size: 10px;}
+.jbaccleftHeading{font-family:Arial; font-size:12px; padding-left:0px;}
+.jbheaderRow{background-color:#ebeadb; font-family:Arial; color:#333333; font-weight:bold; font-size:12px; padding-left:0px; width:100%;}
+.jbacctdClass{border-right:1px solid #d4d0c8;border-bottom:1px solid #d4d0c8; padding-left:4px;}
+.jbacctdClassR{border-right:1px solid #d4d0c8; padding-left:4px;}
+.jbacctdClassB{border-bottom:1px solid #d4d0c8; padding-left:4px;}
+.jbacctblClass{border:1px solid #d4d0c8; padding-left:4px;}
+.jbacctdPadClass{padding-left:4px;}
+/**************/
+.Div-Frt{ float: right;}
+.Div-Flt{ float: left;}
+.Div-SubHeading
+{
+   font-family:Arial;
+   color:#00B8f2;
+   font-size:8pt;
+   font-weight:normal;
+   text-decoration:none;
+}
+/*******Shoiw Associatted check box in all activities grid*******/
+.showassociatedcheck
+{
+	position: absolute; 
+	left: 60px; 
+	top: -3px; 
+	height: 20px; 
+	font-family: Arial; 
+	font-size: 10pt; 
+	font-weight: bold; 
+	z-index: 999;
+}
+th.afontstyle, td.afontstyle
+{
+	display: table-cell;
+}
+
+/*---------------- Next Prev position ------------------- */
+#summary_pagination {float:right;z-index:999; /* margin:3px 5px 0 0; */}
+#summary_table{position:absolute; width:99%;background:#fff;z-index:-999}
+
+/* Open &Close Left Panel ---- Nimmi Apr 2013 */
+.sidebar_arrow{
+width:7px;
+height: 580px;
+margin-top: 10px;
+overflow: hidden;
+display:inline-block;
+}
+.sidebar_arrow span{
+	width:7px;
+	height: 170px;
+	display: block;
+	overflow: hidden;
+	text-indent: -999px;
+	margin-top: 200px;
+}
+.side_open span{
+	background: url(/BSOS/images/fliPanel.png) -0px 0px no-repeat;
+	cursor: pointer;
+	z-index:9999;
+}
+.side_close span{
+	background: url(/BSOS/images/fliPanel.png) -7px -0px no-repeat;
+	cursor: pointer;
+	z-index:9999;
+}
+.toggleCursor {cursor: default;vertical-align:top;}
+#toggleColumn { border-right:1px solid #00B9F2; }
+.left{
+	float: left; 
+	clear: none;
+}
+#leftscroll{height:100%; width:60%; float:left; border-right: 1px solid #00b9f2;}
+#scrolldisplay{width:auto; height:100%;}

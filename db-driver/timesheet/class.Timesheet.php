@@ -271,15 +271,19 @@ function GetDays($strDateFrom,$strDateTo)
 	return $getWeekDays;
     }
     
-    function getAssignments($employee, $asgnid='', $assignStartDate0, $assignEndDate0, $rowid,$module='')
+    function getAssignments($employee, $asgnid='', $assignStartDate0, $assignEndDate0, $rowid,$module='', $tab_index = '', $inout_flag = false, $cval = '')
     {
 	global $companyname;
 	$assignOptions = '';
 	
 	$assignStartDate = date('Y-m-d', strtotime($assignStartDate0));
 	$assignEndDate = date('Y-m-d', strtotime($assignEndDate0));
-		
-	$zque = "SELECT sno, client, project, jtype, pusername,jotype, date_format(str_to_date(s_date,'%m-%d-%Y'),'%m/%d/%Y'), date_format(str_to_date(e_date,'%m-%d-%Y'),'%m/%d/%Y') FROM hrcon_jobs WHERE username = '".$employee."' AND pusername!='' AND ((hrcon_jobs.ustatus IN ('active','closed','cancel') AND (hrcon_jobs.s_date IS NULL OR hrcon_jobs.s_date='' OR hrcon_jobs.s_date='0-0-0' OR (DATE(STR_TO_DATE(s_date,'%m-%d-%Y'))<='".$assignEndDate."'))) AND (IF(hrcon_jobs.ustatus='closed',(hrcon_jobs.e_date IS NOT NULL AND hrcon_jobs.e_date<>'' AND hrcon_jobs.e_date<>'0-0-0' AND DATE(STR_TO_DATE(e_date,'%m-%d-%Y'))>='".$assignStartDate."'),1)) AND (IF(hrcon_jobs.ustatus='cancel',(hrcon_jobs.e_date IS NOT NULL AND hrcon_jobs.e_date<>'' AND hrcon_jobs.e_date<>'0-0-0' AND DATE(STR_TO_DATE(e_date,'%m-%d-%Y'))>='".$assignStartDate."'),1))) AND hrcon_jobs.jtype!='' ORDER BY pusername";
+	
+	if($module == "Client" && $cval != ''){
+	    $client_cond = " AND client = '".$cval."' ";
+	}
+	
+	$zque = "SELECT sno, client, project, jtype, pusername,jotype, date_format(str_to_date(s_date,'%m-%d-%Y'),'%m/%d/%Y'), date_format(str_to_date(e_date,'%m-%d-%Y'),'%m/%d/%Y') FROM hrcon_jobs WHERE username = '".$employee."' AND pusername!='' AND ((hrcon_jobs.ustatus IN ('active','closed','cancel') AND (hrcon_jobs.s_date IS NULL OR hrcon_jobs.s_date='' OR hrcon_jobs.s_date='0-0-0' OR (DATE(STR_TO_DATE(s_date,'%m-%d-%Y'))<='".$assignEndDate."'))) AND (IF(hrcon_jobs.ustatus='closed',(hrcon_jobs.e_date IS NOT NULL AND hrcon_jobs.e_date<>'' AND hrcon_jobs.e_date<>'0-0-0' AND DATE(STR_TO_DATE(e_date,'%m-%d-%Y'))>='".$assignStartDate."'),1)) AND (IF(hrcon_jobs.ustatus='cancel',(hrcon_jobs.e_date IS NOT NULL AND hrcon_jobs.e_date<>'' AND hrcon_jobs.e_date<>'0-0-0' AND DATE(STR_TO_DATE(e_date,'%m-%d-%Y'))>='".$assignStartDate."'),1))) AND hrcon_jobs.jtype!='' ".$client_cond." ORDER BY pusername";
 	
 	$zres=$this->mysqlobj->query($zque,$this->db);
 	$zrowCount = mysql_num_rows($zres);
@@ -407,9 +411,20 @@ function GetDays($strDateFrom,$strDateTo)
 	if($zrowCount > 1){
 		$multicss = "multiselect";
 	}
-	$AssignmentDropdown = '<select id="daily_assignemnt_'.$rowid.'" name="daily_assignemnt[0]['.$rowid.']" class="daily_assignemnt afontstylee " style="width:400px;  padding:0px;">';
+	
+	if(!empty($tab_index)) { $tab_index = 'tabindex='.$tab_index; } else { $tab_index = '';}
+
+	$onchange	= '';
+
+	if ($inout_flag) {
+
+		$onchange	= 'onchange="javascript:getDataOnAssignment(this.id);"';
+	}
+
+	$AssignmentDropdown = '<select '.$onchange.' id="daily_assignemnt_'.$rowid.'" name="daily_assignemnt[0]['.$rowid.']" class="daily_assignemnt afontstylee " style="width:400px;padding:0px;" '.$tab_index.'>';
 	$AssignmentDropdown .= $assignOptions;
 	$AssignmentDropdown .= '</select>';
+	
 	return $AssignmentDropdown;
 	
 	//return $assignOptions;
@@ -656,7 +671,7 @@ function GetDays($strDateFrom,$strDateTo)
 	return $dropdown;
     }
     
-    function buildDropDownCheck($name, $rowid, $data, $selected='', $script='', $key='', $val='', $weeklyrange, $employee)
+    function buildDropDownCheck($name, $rowid, $data, $selected='', $script='', $key='', $val='', $weeklyrange, $employee, $inout_flag = false, $tab_index = '')
     {
 	if($name == 'daily_dates')
 	{
@@ -682,44 +697,59 @@ function GetDays($strDateFrom,$strDateTo)
 		$sel = ($v[$key] == $selected)? 'selected' : '';
 		$options[] = "<option value='$v[$key]' $sel>$v[$val]</option>";
 			
-	    }
-	    else
-	    {
-		
-		$sel = ($selected==$varr[0]) ? 'selected' : '';
-		
-		if(substr_count($v, '-range-') > 0)
-		{
-		    $range = explode("-range-", $v);
-		    $d1 = date('m/d/Y', strtotime($range[0]));
-		    $d2 = date('m/d/Y', strtotime($range[1]));
-		    $v1 = str_replace("-range-", " - ", $v);
-			if($weeklyrange=='yes'){
-			    if($this->checkAssignmentExists($employee, $d1, $d2))
-			    {
-				$options[] = "<option value='$d1-range-$d2' selected='selectd'>$v1</option>";
-			    }
-			}else{
-			    if($this->checkAssignmentExists($employee, $d1, $d2))
-			    {
-				$options[] = "<option value='$d1-range-$d2' $sel>$v1</option>";
-			    }
-			}
 		}
 		else
 		{
-		    //$vi = date('Y-m-d', strtotime($v));
-		    $vi = date('m/d/Y', strtotime($v));
-		    if($this->checkAssignmentExists($employee, $v, $v))
-		    {
-			$options[] = "<option value='$vi' $sel>$v</option>";
-		    }
-		}
+			$sel = ($selected==$varr[0]) ? 'selected' : '';
+
+			if ($inout_flag) {
+
+				$vi	= date('m/d/Y', strtotime($v));
+
+				if ($this->checkAssignmentExists($employee, $v, $v)) {
+
+					$options[] = "<option value='$vi' $sel>$v</option>";
+				}
+
+			} else {
+
+				if (substr_count($v, '-range-') > 0) {
+
+					$range	= explode("-range-", $v);
+					$d1		= date('m/d/Y', strtotime($range[0]));
+					$d2		= date('m/d/Y', strtotime($range[1]));
+					$v1		= str_replace("-range-", " - ", $v);
+
+					if ($weeklyrange=='yes') {
+
+						if ($this->checkAssignmentExists($employee, $d1, $d2)) {
+
+							$options[] = "<option value='$d1-range-$d2' selected='selectd'>$v1</option>";
+						}
+
+					} else {
+
+						if ($this->checkAssignmentExists($employee, $d1, $d2)) {
+
+							$options[] = "<option value='$d1-range-$d2' $sel>$v1</option>";
+						}
+					}
+
+				} else {
+
+					$vi	= date('m/d/Y', strtotime($v));
+
+					if ($this->checkAssignmentExists($employee, $v, $v)) {
+
+						$options[] = "<option value='$vi' $sel>$v</option>";
+					}
+				}
+			}
 	    }
 	}
 	//$dropdown = "<div style='clear:both;>";
 	//$dropdown .= "<label class='cf_label' style='width: 100%;'></label>";
-	$dropdown .= "<select {$script} class='{$name} afontstylee' id='{$name}_{$rowid}' size='1' name='{$name}[{$rowid1}][{$rowid}]' >";
+	$dropdown .= "<select {$script} class='{$name} afontstylee' id='{$name}_{$rowid}' size='1' name='{$name}[{$rowid1}][{$rowid}]' tabindex='".$tab_index++."'>";
 	$dropdown .= implode("\n", $options);
 	$dropdown .= '</select>';
 	//$dropdown .= '</div>';
@@ -727,7 +757,7 @@ function GetDays($strDateFrom,$strDateTo)
 	return $dropdown;
     }
     
-    function buildDropDownClasses($name, $rowid, $data, $selected='', $script='', $key='', $val='', $weeklyrange)
+    function buildDropDownClasses($name, $rowid, $data, $selected='', $script='', $key='', $val='', $weeklyrange, $tab_index='')
     {
 	if($name == 'daily_dates')
 	{
@@ -779,7 +809,7 @@ function GetDays($strDateFrom,$strDateTo)
 	}
 	//$dropdown = "<div style='clear:both;>";
 	//$dropdown .= "<label class='cf_label' style='width: 150px;'></label>";
-	$dropdown .= "<select {$script} class='{$name} afontstylee' style='height:17px;' id='{$name}_{$rowid}' size='1' name='{$name}[{$rowid1}]' >";
+	$dropdown .= "<select {$script} class='{$name} afontstylee' style='height:17px;' id='{$name}_{$rowid}' size='1' name='{$name}[{$rowid1}]' tabindex='".$tab_index."'>";
 	$dropdown .= implode("\n", $options);
 	$dropdown .= '</select>';
 	//$dropdown .= '</div>';
@@ -787,13 +817,20 @@ function GetDays($strDateFrom,$strDateTo)
 	return $dropdown;
     }
     
-    function buildDatesdropdown($timesheet_date_arr, $timesheet_start_date, $timesheet_end_date)
-    {
-		$summary_dates = $timesheet_start_date."-range-".$timesheet_end_date;
-		array_push($timesheet_date_arr, $summary_dates);
-		
+	function buildDatesdropdown($timesheet_date_arr, $timesheet_start_date, $timesheet_end_date, $inout_flag = false)
+	{
+		if ($inout_flag) {
+
+			return $timesheet_date_arr;
+
+		} else {
+
+			$summary_dates = $timesheet_start_date."-range-".$timesheet_end_date;
+			array_push($timesheet_date_arr, $summary_dates);
+		}
+
 		return $timesheet_date_arr;
-    }
+	}
     
     function getRateTypes($asignid='')
     {
@@ -1103,7 +1140,9 @@ function GetDays($strDateFrom,$strDateTo)
 		$r++;
 	    }
 	}
-	$this->hiddenBillable = $hiddenBillable;
+	
+	$this->hiddenBillable[] = $hiddenBillable;
+	    
 	return $ratetype;
     }
 	
@@ -1333,7 +1372,7 @@ function GetDays($strDateFrom,$strDateTo)
 	return $id;
     }
 
-    function getRangeRow($employee, $assign_id = '', $rtype = '', $task='', $assignStartEndDate, $assignStartDate, $assignEndDate, $classid, $rowid, $range='no', $timesheet_hours_sno = '', $edit_string = '', $editRowid='',$module='', $rowtotal='0.00')
+    function getRangeRow($employee, $assign_id = '', $rtype = '', $task='', $assignStartEndDate, $assignStartDate, $assignEndDate, $classid, $rowid, $range='no', $timesheet_hours_sno = '', $edit_string = '', $editRowid='',$module='', $rowtotal='0.00', $cval = '')
     {
 	$this->mystr[] = $timesheet_hours_sno;
 	$rangRow = "<tr id='row_".$rowid."' class='tr_clone'>";
@@ -1350,7 +1389,7 @@ function GetDays($strDateFrom,$strDateTo)
 	$rangRow .= "<br /><font title='click here to add task details' onclick='javascript:AddTaskDetails(this.id)' id='addtaskdetails_".$rowid."' class='addtaskBtn' style='padding-top: 0px; white-space:nowrap;'>Click to Add Task Details </font>";
 	$rangRow .= "</td>";
 	////////////////// Assignments dropdown ///////////////////////////
-	$asgnDropDown = $this->getAssignments($employee, $assign_id, $assignStartDate, $assignEndDate, $rowid,$module);
+	$asgnDropDown = $this->getAssignments($employee, $assign_id, $assignStartDate, $assignEndDate, $rowid,$module,'','',$cval);
 	if(count($this->assignments) > 1)
 	{
 		$multicss = "background='/PSOS/images/arrow-multiple-12-red.png' style='background-repeat:no-repeat;background-position:left top; padding-left: 17px;'";
@@ -1522,7 +1561,7 @@ function GetDays($strDateFrom,$strDateTo)
     
     function buildMainHeaders($mainHeaders,$mode)
     {
-	$arrMode = array('approved' => 'Approved','exported' => 'Approved','rejected' => 'Rejected','deleted' => 'Deleted');
+	$arrMode = array('approved' => 'Approved','exported' => 'Approved','rejected' => 'Rejected','deleted' => 'Deleted','Rejected' => 'Rejected');
 	$str = '<tr class=hthbgcolorr>';
 	if($mode == 'create')
 	{
@@ -1583,7 +1622,7 @@ function GetDays($strDateFrom,$strDateTo)
 
 	//$modeArr = array('pending'=>' and pt.astatus="ER" and th.status ="ER"','approved' =>'AND pt.astatus IN ("Approved","Billed","ER") AND th.status IN ("Approved","Billed")','exported' =>'AND pt.astatus IN ("Approved","Billed","ER") AND th.status IN ("Approved","Billed") and th.exported_status ="YES"','deleted'=>'AND pt.astatus IN ("Deleted") and th.status IN ("Deleted")','rejected'=>'AND pt.astatus IN ("Rejected") and th.status IN ("Rejected")','backup'=>' and th.status IN ("Backup")','errejected'=>'AND pt.astatus IN ("ER","Rejected") and th.status IN ("Rejected")','erer'=>'AND pt.astatus IN ("ER","Rejected") and th.status IN ("ER")');
 	
-	if($accountingExport == 'Exported' && $module != 'Client' && $module != 'MyProfile' ) {
+	if($accountingExport == 'Exported' && $module != 'Client' && $module != 'MyProfile' && $module != 'Invoice') {
 	$modeArr = array('pending'=>' and th.status ="ER"','approved' =>' AND th.status IN ("Approved","Billed") and th.exported_status !="YES"','exported' =>' AND th.status IN ("Approved","Billed") and th.exported_status ="YES"','deleted'=>' and th.status IN ("Deleted")','rejected'=>' and th.status IN ("Rejected")','backup'=>' and th.status IN ("Backup")','errejected'=>' and th.status IN ("Rejected")','erer'=>' and th.status IN ("ER")');
 	} else {
      $modeArr = array('pending'=>' and th.status ="ER"','approved' =>' AND th.status IN ("Approved","Billed") ','exported' =>' AND th.status IN ("Approved","Billed") and th.exported_status ="YES"','deleted'=>' and th.status IN ("Deleted")','rejected'=>' and th.status IN ("Rejected")','backup'=>' and th.status IN ("Backup")','errejected'=>' and th.status IN ("Rejected")','erer'=>' and th.status IN ("ER")');
@@ -1616,9 +1655,10 @@ LEFT JOIN users u ON u.username = th.auser ".$conjoin."
  FROM par_timesheet pt INNER JOIN timesheet_hours th ON pt.sno = th.parid LEFT JOIN hrcon_jobs AS hj ON th.assid = hj.pusername LEFT JOIN staffacc_cinfo sc ON th.client = sc.sno INNER JOIN emp_list el ON el.username = pt.username
 LEFT JOIN users u ON u.username = th.auser ".$conjoin."
  WHERE 1=1  ".$modeArr[$mode]." ".$condinvoice." and th.username = pt.username GROUP BY th.rowid";
-	
+ 
+	//echo $sql;
 	$result = $this->mysqlobj->query($sql,$this->db);
-		
+	
 	while($row = $this->mysqlobj->fetch_array($result))
 	{
 	    $data[] = $row;
@@ -1841,7 +1881,7 @@ if($mode != 'pending' && $mode !='errejected' && $mode !='erer')
 	    {
 		$str1 = '<font class=afontstylee><a href="javascript: void(0);" onclick="delTimeAttach('.$row['sno'].', '.$sno.');">Delete file</a><font>';
 	    }
-	    $str .= '<tr id="'.$row['sno'].'"><td>&nbsp;</td><td><font class=afontstylee><a href="/include/downts.php?id='.$row['sno'].'">'.$row['name'].'</a>'.$str1.'</font></td></tr>';
+	    $str .= '<tr id="'.$row['sno'].'"><td>&nbsp;</td><td><font class=afontstylee><a href="/include/downts.php?id='.$row['sno'].'">'.$row['name'].'</a>&nbsp;&nbsp;'.$str1.'</font></td></tr>';
 	    $rowcount++;
 	}
 	$str .= '</table>';
@@ -1913,6 +1953,7 @@ function displayTimesheetDetailsPrint($sno, $mode,$condinvoice ='',$conjoin='', 
 			$chk_cond = '<input type="checkbox" id="chk" class="chk" value="check all" checked="checked" onclick="mainChkBox_ProcessedRecords()">';
 		}
 	}
+	
 	// get the timesheet details
 	$data = $this->getTimesheetDetails($sno, $mode,$condinvoice,$conjoin);
 
@@ -2003,21 +2044,19 @@ function displayTimesheetDetailsPrint($sno, $mode,$condinvoice ='',$conjoin='', 
     {
 	$table = '<div id="grid_form" class="grid_forms" style="white-space:nowrap">';
 	$table .= '<table cellspacing="1" cellpadding="5" width="100%"  border=0 style="text-align:left;"> ';
-	
+		
 	// get the timesheet details
 	$data = $this->getTimesheetDetails($sno, $mode,$condinvoice,$conjoin,$module);
 
 	foreach($data as $val)
 	{
-		
+
           $usernamedb = $val['username'];
 	      $servicedateto = $val['penddate'];
         $servicedate = $val['pstartdate'];
 	    //$asgnsnoarr[] = $val['asgnsno'];
 	}
-
-	$this->getAssignments($usernamedb, '', $servicedate, $servicedateto, '0');
-	// echo $this->assignments;
+	 $this->getAssignments($usernamedb, '', $servicedate, $servicedateto, '0');
 	$ratesArr =     $this->getRateTypesForAllAsgnnames($this->assignments);
 
 	//$ratesArr = $this->getRateTypesForAllAsgn($asgnsnoarr);
@@ -2031,24 +2070,19 @@ function displayTimesheetDetailsPrint($sno, $mode,$condinvoice ='',$conjoin='', 
 	$headerCount = count($headerArr);
 	$ratetype = $this->getRateTypes();
 	$rateCount = count($ratesArr);
-	
 	foreach($ratetype as $val)
 	{
 	    if(in_array($val['rateid'], $ratesArr))
 	    {
-			array_push($headerArr, $val['name']);
+		array_push($headerArr, $val['name']);
 	    }
 	}
-
 	/////////////////////////// Main Headers ///////////////////////
 	
 	$table .= $this->buildMainHeaders($headerArr,$mode);
 	//////////////////////// Sub Headers (Hour & Billable) ////////
 	$table .= $this->buildSubHeaders($headerArr, $headerCount,$mode);
 	
-	// echo "<pre>";
-		// print_r($headerArr);
-	// echo "</pre>";
 	
 	foreach($data as $key=>$val)
 	{
@@ -2193,14 +2227,23 @@ function displayTimesheetDetailsPrint($sno, $mode,$condinvoice ='',$conjoin='', 
 	return $rateTypesAsgn;
     }
     
-    function getRateTypesForAllAsgnnames($asgnIds)
+    function getRateTypesForAllAsgnnames($asgnIds, $inout_flag = false)
     {
 	$AsgnIdStr = "'";
 	$AsgnIdStr .= implode("','", $asgnIds);
 	$AsgnIdStr .= "'";
+
+	// FIXED RATES FOR TIMEINTIMEOUT
+	$where_clause	= '';
+
+	if ($inout_flag) {
+
+		$where_clause	= " AND t2.rateid IN ('rate1','rate2') ";
+	}
+
 	//echo $select_ratemaster_asgn = "SELECT distinct ratemasterid as rateid FROM testingnew.multiplerates_assignment t1 inner join multiplerates_master t2 on t1.ratemasterid = t2.rateid inner join hrcon_jobs t3 on t1.asgnid = t3.sno WHERE pusername in(".$AsgnIdStr.") AND ratetype='billrate' AND asgn_mode = 'hrcon' and rateid !='rate4' and t2.status = 'Active'";
 	
-	$select_ratemaster_asgn = "SELECT DISTINCT ratemasterid AS rateid FROM multiplerates_assignment t1 INNER JOIN hrcon_jobs t3 ON t1.asgnid = t3.sno LEFT JOIN multiplerates_master t2 ON t1.ratemasterid = t2.rateid WHERE pusername IN(".$AsgnIdStr.") AND ratetype='billrate' AND asgn_mode = 'hrcon' AND t2.status = 'Active'";
+	$select_ratemaster_asgn = "SELECT DISTINCT ratemasterid AS rateid FROM multiplerates_assignment t1 INNER JOIN hrcon_jobs t3 ON t1.asgnid = t3.sno LEFT JOIN multiplerates_master t2 ON t1.ratemasterid = t2.rateid WHERE pusername IN(".$AsgnIdStr.") AND ratetype='billrate' AND asgn_mode = 'hrcon' AND t2.status = 'Active' $where_clause ";
 
 	$result_ratemaster_asgn=$this->mysqlobj->query($select_ratemaster_asgn,$this->db);
 	$this->rateTypeCountSingle = $this->mysqlobj->num_rows($result_ratemaster_asgn);
@@ -2268,7 +2311,7 @@ function displayTimesheetDetailsPrint($sno, $mode,$condinvoice ='',$conjoin='', 
 			$nameAndsource=mysql_fetch_row($res_user);
 			$backupNotes = htmlspecialchars($backupRow[2],ENT_QUOTES);
 			$display .=  "<tr>
-							<td class='nowrap'><font class=afontstyle><a href='#' onclick=\"javascript:openwin('$backupRow[3]');\">$backupRow[0]</a></font></td>
+							<td class='nowrap'><font class=afontstyle><a href='#' onclick=\"javascript:openwin('$backupRow[3]', '$sno');\">$backupRow[0]</a></font></td>
 							<td class='nowrap'><font class=afontstyle>$nameAndsource[0]</font></td>
 							<td class='nowrap'><font class=afontstyle>{$backupNotes}</font></td>
 							
@@ -2309,5 +2352,29 @@ function displayTimesheetDetailsPrint($sno, $mode,$condinvoice ='',$conjoin='', 
 	$row=$this->mysqlobj->fetch_array($result);		
 	return $row;
     }
+    
+    // For getting company id of CSS User
+    function getClientId($username){
+	
+	$sel="select staffacc_contact.username from staffacc_contactacc,staffacc_contact where staffacc_contactacc.con_id=staffacc_contact.sno and staffacc_contactacc.username = '".$username."'";
+	$ressel=mysql_query($sel,$this->db);
+	$rssel=mysql_fetch_row($ressel);
+
+	$clSelsql = "SELECT sno from staffacc_cinfo WHERE type IN ('CUST', 'BOTH') AND username='".$rssel[0]."'";
+	$resselSno=mysql_query($clSelsql,$this->db);
+	$rsselSno=mysql_fetch_row($resselSno);
+	$Cval=$rsselSno[0];
+	return $Cval;
+    }
+    
+    function getMaxRowId($parid){
+	
+	$sel	 	= 	"SELECT MAX(rowid) FROM timesheet_hours WHERE parid=".$parid;
+	$ressel 	=	mysql_query($sel,$this->db);
+	$rssel		=	mysql_fetch_row($ressel);
+	$maxRowId	=	$rssel[0];
+	return $maxRowId;
+    }
+       
 }
 ?>

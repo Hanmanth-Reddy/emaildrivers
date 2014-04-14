@@ -376,7 +376,164 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 								{
 									$total = 0;
 									$addr1 = $template_Time_Values[$rr]['timeParId'];
+										$qu = "select timeintimeout from par_timesheet where par_timesheet.sno='".$addr1."'";
+										$result = mysql_query($qu,$db);
+										$TimeinTimeout = mysql_fetch_row($result);
+										$is_timein_timeout = $TimeinTimeout[0];
+										
+										if($is_timein_timeout=='Y'){
+											
+											require_once('timesheet/class.timeintimeout.php');
+											$objTimeInTimeOut	= new TimeInTimeOut($db);
+											
+											$module	= 'Accounting';
+											$fileid		= 0;
+											$filename	= '';
+											$emp_name	= '';
+											$sdatets	= '';
+											$stscount	= '';
+											$ts_multiple	= '';
+											$user_name	= '';
+											$start_date	= '';
+											$submitted_date	= '';
+											$end_date	= '';
+											$remarks	= '';
+											$notes		= '';
+											$client_id	= '';
 
+											// GETTING MAX REGULAR HOURS SPECIFIED @ PAYROLL SETUP
+											$max_regular_hours	= $objTimeInTimeOut->getMaxRegularHours();
+
+											// GETTING PAR TIMESHEET DETAILS
+											$par_timesheet_details	= $objTimeInTimeOut->getParTimeSheetDetails($addr1);
+
+											if (!empty($par_timesheet_details)) {
+
+												foreach ($par_timesheet_details as $key => $object) {
+
+													$ts_multiple	= $object->ts_multiple;
+													$user_name	= $object->name;
+													$start_date	= $object->sdate;
+													$end_date	= $object->edate;
+													$remarks	= $object->issues;
+													$notes		= $object->notes;
+													$submitted_date	= $object->stime;
+												}
+											}
+											// GETTING TIMESHEET DETAILS
+											$timesheet_details	= $objTimeInTimeOut->getTimeSheetInformation($addr1);
+
+											if (!empty($timesheet_details)) {
+
+												foreach ($timesheet_details as $key => $object) {
+
+													$emp_name	= $object->username;
+
+													$que3	= "SELECT 
+																COUNT(*),".tzRetQueryStringDate('timesheet_hours.sdate','Date','/')." 
+															FROM 
+																timesheet_hours 
+																LEFT JOIN par_timesheet ON timesheet_hours.parid=par_timesheet.sno 
+															WHERE 
+																timesheet_hours.sdate='".$object->sdate."' AND timesheet_hours.username='".$object->username."' 
+																AND par_timesheet.astatus = 'ER' AND timesheet_hours.status = 'ER'
+															GROUP BY 
+																timesheet_hours.sdate";
+
+													$rs3	= mysql_query($que3,$db);
+													$ro3	= mysql_fetch_row($rs3);
+
+													if (empty($sdatets))
+													$sdatets	= $ro3[1];
+													else
+													$sdatets	.= '|'. $ro3[1];
+
+													if (empty($stscount))
+													$stscount	= $ro3[0];
+													else
+													$stscount	.= '|'. $ro3[0];
+
+													$client_id	= $object->client;
+												}
+											}
+											// Employee Name
+											$ename = $user_name;
+
+											// Employee Id
+											$eid = $emp_name;
+											
+											$elements_all	= $objTimeInTimeOut->showTimeInTimeOutDetailsEmail('1', $addr1, $ename, $eid, $submitted_date, $start_date, $end_date, $userSelfServicePref, $module);
+
+											$check			= $elements_all['check'];
+											$link_js		= $elements_all['link_js'];
+											$statval		= $elements_all['statval'];
+											$heading		= $elements_all['heading'];
+											$status_id		= $elements_all['status_id'];
+											$headtitle		= $elements_all['headtitle'];
+											$link_title		= $elements_all['link_title'];
+											$timesheetstatus	= $elements_all['timesheetstatus'];
+											$timesheetcaption	= $elements_all['timesheetcaption'];
+											$whosetmdetails_text	= $elements_all['whosetmdetails_text'];
+											
+											$logopath = getCompanyLogo($companyuser, $WDOCUMENT_ROOT);
+											
+											$CompInfoQry="select company_name from company_info";
+											$CompInfoRes=mysql_query($CompInfoQry,$db);
+											$CompInfoRow=mysql_fetch_row($CompInfoRes);
+											$EmpCompanyName=$CompInfoRow[0];
+											
+											$timesheet .= "
+												<style>@page {
+													margin: 0px, 35px, 35px, 35px;
+												}</style>
+											";
+											$timesheet .= '<table width="99%" border="0" cellspacing="0" cellpadding="0">
+														  <tr>
+															<td width="50%" align="left" valign="top"><div></div></td>
+															<td width="50%" align="right">&nbsp;</td>
+														  </tr>
+														   <tr>
+															<td width="50%" align="left" valign="top"><div><img src="'.$logopath.'" border=0 height=48 width=165></div></td>
+															<td width="50%" align="right">&nbsp;</td>
+														  </tr>
+														    <tr>
+															<td>&nbsp;</td>
+															<td>&nbsp;</td>
+														  </tr>
+														  <tr>
+															<td><font class=afontstylee>Company Name : <b>'.stripslashes($EmpCompanyName).'</b></font></td>
+															<td align="right">'.$whosetmdetails_text.'</td>
+														  </tr>
+													 </table>
+													 </td>
+												</tr>    	
+												</table>
+											';
+										
+											$timesheet .= '
+												<table width="100%" cellspacing="0" cellpadding="0" border="0" align="center">
+													<tr>
+														<td>
+														'.						
+															$objTimeInTimeOut->displayTimeInTimeOutEmail($addr1, $headtitle, $check, 'Billed', 'Accounting', 1, $emp_name, $start_date, $end_date).'
+														</td>
+													</tr>
+												</table>
+												<table>
+													<tr>
+														<td>
+															<table width="100%" cellspacing="0" cellpadding="0" border="0">
+																<tr>
+																	<td>
+																		<font class=afontstylee>Submitted Date&nbsp;:&nbsp;<b>'.$submitted_date.'
+																	</b></font></td>
+																</tr>
+															</table>
+														</td>
+													</tr>
+											';
+											
+										}else{
 									$qu="select ".tzRetQueryStringDate('par_timesheet.sdate','ShMonth','/').", ".tzRetQueryStringDate('par_timesheet.edate','ShMonth','/').", DATE_FORMAT( par_timesheet.stime, '%m/%d/%Y %H:%i:%s' ), par_timesheet.issues, par_timesheet.astatus, par_timesheet.pstatus, emp_list.name, ".tzRetQueryStringDTime('par_timesheet.atime','DateTime24','/').", ".tzRetQueryStringDTime('par_timesheet.ptime','DateTime24','/').", par_timesheet.puser, par_timesheet.auser, par_timesheet.notes from par_timesheet LEFT JOIN emp_list ON emp_list.username=par_timesheet.username where par_timesheet.sno='".$addr1."'";
 									$result=mysql_query($qu,$db);
 									$myrow=mysql_fetch_row($result);
@@ -422,6 +579,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 									if($Biltotal>"0")
 										$timesheet .=  '<tr><td colspan=1><font class=afontstyle>&nbsp;</font></td><td colspan="1">&nbsp;</td><td align=right><font class=hfontstyle >Billable Hours: &nbsp;&nbsp;</font></td><td><font class=hfontstyle>'.number_format($Biltotal,2,"."," ").'</font></td><td>&nbsp;</td><td>&nbsp;</td></tr>';
 
+								}
 									$timesheet .=  '<tr>
 								<td colspan="8">
 									<table width="99%" border="0">
@@ -458,8 +616,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 									$stylesheet = file_get_contents('/usr/bin/db-driver/timesheet/educeit.css');
 									$mpdf->WriteHTML($stylesheet,1);
 	
-									$stylesheet = file_get_contents('/usr/bin/db-driver/timesheet/tab.css');
-									$mpdf->WriteHTML($stylesheet,1);
+									
 	
 									$stylesheet = file_get_contents('/usr/bin/db-driver/timesheet/timesheet.css');
 									$mpdf->WriteHTML($stylesheet,1);
@@ -478,9 +635,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 	
 									$stylesheet = file_get_contents('/usr/bin/db-driver/timesheet/educeit.css');
 									$mpdf->WriteHTML($stylesheet,1);
-	
-									$stylesheet = file_get_contents('/usr/bin/db-driver/timesheet/tab.css');
-									$mpdf->WriteHTML($stylesheet,1);
+										
 	
 									$stylesheet = file_get_contents('/usr/bin/db-driver/timesheet/timesheet.css');
 									$mpdf->WriteHTML($stylesheet,1);
