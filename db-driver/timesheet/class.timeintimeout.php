@@ -38,11 +38,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 		foreach ($defHeaders as $val) {
 
-			if (($val == 'Time&nbsp;In') || ($val == 'Time&nbsp;Out')) {
-
-				$str	.= '<td valign="top" style="background-color:white"><font class=smalltextfont>HH:MM&nbsp;AM/PM</font></td>';
-
-			} elseif (strtolower($val) == 'regular' || strtolower($val) == 'overtime' || strtolower($val) == 'doubletime') {
+			if (strtolower($val) == 'regular' || strtolower($val) == 'overtime' || strtolower($val) == 'doubletime') {
 
 				$str	.= '<td valign="top" style="background-color:white;text-align:center"><font class="smalltextfont">Hours</font></td>';
 
@@ -179,19 +175,19 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 		$create_ts_html	.= "
 			<td class='afontstylee' valign='top' width='8%' align='center'>
-				<input type='text' id='pre_intime_".$row_id."' name='pre_intime[0][".$row_id."]' value='".$pre_in_time."' size='7' class='rowIntime' style='font-family:Arial;font-size:9pt;' onchange='javascript:calculateTime(".$row_id.");'  tabindex='".$tab_index++."'>
+				<input type='text' id='pre_intime_".$row_id."' name='pre_intime[0][".$row_id."]' value='".$pre_in_time."' size='7' class='rowIntime' style='font-family:Arial;font-size:9pt;' onchange='javascript:calculateTime(this.id);' tabindex='".$tab_index++."'>
 			</td>
 			<td class='afontstylee' valign='top' width='8%' align='center'>
-				<input type='text' id='pre_outtime_".$row_id."' name='pre_outtime[0][".$row_id."]' value='".$pre_out_time."' size='7' class='rowOuttime' style='font-family:Arial;font-size:9pt;' onchange='javascript:calculateTime(".$row_id.");'  tabindex='".$tab_index++."'>
+				<input type='text' id='pre_outtime_".$row_id."' name='pre_outtime[0][".$row_id."]' value='".$pre_out_time."' size='7' class='rowOuttime' style='font-family:Arial;font-size:9pt;' onchange='javascript:calculateTime(this.id);' tabindex='".$tab_index++."'>
 			</td>
 			<td class='afontstylee' valign='top' align='center' width='7%'>
 				<input type='text' id='break_hours_".$row_id."' name='break_hours[0][".$row_id."]' value='".$break_hours."' size='4' class='rowBreaktime' style='font-family:Arial;font-size:9pt;background-color:#EDE9E9;' readonly>
 			</td>
 			<td class='afontstylee' valign='top' width='8%' align='center'>
-				<input type='text' id='post_intime_".$row_id."' name='post_intime[0][".$row_id."]' value='".$post_in_time."' size='7' class='rowIntime' style='font-family:Arial;font-size:9pt;' onchange='javascript:calculateTime(".$row_id.");'  tabindex='".$tab_index++."'>
+				<input type='text' id='post_intime_".$row_id."' name='post_intime[0][".$row_id."]' value='".$post_in_time."' size='7' class='rowIntime' style='font-family:Arial;font-size:9pt;' onchange='javascript:calculateTime(this.id);' tabindex='".$tab_index++."'>
 			</td>
 			<td class='afontstylee' valign='top' width='8%' align='center'>
-				<input type='text' id='post_outtime_".$row_id."' name='post_outime[0][".$row_id."]' value='".$post_out_time."' size='7' class='rowOuttime' style='font-family:Arial;font-size:9pt;' onchange='javascript:calculateTime(".$row_id.");'  tabindex='".$tab_index++."'>
+				<input type='text' id='post_outtime_".$row_id."' name='post_outime[0][".$row_id."]' value='".$post_out_time."' size='7' class='rowOuttime' style='font-family:Arial;font-size:9pt;' onchange='javascript:calculateTime(this.id);' tabindex='".$tab_index++."'>
 			</td>";
 
 		return $create_ts_html;
@@ -426,6 +422,27 @@ class TimeInTimeOut extends AkkenTimesheet {
 		}
 
 		return $max_ovt_hours;
+	}
+
+	/*
+	* This function returns the rounding of time increment for timesheet
+	*
+	* return	integer	$time_increment
+	*/
+	public function getTimeIncrement() {
+
+		$time_increment	= 0;
+
+		$sel_tincmt_query	= "SELECT timeincrements FROM cpaysetup WHERE status='ACTIVE'";
+		$res_tincmt_query	= $this->mysqlobj->query($sel_tincmt_query, $this->db);
+
+		if (mysql_num_rows($res_tincmt_query) > 0) {
+
+			$row_tincmt_query	= $this->mysqlobj->fetch_object($res_tincmt_query);
+			$time_increment		= $row_tincmt_query->timeincrements;
+		}
+
+		return $time_increment;
 	}
 
 	/*
@@ -905,11 +922,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 			for ($i = 0; $i < $numflds; $i++) {
 
-				if ($header[$i] == 'Time&nbsp;In' || $header[$i] == 'Time&nbsp;Out') {
-
-					$grids	.= '<td valign="top" style="background-color:white"><font class=smalltextfont>HH:MM&nbsp;AM/PM</font></td>';
-
-				} elseif (strtolower($header[$i]) == 'regular' || strtolower($header[$i]) == 'overtime' || strtolower($header[$i]) == 'doubletime') {
+				if (strtolower($header[$i]) == 'regular' || strtolower($header[$i]) == 'overtime' || strtolower($header[$i]) == 'doubletime') {
 
 					$grids	.= '<td valign="top" style="background-color:white"><font class="smalltextfont">Hours</font></td>';
 
@@ -1965,11 +1978,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 			for ($i = 0; $i < $numflds; $i++) {
 
-				if ($header[$i] == 'Time&nbsp;In' || $header[$i] == 'Time&nbsp;Out') {
-
-					$printdata	.= '<td valign="top" style="background-color:white" align="center"><font class=smalltextfont>HH:MM&nbsp;AM/PM</font></td>';
-
-				} elseif (strtolower($header[$i]) == 'regular' || strtolower($header[$i]) == 'overtime' || strtolower($header[$i]) == 'doubletime') {
+				if (strtolower($header[$i]) == 'regular' || strtolower($header[$i]) == 'overtime' || strtolower($header[$i]) == 'doubletime') {
 
 					$printdata	.= '<td valign="top" style="background-color:white" align="center"><font class="smalltextfont">Hours</font></td>';
 
@@ -2209,11 +2218,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 			for ($i = 0; $i < $numflds; $i++) {
 
-				if ($header[$i] == 'Time&nbsp;In' || $header[$i] == 'Time&nbsp;Out') {
-
-					$grids	.= '<td valign="top" style="background-color:white"><font class=smalltextfont>HH:MM&nbsp;AM/PM</font></td>';
-
-				} elseif (strtolower($header[$i]) == 'regular' || strtolower($header[$i]) == 'overtime' || strtolower($header[$i]) == 'doubletime') {
+				if (strtolower($header[$i]) == 'regular' || strtolower($header[$i]) == 'overtime' || strtolower($header[$i]) == 'doubletime') {
 
 					$grids	.= '<td valign="top" style="background-color:white"><font class="smalltextfont">Hours</font></td>';
 
