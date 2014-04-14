@@ -1096,6 +1096,8 @@ class TimeInTimeOut extends AkkenTimesheet {
 			$time_data 	= explode(",",$object->time_data);
 			$ratetypes 	= $this->getRateTypesForAllAsgnnames($this->assignments,true);
 
+			$rate_data = array();
+			 
 			foreach ($time_data as $val) {
 				$ratetimedata	= explode("|",$val);
 				$rate_data[] 	= $ratetimedata[0];
@@ -1129,7 +1131,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 				$grids	.= "<td align='left'><font class='afontstyle'>".$object->approvetime."</font></td>";
 			}
 
-			if ($status_id != "1" && $status_id != "2" && $status_id != "3") {
+			if ($status_id != "1" && $status_id != "2" && $status_id != "3" && $status_id != "7" || ($module == "Client" && $status_id == '3')) {
 				// For last column - Overall Total
 				$grids	.= "<td align='left'><font class='afontstyle'></font></td>";
 			}
@@ -1391,7 +1393,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 		$rateheader = implode("|",$ratetype_title);
 		
-		if($status_id != "1" && $status_id != "2" && $status_id != "3" || ($module == "Client" && $status_id == '3')){
+		if($status_id != "1" && $status_id != "2" && $status_id != "3" && $status_id != "7" || ($module == "Client" && $status_id == '3')){
 			$total = "|&nbsp;"; // for showing total column title
 		}
 			
@@ -1650,7 +1652,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 		$rateheader = implode("|",$ratetype_title);
 		
-		if($status_id != "1" && $status_id != "2" && $status_id != "3" || ($module == "Client" && $status_id == '3')){
+		if($status_id != "1" && $status_id != "2" && $status_id != "3" && $status_id != "7" || ($module == "Client" && $status_id == '3')){
 			$total = "|&nbsp;"; // for showing total column title
 		}
 		
@@ -2041,7 +2043,8 @@ class TimeInTimeOut extends AkkenTimesheet {
 			$time_data 	= explode(",",$row->time_data);			
 			$ratetypes 	= $this->getRateTypesForAllAsgnnames($this->assignments,true);
 			
-	
+			$rate_data = array();
+			
 			foreach ($time_data as $val) {
 				$ratetimedata	= explode("|",$val);
 				$rate_data[] 	= $ratetimedata[0];
@@ -2397,6 +2400,8 @@ class TimeInTimeOut extends AkkenTimesheet {
 			$time_data 	= explode(",",$object->time_data);
 			$ratetypes 	= $this->getRateTypesForAllAsgnnames($this->assignments,true);
 
+			$rate_data = array();
+			
 			foreach ($time_data as $val) {
 				$ratetimedata	= explode("|",$val);
 				$rate_data[] 	= $ratetimedata[0];
@@ -2430,7 +2435,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 				$grids	.= "<td align='left'><font class='afontstyle'>".$object->approvetime."</font></td>";
 			}
 
-			if ($status_id != "1" && $status_id != "2" && $status_id != "3") {
+			if ($status_id != "1" && $status_id != "2" && $status_id != "3" && $status_id != "7" || ($module == "Client" && $status_id == '3')) {
 				// For last column - Overall Total
 				$grids	.= "<td align='left'><font class='afontstyle'></font></td>";
 			}
