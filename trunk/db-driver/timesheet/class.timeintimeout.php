@@ -42,7 +42,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 				$str	.= '<td valign="top" style="background-color:white"><font class=smalltextfont>HH:MM&nbsp;AM/PM</font></td>';
 
-			} elseif (strtolower($val) == 'regular' || strtolower($val) == 'overtime') {
+			} elseif (strtolower($val) == 'regular' || strtolower($val) == 'overtime' || strtolower($val) == 'doubletime') {
 
 				$str	.= '<td valign="top" style="background-color:white;text-align:center"><font class="smalltextfont">Hours</font></td>';
 
@@ -257,6 +257,10 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 				$class	= 'rowOverTimeHours';
 
+			} elseif ($myrow['rateid'] == 'rate3') {
+
+				$class	= 'rowDoubleTimeHours';
+
 			} else {
 
 				$class	= 'timesheetRate'.$r;
@@ -329,10 +333,11 @@ class TimeInTimeOut extends AkkenTimesheet {
 	*
 	* param		string	$regular_hours
 	* param		string	$overtime_hours
+	* param		string	$doubletime_hours
 	* param		string	$total_hours
 	* return	string
 	*/
-	public function getTotalHoursHTML($regular_hours = '0.00', $overtime_hours = '0.00', $total_hours = '0.00') {
+	public function getTotalHoursHTML($regular_hours = '0.00', $overtime_hours = '0.00', $doubletime_hours = '0.00', $total_hours = '0.00') {
 
 		$colspan	= 7;
 
@@ -350,6 +355,9 @@ class TimeInTimeOut extends AkkenTimesheet {
 				</td>
 				<td width="10%" align="center">
 					<div id="final_overtime_hours" style="font-weight:bold;">'.number_format($overtime_hours,2,'.','').'</div>
+				</td>
+				<td width="10%" align="center">
+					<div id="final_doubletime_hours" style="font-weight:bold;">'.number_format($doubletime_hours,2,'.','').'</div>
 				</td>
 				<td width="10%" align="center">
 					<div id="final_total_hours" style="font-weight:bold;">'.number_format($total_hours,2,'.','').'</div>
@@ -397,6 +405,27 @@ class TimeInTimeOut extends AkkenTimesheet {
 		}
 
 		return $max_reg_hours;
+	}
+
+	/*
+	* This function returns the max over time hours for timesheet
+	*
+	* return	integer	$max_ovt_hours
+	*/
+	public function getMaxOverTimeHours() {
+
+		$max_ovt_hours	= 0;
+
+		$sel_ohours_query	= "SELECT maxovertimehours FROM cpaysetup WHERE status='ACTIVE'";
+		$res_ohours_query	= $this->mysqlobj->query($sel_ohours_query, $this->db);
+
+		if (mysql_num_rows($res_ohours_query) > 0) {
+
+			$row_ohours_query	= $this->mysqlobj->fetch_object($res_ohours_query);
+			$max_ovt_hours		= $row_ohours_query->maxovertimehours;
+		}
+
+		return $max_ovt_hours;
 	}
 
 	/*
@@ -796,19 +825,21 @@ class TimeInTimeOut extends AkkenTimesheet {
 	* param		string	$end_date
 	* return	string  $grids
 	*/
-	public function displayTimeInTimeOut($parid, $header_title, $check='', $timesheetstatus, $module, $status_id='', $emp_name, $start_date, $end_date,$condinvoices = '', $conjoin = '', $conbillable = '') {
+	public function displayTimeInTimeOut($parid, $header_title, $check='', $timesheetstatus, $module, $status_id='', $emp_name, $start_date, $end_date, $condinvoices = '', $conjoin = '', $conbillable = '') {
 
 		global $companyname, $IsPrint;
 
 		$timesheetstatus	= ucfirst($timesheetstatus);
 
-		$summary_info	= $this->getDetailsFromTimeSheetHours($parid, $timesheetstatus,$condinvoices,$conjoin);
+		$summary_info	= $this->getDetailsFromTimeSheetHours($parid, $timesheetstatus, $condinvoices, $conjoin);
 		$rowsCount	= count($summary_info);
 
 		// GETTING TOTAL HOURS BASED ON RATES
 
 		$reg_total_hours	= 0.00;
 		$ovt_total_hours	= 0.00;
+		$dbt_total_hours	= 0.00;
+
 		$rates_total_hours	= $this->getTotalHoursForRates($parid, $timesheetstatus, $conbillable);
 
 		if (!empty($rates_total_hours)) {
@@ -823,6 +854,11 @@ class TimeInTimeOut extends AkkenTimesheet {
 				if ($object->rate == 'rate2') {
 
 					$ovt_total_hours	= $object->rates_total;
+				}
+
+				if ($object->rate == 'rate3') {
+
+					$dbt_total_hours	= $object->rates_total;
 				}
 			}
 		}
@@ -873,7 +909,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 					$grids	.= '<td valign="top" style="background-color:white"><font class=smalltextfont>HH:MM&nbsp;AM/PM</font></td>';
 
-				} elseif (strtolower($header[$i]) == 'regular' || strtolower($header[$i]) == 'overtime') {
+				} elseif (strtolower($header[$i]) == 'regular' || strtolower($header[$i]) == 'overtime' || strtolower($header[$i]) == 'doubletime') {
 
 					$grids	.= '<td valign="top" style="background-color:white"><font class="smalltextfont">Hours</font></td>';
 
@@ -1060,8 +1096,6 @@ class TimeInTimeOut extends AkkenTimesheet {
 			$time_data 	= explode(",",$object->time_data);
 			$ratetypes 	= $this->getRateTypesForAllAsgnnames($this->assignments,true);
 
-			$rate_data = array();
-			
 			foreach ($time_data as $val) {
 				$ratetimedata	= explode("|",$val);
 				$rate_data[] 	= $ratetimedata[0];
@@ -1146,6 +1180,10 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 					} elseif ($i == $tot_label_colnum + 3) {
 
+						$grids	.= "<td align='left'><font class='afontstyle'><b>".number_format($dbt_total_hours,2,'.','')."</b></font></td>";
+
+					} elseif ($i == $tot_label_colnum + 4) {
+
 						$grids	.= "<td align='left'><font class='afontstyle'><b>".number_format($total,2,'.','')."</b></font></td>";
 
 					} else {
@@ -1182,6 +1220,10 @@ class TimeInTimeOut extends AkkenTimesheet {
 						$grids	.= "<td align='left'><font class='afontstyle'><b>".number_format($ovt_total_hours,2,'.','')."</b></font></td>";
 
 					} elseif ($i == $tot_label_colnum + 3) {
+
+						$grids	.= "<td align='left'><font class='afontstyle'><b>".number_format($dbt_total_hours,2,'.','')."</b></font></td>";
+
+					} elseif ($i == $tot_label_colnum + 4) {
 
 						$grids	.= "<td align='left'><font class='afontstyle'><b>".number_format($total,2,'.','')."</b></font></td>";
 
@@ -1248,8 +1290,8 @@ class TimeInTimeOut extends AkkenTimesheet {
 			case "saved": $timesheetstatus	= "saved";
 				break;
 			
-			case 7: $timesheetstatus	= "exported";	// Exported Timesheet
-			case "exported": $timesheetstatus	= "exported";
+			case 7: $timesheetstatus	= "approved";	// Exported Timesheet
+			case "exported": $timesheetstatus	= "approved";
 				break;
 
 			default:$timesheetstatus	= "ER";		// Submitted Timesheet
@@ -1349,7 +1391,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 		$rateheader = implode("|",$ratetype_title);
 		
-		if($status_id != "1" && $status_id != "2" && $status_id != "3"){
+		if($status_id != "1" && $status_id != "2" && $status_id != "3" || ($module == "Client" && $status_id == '3')){
 			$total = "|&nbsp;"; // for showing total column title
 		}
 			
@@ -1608,7 +1650,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 		$rateheader = implode("|",$ratetype_title);
 		
-		if($status_id != "1" && $status_id != "2" && $status_id != "3"){
+		if($status_id != "1" && $status_id != "2" && $status_id != "3" || ($module == "Client" && $status_id == '3')){
 			$total = "|&nbsp;"; // for showing total column title
 		}
 		
@@ -1925,7 +1967,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 					$printdata	.= '<td valign="top" style="background-color:white" align="center"><font class=smalltextfont>HH:MM&nbsp;AM/PM</font></td>';
 
-				} elseif (strtolower($header[$i]) == 'regular' || strtolower($header[$i]) == 'overtime') {
+				} elseif (strtolower($header[$i]) == 'regular' || strtolower($header[$i]) == 'overtime' || strtolower($header[$i]) == 'doubletime') {
 
 					$printdata	.= '<td valign="top" style="background-color:white" align="center"><font class="smalltextfont">Hours</font></td>';
 
@@ -1947,7 +1989,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 		
 		$parid = 0;  
 
-		$summary_info	= $this->getDetailsFromTimeSheetHours($parid, $status_id,$condinvoices);
+		$summary_info	= $this->getDetailsFromTimeSheetHours($parid, $status_id, $condinvoices);
 		$rowsCount	= count($summary_info);
 		
 		$i	= 0;
@@ -1999,8 +2041,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 			$time_data 	= explode(",",$row->time_data);			
 			$ratetypes 	= $this->getRateTypesForAllAsgnnames($this->assignments,true);
 			
-			$rate_data = array();
-			
+	
 			foreach ($time_data as $val) {
 				$ratetimedata	= explode("|",$val);
 				$rate_data[] 	= $ratetimedata[0];
@@ -2089,7 +2130,6 @@ class TimeInTimeOut extends AkkenTimesheet {
 	public function displayTimeInTimeOutEmail($parid, $header_title, $check='', $timesheetstatus, $module, $status_id='', $emp_name, $start_date, $end_date, $condinvoices = '', $conjoin = '', $conbillable = ''){
 
 		global $companyname, $IsPrint;
-		
 		$timesheetstatus	= ucfirst($timesheetstatus);
 
 		$summary_info	= $this->getDetailsFromTimeSheetHours($parid, $timesheetstatus,$condinvoices,$conjoin);
@@ -2099,6 +2139,8 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 		$reg_total_hours	= 0.00;
 		$ovt_total_hours	= 0.00;
+		$dbt_total_hours	= 0.00;
+
 		$rates_total_hours	= $this->getTotalHoursForRates($parid, $timesheetstatus, $conbillable);
 
 		if (!empty($rates_total_hours)) {
@@ -2113,6 +2155,11 @@ class TimeInTimeOut extends AkkenTimesheet {
 				if ($object->rate == 'rate2') {
 
 					$ovt_total_hours	= $object->rates_total;
+				}
+
+				if ($object->rate == 'rate3') {
+
+					$dbt_total_hours	= $object->rates_total;
 				}
 			}
 		}
@@ -2163,7 +2210,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 					$grids	.= '<td valign="top" style="background-color:white"><font class=smalltextfont>HH:MM&nbsp;AM/PM</font></td>';
 
-				} elseif (strtolower($header[$i]) == 'regular' || strtolower($header[$i]) == 'overtime') {
+				} elseif (strtolower($header[$i]) == 'regular' || strtolower($header[$i]) == 'overtime' || strtolower($header[$i]) == 'doubletime') {
 
 					$grids	.= '<td valign="top" style="background-color:white"><font class="smalltextfont">Hours</font></td>';
 
@@ -2349,9 +2396,7 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 			$time_data 	= explode(",",$object->time_data);
 			$ratetypes 	= $this->getRateTypesForAllAsgnnames($this->assignments,true);
-			
-			$rate_data = array();
-			
+
 			foreach ($time_data as $val) {
 				$ratetimedata	= explode("|",$val);
 				$rate_data[] 	= $ratetimedata[0];
@@ -2436,6 +2481,10 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 					} elseif ($i == $tot_label_colnum + 3) {
 
+						$grids	.= "<td align='left'><font class='afontstyle'><b>".number_format($dbt_total_hours,2,'.','')."</b></font></td>";
+
+					} elseif ($i == $tot_label_colnum + 4) {
+
 						$grids	.= "<td align='left'><font class='afontstyle'><b>".number_format($total,2,'.','')."</b></font></td>";
 
 					} else {
@@ -2472,6 +2521,10 @@ class TimeInTimeOut extends AkkenTimesheet {
 						$grids	.= "<td align='left'><font class='afontstyle'><b>".number_format($ovt_total_hours,2,'.','')."</b></font></td>";
 
 					} elseif ($i == $tot_label_colnum + 3) {
+
+						$grids	.= "<td align='left'><font class='afontstyle'><b>".number_format($dbt_total_hours,2,'.','')."</b></font></td>";
+
+					} elseif ($i == $tot_label_colnum + 4) {
 
 						$grids	.= "<td align='left'><font class='afontstyle'><b>".number_format($total,2,'.','')."</b></font></td>";
 
@@ -2538,10 +2591,8 @@ class TimeInTimeOut extends AkkenTimesheet {
 
 		foreach ($ratetype as $val) {
 
-			if (in_array($val['rateid'], $ratetypes)) {
-				if($val['rateid']!='rate3'){
-					array_push($ratetype_title, $val['name']);
-				}
+			if (in_array($val['rateid'], $ratetypes)) {				
+				array_push($ratetype_title, $val['name']);			
 			}
 		}
 
@@ -2569,58 +2620,6 @@ class TimeInTimeOut extends AkkenTimesheet {
 		$elements_all	= array("timesheetstatus" => $timesheetstatus,"statval"=>$statval,"timesheetcaption"=>$timesheetcaption,"headtitle"=>$headtitle,"check"=>$check,"whosetmdetails_text"=>$whosetmdetails_text,"heading"=>$heading, "status_id"=>$status_id);
 
 		return $elements_all;
-	}
-	
-	// get Client Id condition - CSS User
-	function getClientValCond($username){
-		global $db;
-		
-		// find client id based on assignments
-		$sel		=	"select staffacc_contact.username from staffacc_contactacc,staffacc_contact where staffacc_contactacc.con_id=staffacc_contact.sno and staffacc_contactacc.username = '$username'";
-		$ressel		=	mysql_query($sel,$db);
-		$rssel		=	mysql_fetch_row($ressel);
-
-		$clSelsql 	=	"SELECT sno from staffacc_cinfo WHERE type IN ('CUST', 'BOTH') AND username='".$rssel[0]."'";
-		$resselSno	=	mysql_query($clSelsql,$db);
-		$rsselSno	=	mysql_fetch_row($resselSno);
-		$Cval		=	$rsselSno[0];
-		
-		$clientcond	=	" AND th.client=$Cval ";
-		return $clientcond;
-	}
-	
-	// get Billable condition - CSS User
-	function getBillableCond($username){
-		global $db;
-		
-		// Check user preferences For CSS User
-		$sqlSelfPref		= 	"select sno, username, joborders, candidates, assignments, placements, billingmgt, timesheet, invoices, expenses, 	joborders_owner from selfservice_pref where username='".$username."'";
-		$resSelfPref		= 	mysql_query($sqlSelfPref,$db);
-		$userSelfServicePref	=	mysql_fetch_row($resSelfPref);
-		
-		if(strpos($userSelfServicePref[7],"+6+"))
-			$billcond		=	" AND th.billable !='' AND th.billable !='no' ";
-							
-		return $billcond;
-	}
-	
-	// get Client Join Table condition - CSS User
-	function getClientJoinCond($username){
-		global $db;
-		
-		$sqlSelfPref		= 	"select sno, username, joborders, candidates, assignments, placements, billingmgt, timesheet, invoices, expenses, joborders_owner from selfservice_pref where username='".$username."'";
-		$resSelfPref		= 	mysql_query($sqlSelfPref,$db);
-		$userSelfServicePref	=	mysql_fetch_row($resSelfPref);
-		
-		if(strpos($userSelfServicePref[7],"+4+") || strpos($userSelfServicePref[7],"+5+"))
-		{
-			if(strpos($userSelfServicePref[7],"+4+"))
-				$chkContact = "OR hj.contact = staffacc_contactacc.con_id";
-							
-			$clientjoin 	=	" LEFT JOIN staffacc_contactacc ON hj.manager = staffacc_contactacc.con_id ".$chkContact;
-			$clientcond		=	" AND staffacc_contactacc.username = '$username' ";
-		}
-		return $clientjoin." | ".$clientcond;
 	}
 	
 	// checks whether timesheet is editable. Mainly used to handle billed and unbilled timesheets

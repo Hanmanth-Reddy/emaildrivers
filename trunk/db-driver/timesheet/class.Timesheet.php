@@ -1955,7 +1955,7 @@ function displayTimesheetDetailsPrint($sno, $mode,$condinvoice ='',$conjoin='', 
 	}
 	
 	// get the timesheet details
-	$data = $this->getTimesheetDetails($sno, $mode,$condinvoice,$conjoin);
+	$data = $this->getTimesheetDetails($sno, $mode,$condinvoice,$conjoin, $module);
 
 	foreach($data as $val)
 	{
@@ -2238,7 +2238,7 @@ function displayTimesheetDetailsPrint($sno, $mode,$condinvoice ='',$conjoin='', 
 
 	if ($inout_flag) {
 
-		$where_clause	= " AND t2.rateid IN ('rate1','rate2') ";
+		$where_clause	= " AND t2.rateid IN ('rate1','rate2','rate3') ";
 	}
 
 	//echo $select_ratemaster_asgn = "SELECT distinct ratemasterid as rateid FROM testingnew.multiplerates_assignment t1 inner join multiplerates_master t2 on t1.ratemasterid = t2.rateid inner join hrcon_jobs t3 on t1.asgnid = t3.sno WHERE pusername in(".$AsgnIdStr.") AND ratetype='billrate' AND asgn_mode = 'hrcon' and rateid !='rate4' and t2.status = 'Active'";
@@ -2365,6 +2365,55 @@ function displayTimesheetDetailsPrint($sno, $mode,$condinvoice ='',$conjoin='', 
 	$rsselSno=mysql_fetch_row($resselSno);
 	$Cval=$rsselSno[0];
 	return $Cval;
+    }
+    
+    // get Client Id condition - CSS User
+    function getClientValCond($username){
+	    
+	    // find client id based on assignments
+	    $sel		=	"select staffacc_contact.username from staffacc_contactacc,staffacc_contact where staffacc_contactacc.con_id=staffacc_contact.sno and staffacc_contactacc.username = '$username'";
+	    $ressel		=	mysql_query($sel,$this->db);
+	    $rssel		=	mysql_fetch_row($ressel);
+
+	    $clSelsql 	=	"SELECT sno from staffacc_cinfo WHERE type IN ('CUST', 'BOTH') AND username='".$rssel[0]."'";
+	    $resselSno	=	mysql_query($clSelsql,$this->db);
+	    $rsselSno	=	mysql_fetch_row($resselSno);
+	    $Cval		=	$rsselSno[0];
+	    
+	    $clientcond	=	" AND th.client=$Cval ";
+	    return $clientcond;
+    }
+    
+    // get Billable condition - CSS User
+    function getBillableCond($username){
+	   
+	    // Check user preferences For CSS User
+	    $sqlSelfPref		= 	"select sno, username, joborders, candidates, assignments, placements, billingmgt, timesheet, invoices, expenses, 	joborders_owner from selfservice_pref where username='".$username."'";
+	    $resSelfPref		= 	mysql_query($sqlSelfPref,$this->db);
+	    $userSelfServicePref	=	mysql_fetch_row($resSelfPref);
+	    
+	    if(strpos($userSelfServicePref[7],"+6+"))
+		    $billcond		=	" AND th.billable !='' AND th.billable !='no' ";
+						    
+	    return $billcond;
+    }
+	
+    // get Client Join Table condition - CSS User
+    function getClientJoinCond($username){	    
+	    
+	    $sqlSelfPref		= 	"select sno, username, joborders, candidates, assignments, placements, billingmgt, timesheet, invoices, expenses, joborders_owner from selfservice_pref where username='".$username."'";
+	    $resSelfPref		= 	mysql_query($sqlSelfPref,$this->db);
+	    $userSelfServicePref	=	mysql_fetch_row($resSelfPref);
+	    
+	    if(strpos($userSelfServicePref[7],"+4+") || strpos($userSelfServicePref[7],"+5+"))
+	    {
+		    if(strpos($userSelfServicePref[7],"+4+"))
+			    $chkContact = "OR hj.contact = staffacc_contactacc.con_id";
+						    
+		    $clientjoin 	=	" LEFT JOIN staffacc_contactacc ON hj.manager = staffacc_contactacc.con_id ".$chkContact;
+		    $clientcond		=	" AND staffacc_contactacc.username = '$username' ";
+	    }
+	    return $clientjoin." | ".$clientcond;
     }
     
     function getMaxRowId($parid){
