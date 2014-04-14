@@ -1,0 +1,214 @@
+body {
+	width:98%;
+	margin:0 auto;
+	line-height:3px;
+}
+
+input {
+	border: 1px solid #c4c4c4;
+}
+
+input:focus { 
+	outline: none;
+	border: 1px solid #7bc1f7;
+	box-shadow: 0px 0px 8px #7bc1f7;
+	-moz-box-shadow: 0px 0px 8px #7bc1f7;
+	-webkit-box-shadow: 0px 0px 8px #7bc1f7;
+}
+
+a {
+	text-decoration: none;
+	color: #000000;
+	display: inline-block;
+	position: relative;
+}
+
+button::-moz-focus-inner,
+input[type="reset"]::-moz-focus-inner,
+input[type="button"]::-moz-focus-inner,
+input[type="submit"]::-moz-focus-inner,
+input[type="file"] > input[type="button"]::-moz-focus-inner {  border: none; }
+
+.link6 {
+
+	color: #ffffff !important;
+	font-family: Arial;
+	font-size: 8pt;
+	font-style: normal;
+	line-height: 19px;
+	text-decoration: none;
+}
+
+a.link6:link {
+
+	color:#FFFFFF;
+	font-weight:bold;
+	text-decoration:none;
+}
+
+a.link6:hover {
+
+	color:#FFFFFF;
+	font-weight:bold;
+	text-decoration:underline;
+}
+
+.text-processing {
+	font-family: Arial,Helvetica,sans-serif;
+	font-size: 12pt !important;
+}
+
+.time-alert-button {
+	border:#5A5656 1px solid;
+	font-size: 8pt;
+	color:#FFFFFF;
+	font-family: verdana;
+	background-color: #5A5656;
+	text-align:center;
+	height:20px;
+	font-weight:bold;
+	padding:0 .50em;
+	width:auto;
+	overflow:visible;
+}
+
+.totalbgcolor {
+	background-color:#D3D3D3;
+	font-size:11px;
+}
+
+.hdrbgcolor {
+	background-color:#00B9F2;
+	height:25px;
+	font-size:11px;
+}
+
+.fontstyle {
+	color:black;
+	font-family:Arial;
+	font-size:8pt;
+	font-style:normal;
+}
+
+.afontstyle { FONT-SIZE: 10px; FONT-FAMILY: Arial;COLOR: black; font-style: normal;	line-height: 16px;display: inline-block;}
+
+.afontstyle1 {
+	color: #FFFFFF !important;
+	font-family: Arial;
+	font-size: 8pt;
+	font-style: normal;
+	line-height: 19px;
+	padding-left: 7px;
+}
+
+.afontstylee {
+	color: black;
+	font-family: Arial;
+	font-size: 7pt;
+	font-style: normal;
+	line-height: 12px;
+}
+
+.totalhours {
+	color: black;
+	font-family: Arial;
+	font-size: 8pt;
+	font-style: normal;
+	line-height: 12px;
+	width:102px !important;
+}
+
+.modcaption { 
+	font-size:12pt;
+	font-family:arial;
+	font-weight:bold;
+	color:#f02933;
+}
+
+.drpdwnaccc {
+	color:#000000;
+	font-family:Arial;
+	font-size:11px;
+}
+
+.a option {
+	height:20px;
+}
+
+.button {
+	outline: none;
+	cursor: pointer;
+	text-align: center;
+	text-decoration: none;
+	border: solid 1px #cccccc;
+	-webkit-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+	-moz-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+	text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+	border: solid 1px #d02020;
+	background-color: #dd2222;
+	background: -webkit-gradient(linear, left top, left bottom, from(#e65b5b), to(#dd2222));
+	background: -moz-linear-gradient(top, #e65b5b, #dd2222);
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#e65b5b', endColorstr='#dd2222');
+	color: #fbe8e8; 
+}
+
+.button:hover {
+	text-decoration: none; 
+}
+
+.button:active {
+	top: 1px;
+}
+
+.button:hover {
+	background-color: #c71f1f;
+	background: -webkit-gradient(linear, left top, left bottom, from(#e44e4e), to(#c71f1f));
+	background: -moz-linear-gradient(top, #e44e4e, #c71f1f);
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#e44e4e', endColorstr='#c71f1f'); 
+}
+
+.button:active {
+	background-color: #e44e4e;
+	background: -webkit-gradient(linear, left top, left bottom, from(#dd2222), to(#e44e4e));
+	background: -moz-linear-gradient(top, #dd2222, #e44e4e);
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#dd2222', endColorstr='#e44e4e');
+	color: #f4bcbc; 
+}
+
+.state1, .state1-full { 
+	cursor:pointer;
+	font-family:arial;
+	color:green; 
+}
+
+.state1-full { 
+	display: none; 
+}
+
+.state1 span { 
+	float: left; 
+}
+.erim {
+	visibility:hidden
+}
+
+.erimShow {
+	visibility:visible
+}
+
+.addtaskBtn {
+
+	width:100px; 
+	color:black;
+	line-height:26px;-webkit-line-height:33px;-o-line-height:33px;
+	display:inline-block;
+	font-family:Arial;
+	font-size:8pt; 
+	font-style:normal;
+	cursor:pointer;
+}
+.smalltextfont{
+	font-family: Arial;
+	font-size: 10px;
+}

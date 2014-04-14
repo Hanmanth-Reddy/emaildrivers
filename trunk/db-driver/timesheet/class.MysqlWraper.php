@@ -16,11 +16,18 @@ class MysqlWraper
 	    $result = mysql_fetch_array($result);
 	    return $result;
     }
-	
+
 	function num_rows($result){
 	    $result = mysql_num_rows($result);
 	    return $result;
     }
+
+	function fetch_object($result) {
+
+		$result	= mysql_fetch_object($result);
+
+		return $result;
+	}
 }
 
 ?>
