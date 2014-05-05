@@ -17,14 +17,14 @@ class smtp_class
 	var $password="";
 	var $workstation="";
 	var $authentication_mechanism="";
-	var $host_name="pop-mail.akken.com";
+	var $host_name="smtp.akken.com";
 	var $host_port=25;
 	var $ssl=0;
-	var $localhost="pop-mail.akken.com";
+	var $localhost="smtp.akken.com";
 	var $timeout=10;
 	var $data_timeout=300;
 	var $error="";
-	var $debug=0;
+	var $debug=1;
 	var $html_debug=1;
 	var $esmtp=1;
 	var $esmtp_host="";
