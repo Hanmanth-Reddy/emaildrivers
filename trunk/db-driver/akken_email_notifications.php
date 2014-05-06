@@ -13,7 +13,7 @@
 	$smtp->host_port="465";
 	$smtp->localhost="smtp.akken.com";
 
-	$dque="select capp_info.comp_id from company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno LEFT JOIN options ON options.sno=company_info.sno where (options.notifcations='Y' OR options.vms='Y') AND company_info.status='ER' ".$version_clause;
+	$dque="select capp_info.comp_id from company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno LEFT JOIN options ON options.sno=company_info.sno where company_info.status='ER' ".$version_clause;
 	$dres=mysql_query($dque,$maindb);
 	while($drow=mysql_fetch_row($dres))
 	{
@@ -23,7 +23,7 @@
 		$nque="SELECT p.id, p.type, p.title, p.descri, c.username, c.sno, c.email 
 		FROM akken_notifications.notifications p 
 		LEFT JOIN akken_notifications.notifications_list c ON p.sno=c.psno 
-		WHERE c.email!='' AND c.email_status='N' ORDER BY p.cdate";
+		WHERE p.email='Y' AND c.email!='' AND c.email_status='N' ORDER BY p.cdate";
 		$nres=mysql_query($nque,$db);
 		while($nrow=mysql_fetch_row($nres))
 		{
