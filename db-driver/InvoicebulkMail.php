@@ -624,7 +624,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 									$mpdf->list_indent_first_level = 0;	
 	
 									for($n=0; $n<count($html_arr); $n++)
-										$mpdf->WriteHTML($html_arr[$n]);
+										$mpdf->WriteHTML(iconv("UTF-8", "UTF-8//IGNORE", $html_arr[$n]));
 	
 									$timesheet = '';
 								}
@@ -643,7 +643,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 									$mpdf->list_indent_first_level = 0;	
 	
 									for($n=0; $n<count($html_arr); $n++)
-										$mpdf->WriteHTML($html_arr[$n]);
+										$mpdf->WriteHTML(iconv("UTF-8", "UTF-8//IGNORE", $html_arr[$n]));
 	
 									$timesheet = '';
 								}
@@ -884,7 +884,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 									$mpdf = new mPDF('utf-8', 'A4', '8', '', 10, 10, 7, 7, 10, 10);
 									$mpdf->SetImportUse();
 	
-									$pagecount = $mpdf->SetSourceFile($file1);
+									$pagecount = $mpdf->SetSourceFile(iconv("UTF-8", "UTF-8//IGNORE", $file1));
 									for ($i=1;$i<=$pagecount;$i++) 
 									{
 										$mpdf->AddPage();
@@ -895,7 +895,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 	
 									if($file2)
 									{
-										$pagecount = $mpdf->SetSourceFile($file2);
+										$pagecount = $mpdf->SetSourceFile(iconv("UTF-8", "UTF-8//IGNORE",$file2));
 										for ($i=1;$i<=$pagecount;$i++) 
 										{
 											$mpdf->AddPage();
@@ -907,7 +907,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 	
 									if($file3)
 									{
-										$pagecount = $mpdf->SetSourceFile($file3);
+										$pagecount = $mpdf->SetSourceFile(iconv("UTF-8", "UTF-8//IGNORE",$file3));
 										for ($i=1;$i<=$pagecount;$i++) 
 										{
 											$mpdf->AddPage();
@@ -919,7 +919,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 	
 									if($file5)
 									{
-										$pagecount = $mpdf->SetSourceFile($file5);
+										$pagecount = $mpdf->SetSourceFile(iconv("UTF-8", "UTF-8//IGNORE",$file5));
 										for ($i=1;$i<=$pagecount;$i++) 
 										{
 											$mpdf->AddPage();
@@ -931,7 +931,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 	
 									if($file6)
 									{
-										$pagecount = $mpdf->SetSourceFile($file6);
+										$pagecount = $mpdf->SetSourceFile(iconv("UTF-8", "UTF-8//IGNORE",$file6));
 										for ($i=1;$i<=$pagecount;$i++) 
 										{
 											$mpdf->AddPage();
@@ -952,7 +952,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 									chmod($file7, 0777);
 									$fp5 = fopen($file7,"w");
 									fwrite($fp5, '');
-									$output = $mpdf->Output($file7,'F');
+									$output = $mpdf->Output(iconv("UTF-8", "UTF-8//IGNORE",$file7),'F');
 									fclose($fp5);
 	
 									$file_size[$i]=filesize($file7);
