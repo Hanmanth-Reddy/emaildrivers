@@ -710,7 +710,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 									$flag++;
 								}
 	
-								if($emailopt == 2 &&  count($template_Time_Values) > 0 || $emailopt == 3)
+								if(($emailopt == 2 || $emailopt == 3) && count($template_Time_Values) > 0)
 								{
 									$pdf->Ln();
 									$replace_timesheet =str_replace(' : INV','_Timesheet',$filesubject).".pdf";
@@ -1069,6 +1069,8 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 								}
 							}
 							$inc++;
+							////// Reset the variables, if in case it is used without re initilizing /////
+							$file = $file1 = $file2 = $file3 = $file5 = $file6 = $file7 = '';
 			  			}// while loop ends
 	          		}// if loops ends	
 				}// while loop ends
