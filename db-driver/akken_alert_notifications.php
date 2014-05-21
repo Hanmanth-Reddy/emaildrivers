@@ -19,7 +19,7 @@
 			$cque="SELECT c.username 
 			FROM akken_notifications.notifications p 
 			LEFT JOIN akken_notifications.notifications_list c ON p.sno=c.psno 
-			WHERE p.alert='Y' AND c.username>0 AND c.alert_status='N' GROUP BY c.username";
+			WHERE p.alert='Y' AND p.comp_id='".$companyuser."' AND c.username>0 AND c.alert_status='N' GROUP BY c.username";
 			$cres=mysql_query($cque,$db);
 			while($crow=mysql_fetch_row($cres))
 			{
