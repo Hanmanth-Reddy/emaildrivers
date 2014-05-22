@@ -37,9 +37,15 @@
 				{
 					$username=$ubrow[0];
 
+					$olSync="N";
 					$mailidList="";
 					$campaignlist="";
 					$postinglist="";
+
+					$oque="SELECT plugin_outlook FROM sysuser WHERE username='$username'";
+					$ores=mysql_query($oque,$db);
+					$orow=mysql_fetch_row($ores);
+					$olSync=$orow[0];
 
                     $queid="select mailid,status from mail_headers where folder='outbox' and status in (".$stat_bulk.") and username='$username'";
                     $resid=mysql_query($queid,$db);
@@ -231,15 +237,17 @@
 												$tsucsent++;
 												array_push($SentArray,$ndrow[1]);
 												array_push($Mail_status_array['true'],$ndrow[1]);
-												$folder="sentmessages";
-												$stats="Active";
 
-												$last_id=mail_insert($folder,$from,$To_Array[0],'','',$Rpl_matter,$subject,'','',$attach,$mailtype,$sent,$stats,$cmnid);
-
-												if($last_id!="" && $last_id!=0)
+												if($olSync=="N")
 												{
-													for($i=0;$i<$flag;$i++)
-														mail_attach($last_id,$file_con[$i],$file_name[$i],$file_size[$i],$file_type[$i]);
+													$folder="sentmessages";
+													$stats="Active";
+													$last_id=mail_insert($folder,$from,$To_Array[0],'','',$Rpl_matter,$subject,'','',$attach,$mailtype,$sent,$stats,$cmnid);
+													if($last_id!="" && $last_id!=0)
+													{
+														for($i=0;$i<$flag;$i++)
+															mail_attach($last_id,$file_con[$i],$file_name[$i],$file_size[$i],$file_type[$i]);
+													}
 												}
 											}
 											else
@@ -286,15 +294,18 @@
 													$tsucsent++;
 													array_push($SentArray,$e_val);
 													array_push($Mail_status_array['true'],$e_val);
-													$folder="sentmessages";
-													$stats="Active";
-	
-													$last_id=mail_insert($folder,$from,$To_Array[0],'','',$Rpl_matter,$subject,'','',$attach,$mailtype,$sent,$stats,$cmnid);
-	
-													if($last_id!="" && $last_id!=0)
+
+													if($olSync=="N")
 													{
-														for($i=0;$i<$flag;$i++)
-															mail_attach($last_id,$file_con[$i],$file_name[$i],$file_size[$i],$file_type[$i]);
+														$folder="sentmessages";
+														$stats="Active";
+		
+														$last_id=mail_insert($folder,$from,$To_Array[0],'','',$Rpl_matter,$subject,'','',$attach,$mailtype,$sent,$stats,$cmnid);
+														if($last_id!="" && $last_id!=0)
+														{
+															for($i=0;$i<$flag;$i++)
+																mail_attach($last_id,$file_con[$i],$file_name[$i],$file_size[$i],$file_type[$i]);
+														}
 													}
 												}
 												else
