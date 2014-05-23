@@ -249,6 +249,11 @@
 															mail_attach($last_id,$file_con[$i],$file_name[$i],$file_size[$i],$file_type[$i]);
 													}
 												}
+												else
+												{
+													//This will keep the database connection live while PHP is executing, other the db connection is closed after an hour of idle.
+													mysql_query("SELECT 1",$db);
+												}
 											}
 											else
 											{
@@ -306,6 +311,11 @@
 															for($i=0;$i<$flag;$i++)
 																mail_attach($last_id,$file_con[$i],$file_name[$i],$file_size[$i],$file_type[$i]);
 														}
+													}
+													else
+													{
+														//This will keep the database connection live while PHP is executing, other the db connection is closed after an hour of idle.
+														mysql_query("SELECT 1",$db);
 													}
 												}
 												else
