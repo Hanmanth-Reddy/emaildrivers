@@ -19,7 +19,6 @@
 	require_once($path_pdf);
 
 	$Mysql_DtFormat = setMySQLDateFormat();	
-	$user_timezone = getTimezone();	
 
 	function stripslashes_deep($value)
 	{
@@ -40,7 +39,41 @@
 
 	if(!is_dir($folder_name))
 	    mkdir($folder_name, 0777);
-
+	    
+	register_shutdown_function( "fatal_handler" );
+	
+	function fatal_handler()
+	{
+		global $inv_sno_failed;
+		global $username_failed;
+		global $emailids;
+		global $successIds;
+		global $failedId;
+		global $db;
+		if(count($successIds) == 0)
+		{
+			$successIds = array();
+		}
+		
+		if(!in_array($failedId, $successIds))
+		{
+			$que="update email_invoice set status='3' where id = '".$failedId."'";
+			mysql_query($que,$db);
+			$log_que = " UPDATE log_Activity SET ActivityStatus='Failed' WHERE cuser='".$username_failed."' AND inv_num='".$inv_sno_failed."' and  inv_email_id = '".$failedId."' AND ActivityType='EMAIL'";
+			mysql_query($log_que);
+		}
+		
+		array_push($successIds, $failedId);
+		$remainingIds = array_diff($emailids, $successIds);
+		
+		if(count($remainingIds) > 0)
+		{
+			$que="update email_invoice set status='0' where id in (".implode(',', $remainingIds).")";
+			mysql_query($que,$db);
+		}
+	}
+	
+	
 	/***************
 	1) IF THE FILE IS RELEASED TO DEV ROOT THEN
 	$dque="select capp_info.comp_id from company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno where capp_info.comp_id='naveend' ".$version_clause; 
@@ -75,9 +108,9 @@
 				{
 					$username=$ubrow[0];
 					$mailidList="";
-
+					$user_timezone = getTimezone();	
 					$emailids = array();
-					$queid="select id,status from email_invoice where status ='0' and created_by='$username'";
+					$queid="select id,status from email_invoice where status ='0' and created_by='$username' order by id";
 					$resid=mysql_query($queid,$db);
 					while($rsid=mysql_fetch_row($resid))
 						$emailids[] = $rsid[0];
@@ -97,13 +130,18 @@
 					$inv_que="SELECT a.bcc,a.from,a.inv_subject,a.id,a.attach,a.to_email,a.status,a.charset,a.body,a.inv_sno,a.inv_number,a.timesheet_attach as timesheet_attach,a.cc,a.filename as inv_filename,staffacc_contact.sno as contactId FROM email_invoice a 
 LEFT JOIN  invoice ON a.inv_sno=invoice.sno LEFT JOIN staffacc_cinfo ON staffacc_cinfo.sno = invoice.client_name 
 LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno 
-WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status = 'ACTIVE' AND invoice.client_name=staffacc_cinfo.sno AND (a.to_email!='' || a.bcc!='' || a.cc!='') ";
+WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status = 'ACTIVE' AND invoice.client_name=staffacc_cinfo.sno AND (a.to_email!='' || a.bcc!='' || a.cc!='') order by a.id";
+
 					$inv_res=mysql_query($inv_que,$db);
 					if(mysql_num_rows($inv_res)>0)
 					{
 						$inti=0;
 						while($inv_row=mysql_fetch_array($inv_res))
 						{
+							$failedId = $inv_row['id'];
+							$inv_sno_failed = $inv_row['inv_sno'];
+							$username_failed = $username;							
+							
 							$bcc="";
 							$emailCount[] = $inv_row;
 							$file_name=array();
@@ -136,9 +174,9 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 
 							$from=$inv_row['from'];
 							$subject=$inv_row['inv_subject'];
-							$inv_filename = $inv_row['inv_filename'];
+							$inv_filename = preg_replace('/[^A-Za-z0-9: ]/', '', urldecode($inv_row['inv_filename']));
 
-							$filesubject = stripslashes(stripslashes(str_replace("&"," ",str_replace("/"," ",str_replace("'","",urldecode($inv_filename)))))); 
+							$filesubject = stripslashes(stripslashes(str_replace("&"," ",str_replace("/"," ",str_replace("'","",$inv_filename))))); 
 							$matter=stripslashes($inv_row['body']);
 							$mail_attach=$inv_row['attach'];
 							$emailopt = $inv_row['timesheet_attach'];
@@ -320,22 +358,27 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 									$expensepdf->Ln();
 
 									$billrate	= 0;
-									for ($cnt = 0; $cnt < count($assignmentid); $cnt++) 
-									{
-										$expensepdf->SetFont('Arial','',7);
-										$expensepdf->Cell(20, 6, $assignmentid[$cnt]['date']);
-										$expensepdf->Cell(25, 6, $assignmentid[$cnt]['assignment']);
-										$expensepdf->Cell(30, 6, $assignmentid[$cnt]['expensetype']);
-										$expensepdf->Cell(15, 6, $assignmentid[$cnt]['quantity']);
-										$expensepdf->Cell(20, 6, $assignmentid[$cnt]['unitcost']);
-										$expensepdf->Cell(20, 6, $assignmentid[$cnt]['billrate']);
-										$expensepdf->Cell(40, 6, $assignmentid[$cnt]['approvedby']);
-										$expensepdf->Cell(20, 6, $assignmentid[$cnt]['dateapproved']);
+									foreach ($assignmentid as $asgn) {
+											if(is_array($asgn))
+											{
+												$expensepdf->SetFont('Arial','',7);
+	
+												$expensepdf->Cell(20, 6, $asgn['date']);
+												$expensepdf->Cell(25, 6, $asgn['assignment']);
+												$expensepdf->Cell(30, 6, $asgn['expensetype']);
+												$expensepdf->Cell(15, 6, $asgn['quantity']);
+												$expensepdf->Cell(20, 6, $asgn['unitcost']);
+												$expensepdf->Cell(20, 6, $asgn['billrate']);
+												$expensepdf->Cell(40, 6, $asgn['approvedby']);
+												$expensepdf->Cell(20, 6, $asgn['dateapproved']);
+	
+												$expensepdf->Ln();
+											
 
-										$expensepdf->Ln();
-
-										$billrate	= $billrate + $assignmentid[$cnt]['billrate'];
-									}
+											$billrate	= $billrate + $asgn['billrate'];
+											
+											}
+										}
 
 									$billrate	= number_format($billrate, 2, '.', '');
 
@@ -685,7 +728,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 								{
 									$pdf->Ln();
 
-									$replace_timesheet =str_replace(' : INV','_Timesheet',$filesubject).".pdf";
+									$replace_timesheet =str_replace(":", "_", str_replace(' : INV','_Timesheet',$filesubject)).".pdf";
 	
 									$file_name[$i]=$replace_timesheet;
 									$file_type[$i]="application/pdf";
@@ -713,7 +756,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 								if(($emailopt == 2 || $emailopt == 3) && count($template_Time_Values) > 0)
 								{
 									$pdf->Ln();
-									$replace_timesheet =str_replace(' : INV','_Timesheet',$filesubject).".pdf";
+									$replace_timesheet =str_replace(":", "_", str_replace(' : INV','_Timesheet',$filesubject)).".pdf";
 									$file_name[$i]=$replace_timesheet;
 									$file_type[$i]="application/pdf";
 									$tfile=$replace_timesheet;
@@ -780,7 +823,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 									{
 										$expensepdf->Ln();
 	
-										$replace_expense	= str_replace(' : INV', '_Expense', $filesubject) . '.pdf';
+										$replace_expense	= str_replace(":", "_", str_replace(' : INV', '_Expense', $filesubject)) . '.pdf';
 										$file_name[$i]		= $replace_expense;
 										$file_type[$i]		= 'application/pdf';
 	
@@ -807,7 +850,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 									elseif ($emailopt == 2 || $emailopt == 3)
 									{
 										$expensepdf->Ln();
-										$replace_expense	= str_replace(' : INV', '_Expense', $filesubject) . '.pdf';
+										$replace_expense	= str_replace(":", "_", str_replace(' : INV', '_Expense', $filesubject)) . '.pdf';
 										$file_name[$i]		= $replace_expense;
 										$file_type[$i]		= 'application/pdf';
 	
@@ -941,7 +984,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 										}
 									}
 	
-									$single_pdf  = str_replace("/","",str_replace(' : INV',' _INV',$filesubject)).".pdf";
+									$single_pdf  = str_replace(":", "_", str_replace("/","",str_replace(' : INV',' _INV',$filesubject))).".pdf";
 									$folder_path	= $WDOCUMENT_ROOT .'/'. $attach_folder;
 									if (!is_dir($folder_path))
 										mkdir($folder_path,0777);
@@ -987,7 +1030,8 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 									$flag++;
 								}
 							}
-	
+							
+							$totalAttachments = count($file_name);
 							$attachments=implode(",",$file_name);
 							$hfattachments=implode("|^",$file_name);
 							$hfAttach=$hfattachments;
@@ -995,40 +1039,41 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 							$asize=implode("|^",$file_size);
 							$sesstr=implode("|^",$tempfile);
 							$flag=prepareAttachsNEW($file_name,$file_size,$file_type,$file_con,$attach_body);
+							$totalAttachmentsGet = $flag;
 							$attach = $flag=="0" ? "NA" : "A";
 	
 							//Checking the Mails count
-						    $ChkStatus="total";
+							$ChkStatus="total";
 							$tsucsent = 0;                                                       
 							$detres = explode(",",$bcc);
 							$All_eml_Det=array();
 	                                                       
 							$To_Array=array();
 							$SentArray=array();										
-						    $email_cnt = count($emailids);						
-								
-							if(count($detres)>0)
+							$email_cnt = count($emailids);
+							
+							if($attach == 'A')
 							{
 								for($m=0;$m<count($detres);$m++)
 								{
 									$To_Array=array();
 									$mailheaders=array("Date: $curtime_header","From: $from","To: $detres[$m]","Subject: $sentsubject","MIME-Version: 1.0");
-					                $msg_body=prepareBody($matter,$mailheaders,"text/html");								
-	
-								 	$sel = " select fname,mname,lname from staffacc_contact where sno = '".$contactId."'";
+									$msg_body=prepareBody($matter,$mailheaders,"text/html");								
+							
+									$sel = " select fname,mname,lname from staffacc_contact where sno = '".$contactId."'";
 									$result = mysql_query($sel,$db);
 									$result_re=mysql_fetch_row($result);
-	
+							
 									$email_query  = "select to_email from email_invoice where status = '1'";
 									$email_result = mysql_query($email_query,$db);
 									$email_data   = mysql_fetch_row($email_result);
-	
+							
 									$Mail_Arry=array();
 									$Mail_status_array['false']=array();
 									$Mail_status_array['true']=array();
-	
+							
 									array_push($To_Array,$detres[$m]);
-	
+							
 									$Rpl_msg_body="";
 									$Rpl_msg_body=$msg_body;
 									$Rpl_msg_body=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/",$result_re[0],$Rpl_msg_body);
@@ -1037,14 +1082,14 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 									$Rpl_msg_body=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/",'',$Rpl_msg_body);
 									$Rpl_msg_body=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/",'',$Rpl_msg_body);
 									$Rpl_msg_body=$Rpl_msg_body.$attach_body;
-	
+							
 									$Rpl_matter=$matter;
 									$Rpl_matter=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/",$result_re[0],$Rpl_matter);
 									$Rpl_matter=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/",$result_re[1],$Rpl_matter);
 									$Rpl_matter=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/",$result_re[2],$Rpl_matter);
 									$Rpl_matter=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/",'',$Rpl_matter);
 									$Rpl_matter=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/",'',$Rpl_matter);
-	
+							
 									if($detres[$m])
 									{
 										$suc=$smtp->SendMessage($from,$To_Array,$mailheaders,$Rpl_msg_body);
@@ -1052,25 +1097,35 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 										{
 											$log_que = " UPDATE log_Activity SET ActivityStatus='Sent' WHERE cuser='".$username."' AND   inv_num='".$inv_sno."' and  inv_email_id = '".$mailid."' AND ActivityType='EMAIL'";
 											$log_res = mysql_query($log_que);
-	
+							
 											$que="update email_invoice set status='2' where id  = '".$mailid."'";
 											mysql_query($que,$db);
 										}
 										else
 										{
 											// should write the code here
-											$log_que = " UPDATE log_Activity SET ActivityStatus='Failed' WHERE cuser='".$username."' AND   inv_num='".$inv_sno."' and  inv_email_id = '".$mailid."' AND ActivityType='EMAIL'";
+											$log_que = " UPDATE log_Activity SET ActivityStatus='Failed- Internal Mail Error' WHERE cuser='".$username."' AND   inv_num='".$inv_sno."' and  inv_email_id = '".$mailid."' AND ActivityType='EMAIL'";
 											$log_res = mysql_query($log_que);
-	
+							
 											$que="update email_invoice set status='2' where id  = '".$mailid."'";
 											mysql_query($que,$db);
 										}											
 									}
 								}
 							}
-							$inc++;
-							////// Reset the variables, if in case it is used without re initilizing /////
-							$file = $file1 = $file2 = $file3 = $file5 = $file6 = $file7 = '';
+							else
+							{
+								// should write the code here
+								$log_que = " UPDATE log_Activity SET ActivityStatus='Failed- No Attachments' WHERE cuser='".$username."' AND   inv_num='".$inv_sno."' and  inv_email_id = '".$mailid."' AND ActivityType='EMAIL'";
+								$log_res = mysql_query($log_que);
+				
+								$que="update email_invoice set status='2' where id  = '".$mailid."'";
+								mysql_query($que,$db);
+							}
+							
+						$inc++;
+						$successIds[] = $inv_row['id'];
+						$file = $file1 = $file2 = $file3 = $file4 = $file5 = $file6 = '';
 			  			}// while loop ends
 	          		}// if loops ends	
 				}// while loop ends
@@ -1078,6 +1133,17 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 		}// while loop ends
 	}// if loop
 
+	//////////////////////// Remove created directories, once the process is completed //////////////////////////	
+	if (is_dir($folder_name))
+		rrmdir($folder_name);
+		
+	if (is_dir($isDirEx))
+		rrmdir($isDirEx);
+		
+	if (is_dir($folder_path))
+		rrmdir($folder_path);	
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
 	// Function to get time values
 	function getTimesheet_Details($eque,$db)
 	{
