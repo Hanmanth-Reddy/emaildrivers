@@ -1766,6 +1766,11 @@ LEFT JOIN users u ON u.username = th.auser ".$conjoin."
 	    $str .= '<td class="nowrap"><font class=afontstylee>'.$class[0]['classname'].'</font></td>';
 	}
 	/////////////////////// Rate types ///////////////
+	    
+	// To handle a use case where there are multiple values for single ratetype and rowid is also same		
+	$data['time_data'] = $this->getDetailsBySnos($data['sno']);			
+	//////////////////////////////////////////////////
+	
 	$str .= $this->getRatevalues($data['time_data'], $rateCount, $alldata);
 if($mode != 'pending' && $mode !='errejected' && $mode !='erer')
 	  {
@@ -2447,6 +2452,42 @@ function displayTimesheetDetailsPrint($sno, $mode,$condinvoice ='',$conjoin='', 
 	$rssel		=	mysql_fetch_row($ressel);
 	$maxRowId	=	$rssel[0];
 	return $maxRowId;
+    }
+    
+    // To handle this use case also where there are multiple values for single ratetype and rowid is also same    
+    function getDetailsBySnos($snos){	
+		
+	$ratetimedata	= "";
+	$rate_time_data = array();
+	
+	if (!empty($snos)) {
+
+		$sel_sno_query	= "SELECT
+						th.parid, FORMAT(SUM(th.hours),2) as hours, th.hourstype as rate, th.billable as billable
+					FROM
+						timesheet_hours th
+					WHERE
+						th.sno in (".$snos.")
+					GROUP BY th.rowid, th.hourstype";
+
+		$res_sno_query	= $this->mysqlobj->query($sel_sno_query,  $this->db);
+
+		if (!$res_sno_query) {
+
+			die('Could not connect: ' . mysql_error());
+		}
+
+		if (mysql_num_rows($res_sno_query) > 0) {
+
+			while ($row_rate_query = $this->mysqlobj->fetch_object($res_sno_query)) {
+
+				$rate_time_data[]	= $row_rate_query->rate."|".$row_rate_query->hours."|".$row_rate_query->billable;
+			}						
+			$ratetimedata = implode(",",$rate_time_data);
+			
+		}
+	}	
+	return $ratetimedata;
     }
        
 }
