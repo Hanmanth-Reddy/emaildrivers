@@ -1103,32 +1103,37 @@ class TimeInTimeOut extends AkkenTimesheet {
 			$grids	.= "<td align='left' width='8%'><font class='afontstyle'>".$object->post_in_time."</font></td>";
 			$grids	.= "<td align='left' width='8%'><font class='afontstyle'>".$object->post_out_time."</font></td>";
 
-			// For displaying Regular Hours and Overtime Hours Or Any Other Rate Type Hours
-			$ratecount = 0;
-
-			$time_data 	= explode(",",$object->time_data);
-			$ratetypes 	= $this->getRateTypesForAllAsgnnames($this->assignments,true);
-
-			$rate_data = array();
-			 
-			foreach ($time_data as $val) {
-				$ratetimedata	= explode("|",$val);
-				$rate_data[] 	= $ratetimedata[0];
-			}
+			// For displaying Regular Hours and Overtime Hours Or Any Other Rate Type Hours					
+			$time_data	= array();
+			$rtdata 	= array();
+			$ratetimedata   = "";
 			
-			foreach ($ratetypes as $val) {
-				
-				if (in_array($val, $rate_data)) {
-					
-					$rate_hours	= explode("|",$time_data[$ratecount]);
-					$grids	.= "<td align='left' width='8%'><font class='afontstyle'>".$rate_hours[1]."</font></td>";
-					$total_rate_hours	+= $rate_hours[1];
-					$ratecount++;
-					
-				} else {
-					$grids	.= "<td align='left' width='8%'><font class='afontstyle'></font></td>";
-				}			
+			// To handle a use case where there are multiple values for single ratetype and rowid is also same
+			$ratetimedata 	= $this->getDetailsBySnos($object->sno);
+			
+			$time_data 	= explode(",",$ratetimedata);
+			
+			foreach($time_data as $val){
+				$temp_data = array();
+				$temp_data = explode("|",$val);
+				for($k=0; $k<count($temp_data); $k++){
+					$rtdata[$temp_data[0]][] = $temp_data[$k];
+				}
 			}
+						
+			$ratetypes 	= $this->getRateTypesForAllAsgnnames($this->assignments,true);
+			
+			foreach ($ratetypes as $val) {				
+				
+				if(array_key_exists($val, $rtdata))
+				{				
+					$grids	.= "<td align='left' width='8%'><font class='afontstyle'>".$rtdata[$val][1]."</font></td>";
+					$total_rate_hours += $rtdata[$val][1];
+				}else{
+					$grids	.= "<td align='left' width='8%'><font class='afontstyle'></font></td>";
+				}				
+			}
+						
 
 			if ($status_id == "1" || $status_id == "2" || $status_id == "7" ) {
 
@@ -2046,32 +2051,33 @@ class TimeInTimeOut extends AkkenTimesheet {
 			$printdata	.= "<td align='center'><font class='afontstyle'>".$row->post_in_time."</font></td>";
 			$printdata	.= "<td align='center'><font class='afontstyle'>".$row->post_out_time."</font></td>";			
 			
-			// For displaying Regular Hours and Overtime Hours Or Any Other Rate Type Hours
-			$ratecount = 0;
-			
-			$time_data 	= explode(",",$row->time_data);			
+			// For displaying Regular Hours and Overtime Hours Or Any Other Rate Type Hours			
+			$time_data	= array();
+			$rtdata 	= array();
+						
+			$time_data 	= explode(",",$row->time_data);
+						
+			foreach($time_data as $val){
+				$temp_data = array();
+				$temp_data = explode("|",$val);
+				for($k=0; $k<count($temp_data); $k++){
+					$rtdata[$temp_data[0]][] = $temp_data[$k];
+				}
+			}
+						
 			$ratetypes 	= $this->getRateTypesForAllAsgnnames($this->assignments,true);
 			
-			$rate_data = array();
-			
-			foreach ($time_data as $val) {
-				$ratetimedata	= explode("|",$val);
-				$rate_data[] 	= $ratetimedata[0];
-			}
-			
-			foreach ($ratetypes as $val) {
+			foreach ($ratetypes as $val) {				
 				
-				if (in_array($val, $rate_data)) {
-					
-					$rate_hours	= explode("|",$time_data[$ratecount]);
-					$printdata	.= "<td align='center' width='8%'><font class='afontstyle'>".$rate_hours[1]."</font></td>";
-					//$total_rate_hours	+= $rate_hours[1];
-					$ratecount++;
-					
-				} else {
+				if(array_key_exists($val, $rtdata))
+				{				
+					$printdata	.= "<td align='center' width='8%'><font class='afontstyle'>".$rtdata[$val][1]."</font></td>";
+					//$total_rate_hours += $rtdata[$val][1];
+				}else{
 					$printdata	.= "<td align='center' width='8%'><font class='afontstyle'></font></td>";
-				}			
+				}				
 			}
+						
 
 			$printdata	.= "</tr>";
 
@@ -2399,33 +2405,36 @@ class TimeInTimeOut extends AkkenTimesheet {
 			$grids	.= "<td align='left' width='8%'><font class='afontstyle'>".$object->post_in_time."</font></td>";
 			$grids	.= "<td align='left' width='8%'><font class='afontstyle'>".$object->post_out_time."</font></td>";
 
-			// For displaying Regular Hours and Overtime Hours Or Any Other Rate Type Hours
-			$ratecount = 0;
-
-			$time_data 	= explode(",",$object->time_data);
+			// For displaying Regular Hours and Overtime Hours Or Any Other Rate Type Hours			
+			$time_data	= array();
+			$rtdata 	= array();
+			$ratetimedata   = "";
+			
+			// To handle a use case where there are multiple values for single ratetype and rowid is also same
+			$ratetimedata 	= $this->getDetailsBySnos($object->sno);		
+			$time_data 	= explode(",",$ratetimedata);
+			
+			foreach($time_data as $val){
+				$temp_data = array();
+				$temp_data = explode("|",$val);
+				for($k=0; $k<count($temp_data); $k++){
+					$rtdata[$temp_data[0]][] = $temp_data[$k];
+				}
+			}
+						
 			$ratetypes 	= $this->getRateTypesForAllAsgnnames($this->assignments,true);
-
-			$rate_data = array();
 			
-			foreach ($time_data as $val) {
-				$ratetimedata	= explode("|",$val);
-				$rate_data[] 	= $ratetimedata[0];
-			}
-			
-			foreach ($ratetypes as $val) {
+			foreach ($ratetypes as $val) {				
 				
-				if (in_array($val, $rate_data)) {
-					
-					$rate_hours	= explode("|",$time_data[$ratecount]);
-					$grids	.= "<td align='left' width='8%'><font class='afontstyle'>".$rate_hours[1]."</font></td>";
-					$total_rate_hours	+= $rate_hours[1];
-					$ratecount++;
-					
-				} else {
+				if(array_key_exists($val, $rtdata))
+				{				
+					$grids	.= "<td align='left' width='8%'><font class='afontstyle'>".$rtdata[$val][1]."</font></td>";
+					$total_rate_hours += $rtdata[$val][1];
+				}else{
 					$grids	.= "<td align='left' width='8%'><font class='afontstyle'></font></td>";
-				}			
+				}				
 			}
-
+						
 			if ($status_id == "1" || $status_id == "2" || $status_id == "7" ) {
 
 				if (empty($disSource))
