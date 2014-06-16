@@ -50,6 +50,7 @@
 		global $successIds;
 		global $failedId;
 		global $db;
+		
 		if(count($successIds) == 0)
 		{
 			$successIds = array();
@@ -59,7 +60,7 @@
 		{
 			$que="update email_invoice set status='3' where id = '".$failedId."'";
 			mysql_query($que,$db);
-			$log_que = " UPDATE log_Activity SET ActivityStatus='Failed' WHERE cuser='".$username_failed."' AND inv_num='".$inv_sno_failed."' and  inv_email_id = '".$failedId."' AND ActivityType='EMAIL'";
+			$log_que = " UPDATE log_Activity SET ActivityStatus='Failed', cdate='".$date."' WHERE cuser='".$username_failed."' AND inv_num='".$inv_sno_failed."' and  inv_email_id = '".$failedId."' AND ActivityType='EMAIL'";
 			mysql_query($log_que);
 		}
 		
@@ -1095,7 +1096,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 										$suc=$smtp->SendMessage($from,$To_Array,$mailheaders,$Rpl_msg_body);
 										if($suc)
 										{
-											$log_que = " UPDATE log_Activity SET ActivityStatus='Sent' WHERE cuser='".$username."' AND   inv_num='".$inv_sno."' and  inv_email_id = '".$mailid."' AND ActivityType='EMAIL'";
+											$log_que = " UPDATE log_Activity SET ActivityStatus='Sent', cdate='".$date."' WHERE cuser='".$username."' AND   inv_num='".$inv_sno."' and  inv_email_id = '".$mailid."' AND ActivityType='EMAIL'";
 											$log_res = mysql_query($log_que);
 							
 											$que="update email_invoice set status='2' where id  = '".$mailid."'";
@@ -1104,7 +1105,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 										else
 										{
 											// should write the code here
-											$log_que = " UPDATE log_Activity SET ActivityStatus='Failed- Internal Mail Error' WHERE cuser='".$username."' AND   inv_num='".$inv_sno."' and  inv_email_id = '".$mailid."' AND ActivityType='EMAIL'";
+											$log_que = " UPDATE log_Activity SET ActivityStatus='Failed', cdate='".$date."' WHERE cuser='".$username."' AND   inv_num='".$inv_sno."' and  inv_email_id = '".$mailid."' AND ActivityType='EMAIL'";
 											$log_res = mysql_query($log_que);
 							
 											$que="update email_invoice set status='2' where id  = '".$mailid."'";
@@ -1116,7 +1117,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 							else
 							{
 								// should write the code here
-								$log_que = " UPDATE log_Activity SET ActivityStatus='Failed- No Attachments' WHERE cuser='".$username."' AND   inv_num='".$inv_sno."' and  inv_email_id = '".$mailid."' AND ActivityType='EMAIL'";
+								$log_que = " UPDATE log_Activity SET ActivityStatus='Failed- No Attachments', cdate='".$date."' WHERE cuser='".$username."' AND   inv_num='".$inv_sno."' and  inv_email_id = '".$mailid."' AND ActivityType='EMAIL'";
 								$log_res = mysql_query($log_que);
 				
 								$que="update email_invoice set status='2' where id  = '".$mailid."'";
