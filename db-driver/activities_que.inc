@@ -1,16 +1,4 @@
 <?php
-	/*
-		Modifed Date: May 27, 2009
-		Modified By: Sundar.K
-		Purpose:  Tracking the activities for other email and alternative email also.
-		Task Id: 4393.
-
-		Modified by: Vipin
-		Modified Date: Apr 13 2009
-		Purpose: Adding slashes in frmenail Variable for escape single Quote
-		Task id-4025(Allow Apostrophe in E-mail)
-	*/
-
 	// CRM > Contacts -- Private / Shared / Public 
 	$crm_contacts_que="SELECT DISTINCT(sno) 
 	FROM staffoppr_contact WHERE ".getActivitiesEmailCondition($frmemail,'staffoppr_contact','email','email_2','email_3')." AND status='ER' AND (FIND_IN_SET('$username',accessto)>0 OR approveuser='$username' OR accessto='ALL')";
@@ -25,10 +13,15 @@
 	AND ((hrcon_jobs.ustatus='active' AND hrcon_jobs.sagent='$username') OR (FIND_IN_SET('$username',staffacc_contact.assignto)>0))";
 
 	//CRM > Candidates > Candidate Profiles -- Private / Shared / Public
+
+	/*
 	$crm_candidates_que="SELECT DISTINCT(sno) 
 	FROM candidate_list WHERE ".getActivitiesEmailCondition($frmemail,'candidate_list','email','alternate_email','other_email')." 
 	AND ((cuser='$username') OR (FIND_IN_SET('$username',accessto)>0) OR (accessto='ALL')) 
 	AND status = 'ACTIVE'";
+	*/
+
+	$crm_candidates_que="SELECT DISTINCT(sno) FROM (SELECT sno FROM candidate_list WHERE (owner='$username' OR accessto='ALL' OR FIND_IN_SET('$username',accessto)) AND status = 'ACTIVE' AND email='$frmemail' UNION SELECT sno FROM candidate_list WHERE (owner='$username' OR accessto='ALL' OR FIND_IN_SET('$username',accessto)) AND status = 'ACTIVE' AND alternate_email='$frmemail' UNION SELECT sno FROM candidate_list WHERE (owner='$username' OR accessto='ALL' OR FIND_IN_SET('$username',accessto)) AND status = 'ACTIVE' AND other_email='$frmemail') AS candsno";
 
 	// CRM > Candidates > Employees -- Private / Shared / Public 
 	$crm_employees_que="SELECT DISTINCT(emp_list.sno) 
