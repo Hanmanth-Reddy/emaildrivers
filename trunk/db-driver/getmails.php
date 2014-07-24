@@ -22,7 +22,7 @@
 
 	$def_pop_suidl = "|^|";
 
-	$dque="SELECT capp_info.comp_id FROM company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno WHERE company_info.status='ER' AND capp_info.comp_id NOT IN ('qss','pentacan','youngh2h','matlensilver','ysol','sforce','wbr','hsg','native','cci','marecruit','wforce','mmd','dss','xfire','culturefit') AND SUBSTR(capp_info.comp_id,1,1) REGEXP '$filter_list' ".$version_clause." ORDER BY capp_info.comp_id";
+	$dque="SELECT capp_info.comp_id FROM company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno WHERE company_info.status='ER' AND capp_info.comp_id NOT IN ('qss','pentacan','youngh2h','matlensilver','ysol','sforce','wbr','hsg','native','cci','marecruit','wforce','mmd','dss','xfire','culturefit','planpharm','planet') AND SUBSTR(capp_info.comp_id,1,1) REGEXP '$filter_list' ".$version_clause." ORDER BY capp_info.comp_id";
 	$dres=mysql_query($dque,$maindb);
 	while($drow=mysql_fetch_row($dres))
 	{
