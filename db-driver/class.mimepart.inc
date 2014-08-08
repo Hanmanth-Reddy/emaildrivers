@@ -1,20 +1,6 @@
 <?php
 require("class.headers.inc");
 
-/* 
-	File Name: 
-	Creation Date: 
-	Module Name: If used in multiple modules, list them 
-	Sub Module: 
-	Main Purpose: 
-	TS Task ID: 
-	
-	Modifed Date: March 31, 2009.
-	Modified By: Kumar Raju K.
-	Purpose: Merged converting underscore(_) into space if the mail is quoted printable.
-	TS Task Id: (3960), (OtterBase)When forwarding/replying an email, the subject line is showing underscores between the wordings.
-*/
-
 class mimepart
 {
 	var $body;
@@ -97,39 +83,27 @@ class mimepart
 	
 	function decode($data = "", $encoding = "")
 	{
-		if (empty($data))
-		{
-			$data = $this->body;
-		}
 		if (empty($encoding))
 		{
+			if (empty($data))
+				$data = $this->body;
+
 			$ctf = $this->get_header("Content-Transfer-Encoding");
 			if (!$ctf)
-			{
 				return $data;
-			}
+
 			if (strcasecmp($ctf["CONTENT-TRANSFER-ENCODING"], "quoted-printable") == 0)
-			{
 				$encoding = "Q";
-			}
 			else if (strcasecmp($ctf["CONTENT-TRANSFER-ENCODING"], "base64") == 0)
-			{
 				$encoding = "B";
-			}	
 		}
 	
 		if ($encoding == "Q")
-		{
 			return quoted_printable_decode($data);
-		}
 		else if ($encoding == "B")
-		{
 			return base64_decode($data);
-		}
 		else
-		{
 			return $data;
-		}
 	}	
 	
 	// Strip Header comments from the string Comments are in brackets outside of quotes
