@@ -193,17 +193,18 @@
 							$SentArray=array();
 							$Mail_status_array['false']=array();
 							$Mail_status_array['true']=array();
-
+							$mailAddtionalInfo = array();
+							
 							$detque="SELECT mailid,IF(addressbook_det='','0',addressbook_det),IF(cont_det='','0',cont_det),IF(cand_det='','0',cand_det),status FROM recipient_info WHERE mailid='$mailid'";
 							$detres=mysql_query($detque,$db);
 							if(mysql_num_rows($detres)>0)
 							{
 								$detrow=mysql_fetch_row($detres);
-								$ndque = "(SELECT sc.sno,TRIM(IF(sc.email='',IF(sc.email_2='',sc.email_3,sc.email_2),sc.email)) as email,p.name,fname,mname,lname,s.name FROM staffoppr_contact sc LEFT JOIN manage p ON p.sno=sc.prefix LEFT JOIN manage s ON s.sno=sc.suffix WHERE sc.status='ER' AND (FIND_IN_SET('$username',sc.accessto)>0 OR sc.owner='$username' OR sc.accessto='ALL') AND sc.crmcontact='Y' AND (sc.email!='' OR sc.email_2!='' OR sc.email_3!='') AND sc.dontemail != 'Y' AND sc.sno IN (".$detrow[2]."))
+								$ndque = "(SELECT sc.sno,TRIM(IF(sc.email='',IF(sc.email_2='',sc.email_3,sc.email_2),sc.email)) as email,p.name,fname,mname,lname,s.name,sc.email as email_1,sc.email_2,sc.email_3 FROM staffoppr_contact sc LEFT JOIN manage p ON p.sno=sc.prefix LEFT JOIN manage s ON s.sno=sc.suffix WHERE sc.status='ER' AND (FIND_IN_SET('$username',sc.accessto)>0 OR sc.owner='$username' OR sc.accessto='ALL') AND sc.crmcontact='Y' AND (sc.email!='' OR sc.email_2!='' OR sc.email_3!='') AND sc.dontemail != 'Y' AND sc.sno IN (".$detrow[2]."))
 								UNION 
-								(SELECT sno,TRIM(IF(email='',IF(alternate_email='',other_email,alternate_email),email)) as email,'',fname,mname,lname,'' FROM candidate_list WHERE status='ACTIVE' AND (owner='$username' OR FIND_IN_SET('$username',accessto )>0 OR accessto='ALL') AND (email!='' OR alternate_email!='' OR other_email!='') AND dontemail != 'Y' AND sno IN (".$detrow[3]."))
+								(SELECT sno,TRIM(IF(email='',IF(alternate_email='',other_email,alternate_email),email)) as email,'',fname,mname,lname,'',email as email_1,alternate_email as email_2,other_email as email_3 FROM candidate_list WHERE status='ACTIVE' AND (owner='$username' OR FIND_IN_SET('$username',accessto )>0 OR accessto='ALL') AND (email!='' OR alternate_email!='' OR other_email!='') AND dontemail != 'Y' AND sno IN (".$detrow[3]."))
 								UNION 
-								(SELECT serial_no,TRIM(IF(email='',IF(email1='',email2,email1),email)) as email,'',fname,mname,lname,'' FROM contacts WHERE status NOT IN ('INACTIVE','backup') AND userid='$username' AND (email!='' OR email1!='' OR email2!='') AND serial_no in (".$detrow[1]."))
+								(SELECT serial_no,TRIM(IF(email='',IF(email1='',email2,email1),email)) as email,'',fname,mname,lname,'',email as email_1,email1 as email_2,email2 as email_3 FROM contacts WHERE status NOT IN ('INACTIVE','backup') AND userid='$username' AND (email!='' OR email1!='' OR email2!='') AND serial_no in (".$detrow[1]."))
 								ORDER BY email";
 								$ndres=mysql_query($ndque,$db);
 								while($ndrow=mysql_fetch_row($ndres))
@@ -237,6 +238,24 @@
 												$tsucsent++;
 												array_push($SentArray,$ndrow[1]);
 												array_push($Mail_status_array['true'],$ndrow[1]);
+												
+												if($campaignlist!="")
+												{
+													$genDetails = array($ndrow[2],$ndrow[3],$ndrow[4],$ndrow[5],$ndrow[6]);
+													
+													if(!isset($mailAddtionalInfo[$ndrow[7]]) && $ndrow[7] != "")
+													{														
+														$mailAddtionalInfo[$ndrow[7]] = $genDetails;
+													}
+													if(!isset($mailAddtionalInfo[$ndrow[8]]) && $ndrow[8] != "")
+													{
+														$mailAddtionalInfo[$ndrow[8]] = $genDetails;
+													}
+													if(!isset($mailAddtionalInfo[$ndrow[9]]) && $ndrow[9] != "")
+													{
+														$mailAddtionalInfo[$ndrow[9]] = $genDetails;
+													}
+												}
 
 												if($olSync=="N")
 												{
@@ -265,21 +284,6 @@
 
 								if($bcc!="")
 								{
-									$Rpl_msg_body=$msg_body;
-									$Rpl_msg_body=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/","",$Rpl_msg_body);
-									$Rpl_msg_body=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/","",$Rpl_msg_body);
-									$Rpl_msg_body=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/","",$Rpl_msg_body);
-									$Rpl_msg_body=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/","",$Rpl_msg_body);
-									$Rpl_msg_body=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/","",$Rpl_msg_body);
-									$Rpl_msg_body=$Rpl_msg_body.$attach_body;
-	
-									$Rpl_matter=$matter;
-									$Rpl_matter=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/","",$Rpl_matter);
-									$Rpl_matter=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/","",$Rpl_matter);
-									$Rpl_matter=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/","",$Rpl_matter);
-									$Rpl_matter=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/","",$Rpl_matter);
-									$Rpl_matter=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/","",$Rpl_matter);
-	
 									$sbcc=explode(",",$bcc);
 									$lemail=array_unique(array_diff($sbcc,$SentArray));
 	
@@ -287,12 +291,51 @@
 									{
 										foreach($lemail as $e_key => $e_val)
 										{
+											$e_val = trim($e_val);
 											$To_Array=array();
 											array_push($To_Array,$e_val);
 											$mailheaders[2]="To: ".$e_val;
 			
 											if(!in_array($e_val,$SentArray))
 											{
+												if(isset($mailAddtionalInfo[$e_val]))
+												{
+												
+													$Rpl_msg_body=$msg_body;
+													$Rpl_msg_body=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/",$mailAddtionalInfo[$e_val][0],$Rpl_msg_body);
+													$Rpl_msg_body=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/",$mailAddtionalInfo[$e_val][1],$Rpl_msg_body);
+													$Rpl_msg_body=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/",$mailAddtionalInfo[$e_val][2],$Rpl_msg_body);
+													$Rpl_msg_body=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/",$mailAddtionalInfo[$e_val][3],$Rpl_msg_body);
+													$Rpl_msg_body=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/",$mailAddtionalInfo[$e_val][4],$Rpl_msg_body);
+													$Rpl_msg_body=$Rpl_msg_body.$attach_body;
+													
+													
+													$Rpl_matter=$matter;
+													$Rpl_matter=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/",$mailAddtionalInfo[$e_val][0],$Rpl_matter);
+													$Rpl_matter=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/",$mailAddtionalInfo[$e_val][1],$Rpl_matter);
+													$Rpl_matter=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/",$mailAddtionalInfo[$e_val][2],$Rpl_matter);
+													$Rpl_matter=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/",$mailAddtionalInfo[$e_val][3],$Rpl_matter);
+													$Rpl_matter=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/",$mailAddtionalInfo[$e_val][4],$Rpl_matter);
+										
+												}
+												else
+												{
+													$Rpl_msg_body=$msg_body;
+													$Rpl_msg_body=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/","",$Rpl_msg_body);
+													$Rpl_msg_body=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/","",$Rpl_msg_body);
+													$Rpl_msg_body=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/","",$Rpl_msg_body);
+													$Rpl_msg_body=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/","",$Rpl_msg_body);
+													$Rpl_msg_body=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/","",$Rpl_msg_body);
+													$Rpl_msg_body=$Rpl_msg_body.$attach_body;
+													
+													
+													$Rpl_matter=$matter;
+													$Rpl_matter=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/","",$Rpl_matter);
+													$Rpl_matter=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/","",$Rpl_matter);
+													$Rpl_matter=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/","",$Rpl_matter);
+													$Rpl_matter=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/","",$Rpl_matter);
+													$Rpl_matter=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/","",$Rpl_matter);
+												}
 												$suc=$smtp->SendMessage($from,$To_Array,$mailheaders,$Rpl_msg_body);
 												if($suc)
 												{
