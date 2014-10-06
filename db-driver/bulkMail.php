@@ -229,8 +229,27 @@
 										$To_Array=array();
 										array_push($To_Array,$ndrow[1]);
 										$mailheaders[2]="To: ".$ndrow[1];
+										
+										$bccArray=explode(",",preg_replace("/ +/", "", $bcc));
+										if($campaignlist!="")
+										{
+											$genDetails = array($ndrow[2],$ndrow[3],$ndrow[4],$ndrow[5],$ndrow[6]);
+											
+											if(!isset($mailAddtionalInfo[$ndrow[7]]) && $ndrow[7] != "")
+											{														
+												$mailAddtionalInfo[$ndrow[7]] = $genDetails;
+											}
+											if(!isset($mailAddtionalInfo[$ndrow[8]]) && $ndrow[8] != "")
+											{
+												$mailAddtionalInfo[$ndrow[8]] = $genDetails;
+											}
+											if(!isset($mailAddtionalInfo[$ndrow[9]]) && $ndrow[9] != "")
+											{
+												$mailAddtionalInfo[$ndrow[9]] = $genDetails;
+											}
+										}
 
-										if(!in_array($ndrow[1],$SentArray))
+										if(!in_array($ndrow[1],$SentArray) && in_array($ndrow[1],$bccArray))
 										{
 											$suc=$smtp->SendMessage($from,$To_Array,$mailheaders,$Rpl_msg_body);
 											if($suc)
@@ -239,24 +258,6 @@
 												array_push($SentArray,$ndrow[1]);
 												array_push($Mail_status_array['true'],$ndrow[1]);
 												
-												if($campaignlist!="")
-												{
-													$genDetails = array($ndrow[2],$ndrow[3],$ndrow[4],$ndrow[5],$ndrow[6]);
-													
-													if(!isset($mailAddtionalInfo[$ndrow[7]]) && $ndrow[7] != "")
-													{														
-														$mailAddtionalInfo[$ndrow[7]] = $genDetails;
-													}
-													if(!isset($mailAddtionalInfo[$ndrow[8]]) && $ndrow[8] != "")
-													{
-														$mailAddtionalInfo[$ndrow[8]] = $genDetails;
-													}
-													if(!isset($mailAddtionalInfo[$ndrow[9]]) && $ndrow[9] != "")
-													{
-														$mailAddtionalInfo[$ndrow[9]] = $genDetails;
-													}
-												}
-
 												if($olSync=="N")
 												{
 													$folder="sentmessages";
