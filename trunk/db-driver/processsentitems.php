@@ -136,7 +136,7 @@
 						mysql_query($que,$db);
 						$cmid=mysql_insert_id($db);
 
-						getMailContactData($mailid,$db,$eid);
+						getMailContactData($mailid,$db,$eid,$username);
 					}
 				}
 
@@ -146,11 +146,11 @@
 		}
 	}
 
-	function getMailContactData($mailid,$db,$ceid)
+	function getMailContactData($mailid,$db,$ceid,$username)
 	{
 		global $maildb;
 
-		$que="select mailid from mail_headers where inlineid='$mailid'";
+		$que="select mailid from mail_headers where username='$username' AND status='Active' AND inlineid='$mailid'";
 		$res=mysql_query($que,$db);
 		while($row=mysql_fetch_array($res))
 		{
@@ -164,7 +164,7 @@
 			$que="insert into contact_em_attach select '','$neid',filename,filetype,filecontent,inline from mail_attachs where mailid='$row[0]'";
 			mysql_query($que,$maildb);
 
-			getMailContactData($row[0],$db,$neid);
+			getMailContactData($row[0],$db,$neid,$username);
 		}
 	}
 
