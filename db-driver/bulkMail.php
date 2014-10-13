@@ -110,13 +110,14 @@
 							$CharSet_mail=AssignEmailCharset($row['charset']);
 							$sentsubject=encodedMailsubject($CharSet_mail,$subject,'B');
 							$efrom=$from;
+							$matter.="<br><center>{{UNSUBSCRIBE}}</center><br>";
 
 							require("setSMTP.php");
 
 							if($statusmail=='CampaignIP-l')
 								$cque="select campaign_list.id,campaign_list.rreceipt from campaign_list left join cmngmt_pr on campaign_list.sno=cmngmt_pr.tysno left join mail_headers on cmngmt_pr.sno=mail_headers.conid where mail_headers.mailid='$mailid'";
 							else
-								$cque="select job_post_det.seqnumber,job_post_det.rreceipt from job_post_det left join cmngmt_pr on job_post_det.sno=cmngmt_pr.tysno left join mail_headers on cmngmt_pr.sno=mail_headers.conid where mail_headers.mailid='$mailid'";
+								$cque="select job_post_det.seqnumber,job_post_det.rreceipt,job_post_det.sno from job_post_det left join cmngmt_pr on job_post_det.sno=cmngmt_pr.tysno left join mail_headers on cmngmt_pr.sno=mail_headers.conid where mail_headers.mailid='$mailid'";
 
 							$cres=mysql_query($cque,$db);
 							$crow=mysql_fetch_row($cres);
@@ -182,6 +183,12 @@
 							}
 							$msg_body=prepareBody($matter,$mailheaders,"text/html");
 
+							$secrethash=md5(time());
+							$cmque="INSERT INTO campaigns (comp_id,camp_id,secrethash,cdate,status,type) VALUES ('$companyuser','$cpid','$secrethash',NOW(),'A','".$statusmail[0]."')";
+							$cmres=mysql_query($cmque,$maindb);
+							$cmcid=mysql_insert_id($maindb);
+
+
 							/*===================================================================================================================================================*/
 							/*==================== Get Mail Id s from recipient_info table and create the mail format and sending================================================*/
 							/*===================================================================================================================================================*/
@@ -211,12 +218,15 @@
 								{
 									if(trim($ndrow[1])!="")
 									{
+										$uslink=genUnsubscribeLink($cmcid,$ndrow[1],$secrethash);
+
 										$Rpl_msg_body=$msg_body;
 										$Rpl_msg_body=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/",$ndrow[2],$Rpl_msg_body);
 										$Rpl_msg_body=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/",$ndrow[3],$Rpl_msg_body);
 										$Rpl_msg_body=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/",$ndrow[4],$Rpl_msg_body);
 										$Rpl_msg_body=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/",$ndrow[5],$Rpl_msg_body);
 										$Rpl_msg_body=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/",$ndrow[6],$Rpl_msg_body);
+										$Rpl_msg_body=preg_replace("/{{UNSUBSCRIBE}}/","<a target=_blank href='".$uslink."'>One-click unsubscribe from all future emails.</a>",$Rpl_msg_body);
 										$Rpl_msg_body=$Rpl_msg_body.$attach_body;
 
 										$Rpl_matter=$matter;
@@ -299,9 +309,10 @@
 			
 											if(!in_array($e_val,$SentArray))
 											{
+												$uslink=genUnsubscribeLink($cmcid,$e_val,$secrethash);
+
 												if(isset($mailAddtionalInfo[$e_val]))
 												{
-												
 													$Rpl_msg_body=$msg_body;
 													$Rpl_msg_body=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/",$mailAddtionalInfo[$e_val][0],$Rpl_msg_body);
 													$Rpl_msg_body=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/",$mailAddtionalInfo[$e_val][1],$Rpl_msg_body);
@@ -316,8 +327,7 @@
 													$Rpl_matter=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/",$mailAddtionalInfo[$e_val][1],$Rpl_matter);
 													$Rpl_matter=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/",$mailAddtionalInfo[$e_val][2],$Rpl_matter);
 													$Rpl_matter=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/",$mailAddtionalInfo[$e_val][3],$Rpl_matter);
-													$Rpl_matter=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/",$mailAddtionalInfo[$e_val][4],$Rpl_matter);
-										
+													$Rpl_matter=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/",$mailAddtionalInfo[$e_val][4],$Rpl_matter);										
 												}
 												else
 												{
@@ -337,7 +347,10 @@
 													$Rpl_matter=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/","",$Rpl_matter);
 													$Rpl_matter=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/","",$Rpl_matter);
 												}
+
+												$Rpl_msg_body=preg_replace("/{{UNSUBSCRIBE}}/","<a target=_blank href='".$uslink."'>One-click unsubscribe from all future emails.</a>",$Rpl_msg_body);
 												$suc=$smtp->SendMessage($from,$To_Array,$mailheaders,$Rpl_msg_body);
+
 												if($suc)
 												{
 													$tsucsent++;
