@@ -593,4 +593,9 @@ WHERE cmngmt_pr.sno =".$cmntid;
 		$charset=(trim($charset)!='')?$charset:SEND_DEFAULT_MAIL_CHAR;
 		return $charset;
 	}
+
+	function genUnsubscribeLink($cid,$email,$hash)
+	{
+		return "https://unsubscribe.akken.com/?c=$cid&e=$email&h=".MD5($email.$hash);
+	}
 ?>
