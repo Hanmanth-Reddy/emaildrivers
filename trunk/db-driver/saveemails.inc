@@ -596,6 +596,7 @@ WHERE cmngmt_pr.sno =".$cmntid;
 
 	function genUnsubscribeLink($cid,$email,$hash)
 	{
-		return "https://unsubscribe.akken.com/?c=$cid&e=$email&h=".MD5($email.$hash);
+		$email=strtolower($email);
+		return "https://unsubscribe.akken.com/?c=$cid&e=$email&h=".strtolower(MD5($email.$hash));
 	}
 ?>

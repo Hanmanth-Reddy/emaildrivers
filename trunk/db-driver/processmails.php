@@ -121,12 +121,13 @@
 							$que="insert into process_mail_attachs select attachid,mailid,filecontent,filename,filesize,filetype,inline from mail_attachs where mailid='$mailid'";
 							mysql_query($que,$maildb);
 							
-                            if($InqResfolder=="ReqResponses")
-                            {
-                                $que="update posdesc set sub_inq_count=sub_inq_count+1 where posid='".$irow[0]."'";
-                                mysql_query($que,$db);
-                            }
-							getMailProcessData($mailid,$db);
+							if($InqResfolder=="ReqResponses")
+							{
+								$que="update posdesc set sub_inq_count=sub_inq_count+1 where posid='".$irow[0]."'";
+								mysql_query($que,$db);
+							}
+
+							getMailProcessData($mailid,$db,$username);
 						}
 					}
 				}
@@ -263,11 +264,11 @@
 		return true;
 	}
 
-	function getMailProcessData($mailid,$db)
+	function getMailProcessData($mailid,$db,$username)
 	{
 		global $maildb;
 
-		$que="select mailid from  mail_headers where inlineid='$mailid'";
+		$que="select mailid from  mail_headers where username='$username' AND status='Active' AND inlineid='$mailid'";
 		$res=mysql_query($que,$db);
 		while($row=mysql_fetch_array($res))
 		{
@@ -280,7 +281,7 @@
 			$que="insert into process_mail_attachs select attachid,mailid,filecontent,filename,filesize,filetype,inline from mail_attachs where mailid='$row[0]'";
 			mysql_query($que,$maildb);
 
-			getMailProcessData($row[0],$db);
+			getMailProcessData($row[0],$db,$username);
 		}
 		return true;
 	}

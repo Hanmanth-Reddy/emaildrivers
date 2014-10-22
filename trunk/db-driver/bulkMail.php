@@ -183,7 +183,7 @@
 							}
 							$msg_body=prepareBody($matter,$mailheaders,"text/html");
 
-							$secrethash=md5(time());
+							$secrethash=strtolower(md5(time()));
 							$cmque="INSERT INTO campaigns (comp_id,camp_id,secrethash,cdate,status,type) VALUES ('$companyuser','$cpid','$secrethash',NOW(),'A','".$statusmail[0]."')";
 							$cmres=mysql_query($cmque,$maindb);
 							$cmcid=mysql_insert_id($maindb);
@@ -244,19 +244,13 @@
 										if($campaignlist!="")
 										{
 											$genDetails = array($ndrow[2],$ndrow[3],$ndrow[4],$ndrow[5],$ndrow[6]);
-											
+
 											if(!isset($mailAddtionalInfo[$ndrow[7]]) && $ndrow[7] != "")
-											{														
 												$mailAddtionalInfo[$ndrow[7]] = $genDetails;
-											}
 											if(!isset($mailAddtionalInfo[$ndrow[8]]) && $ndrow[8] != "")
-											{
 												$mailAddtionalInfo[$ndrow[8]] = $genDetails;
-											}
 											if(!isset($mailAddtionalInfo[$ndrow[9]]) && $ndrow[9] != "")
-											{
 												$mailAddtionalInfo[$ndrow[9]] = $genDetails;
-											}
 										}
 
 										if(!in_array($ndrow[1],$SentArray) && in_array($ndrow[1],$bccArray))
