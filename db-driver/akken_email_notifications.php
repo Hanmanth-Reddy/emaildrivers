@@ -36,8 +36,8 @@
 
 			$to = $nrow[6];
 			$subject = $nrow[2];
-
-			$matter = "<div style='font-family: arial; font-size: 10pt;'>".str_replace("\n","<br>",$nrow[3])."<br><br></div>";
+						
+			$matter = "<div style='font-family: arial; font-size: 10pt;'>".str_replace('\n','<br>',$nrow[3])."<br><br></div>";			
 			$ato = explode(",",$to);
 
 			if($to!="")
