@@ -1,15 +1,4 @@
 <?php
-/*
-	Modifed Date: May 13, 2009.
-	Modified By:Swapna.
-	Purpose: Merged changes from Branch 23 to 25.
-	TS Task Id: 4307.
-	
-	TS Task ID		:	4307
-	Main Purpose	:	To Map Mails sent from Imap server to Akken
-	Modified Date	:	02nd May, 2009 
-	Modified By		:	Rajkumar M.(Ramesh changes merged)
-*/
 	// Set include folder
 	$include_path=dirname(__FILE__);
 	ini_set("include_path",$include_path);
@@ -26,6 +15,11 @@
 
 		require("maildatabase.inc");
 		require("database.inc");
+
+		$doque="select GROUP_CONCAT(domain) from domains";
+		$dores=mysql_query($doque,$db);
+		$dorow=mysql_fetch_row($dores);
+		$dlist=explode(",",strtolower($dorow[0]));
 
 		$ubque="select username from users where usertype!='' and status!='DA'";
 		$ubres=mysql_query($ubque,$db);
@@ -54,12 +48,19 @@
 				$varxmlbody=$row[9];
 				$CharSet_mail=$row[10];
 
-				// Getting email address in From Field
+				$fullelist = $cfrom.",".$cto.",".$cadd;
+
 				$emaillist = $cto.",".$cadd;
 				$frmemail=parseEmailAddresses($emaillist);
 
-				// Searching for ConID
-				if($user_pref["crm"]!="NO" || $user_pref["hrm"]!="NO" || $user_pref["accounting"]!="NO")
+				$trackPref=getTrackingPref();
+
+				if($trackPref['etrack']=="Y")
+					$trackEmail=trackEmail($dlist,$fullelist);
+				else
+					$trackEmail=false;
+
+				if(($user_pref["crm"]!="NO" || $user_pref["hrm"]!="NO" || $user_pref["accounting"]!="NO") && $trackEmail && $trackPref['etrack']=="Y")
 				{
 					$conid="";
 
@@ -67,35 +68,53 @@
 
 					if($user_pref["crm"]!="NO")
 					{
-						$cres = mysql_query($crm_contacts_que,$db);
-						while($crow = mysql_fetch_row($cres))
-							$conid .= "oppr".$crow[0].",";
+						if($trackPref['contacts']=="Y")
+						{
+							$cres = mysql_query($crm_contacts_que,$db);
+							while($crow = mysql_fetch_row($cres))
+								$conid .= "oppr".$crow[0].",";
+						}
 
-						$cres = mysql_query($crm_active_clients_que,$db);
-						while($crow = mysql_fetch_row($cres))
-							$conid .= "acc".$crow[0].",";
-							
-						$cres = mysql_query($crm_candidates_que,$db);
-						while($crow = mysql_fetch_row($cres))
-							$conid .= "cand".$crow[0].",";
+						if($trackPref['clients']=="Y")
+						{
+							$cres = mysql_query($crm_active_clients_que,$db);
+							while($crow = mysql_fetch_row($cres))
+								$conid .= "acc".$crow[0].",";
+						}
+
+						if($trackPref['candidates']=="Y")
+						{
+							$cres = mysql_query($crm_candidates_que,$db);
+							while($crow = mysql_fetch_row($cres))
+								$conid .= "cand".$crow[0].",";
+						}
 					}
 
 					if($user_pref["hrm"]!="NO")
 					{
-						$cres = mysql_query($hrm_consultants_que,$db);
-						while($crow = mysql_fetch_row($cres))
-							$conid .= "con".$crow[0].",";
+						if($trackPref['consultants']=="Y")
+						{
+							$cres = mysql_query($hrm_consultants_que,$db);
+							while($crow = mysql_fetch_row($cres))
+								$conid .= "con".$crow[0].",";
+						}
 
-						$cres = mysql_query($hrm_employees_que,$db);
-						while($crow = mysql_fetch_row($cres))
-							$conid .= "emp".$crow[0].",";
+						if($trackPref['employees']=="Y")
+						{
+							$cres = mysql_query($hrm_employees_que,$db);
+							while($crow = mysql_fetch_row($cres))
+								$conid .= "emp".$crow[0].",";
+						}
 					}
 
 					if($user_pref["accounting"]!="NO")
 					{
-						$cres = mysql_query($acc_companies_que,$db);
-						while($crow = mysql_fetch_row($cres))
-							$conid .= "acc".$crow[0].",";
+						if($trackPref['customers']=="Y")
+						{
+							$cres = mysql_query($acc_companies_que,$db);
+							while($crow = mysql_fetch_row($cres))
+								$conid .= "acc".$crow[0].",";
+						}
 					}
 
 					$conid=unique_conid(trim($conid,","));
@@ -207,5 +226,11 @@
 			return false;
 		else
 			return "'".$emails."'";
+	}
+
+	function getActivitiesEmailCondition($ChkEmail,$tbl,$col1,$col2,$col3)
+	{	
+		$CommonEmailCond="'".addslashes(trim($ChkEmail))."' IN (".$tbl.".".$col1.",".$tbl.".".$col2.",".$tbl.".".$col3.") ";
+		return $CommonEmailCond;
 	}
 ?>

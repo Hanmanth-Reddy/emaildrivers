@@ -15,6 +15,11 @@
 		require("maildatabase.inc");
 		require("database.inc");
 
+		$doque="select GROUP_CONCAT(domain) from domains";
+		$dores=mysql_query($doque,$db);
+		$dorow=mysql_fetch_row($dores);
+		$dlist=explode(",",strtolower($dorow[0]));
+
 		$ubque="select username from users where usertype!='' and status!='DA'";
 		$ubres=mysql_query($ubque,$db);
 		while($ubrow=mysql_fetch_row($ubres))
@@ -44,6 +49,8 @@
 				// Getting email address in From Field
 				preg_match(EMAIL_REG_EXP,$cfrom,$eemail);
 				$frmemail=trim($eemail[0],"'");
+
+				$fullelist = $cfrom.",".$cto.",".$cadd;
 
 				if($user_pref["crm"]!="NO")
 				{
@@ -132,8 +139,14 @@
 					}
 				}
 
-				// Searching for ConID
-				if(($user_pref["crm"]!="NO" || $user_pref["hrm"]!="NO" || $user_pref["accounting"]!="NO") && trim($frmemail)!="")
+				$trackPref=getTrackingPref();
+
+				if($trackPref['etrack']=="Y")
+					$trackEmail=trackEmail($dlist,$fullelist);
+				else
+					$trackEmail=false;
+
+				if(($user_pref["crm"]!="NO" || $user_pref["hrm"]!="NO" || $user_pref["accounting"]!="NO") && trim($frmemail)!="" && $trackEmail && $trackPref['etrack']=="Y")
 				{
 					$conid="";
 
@@ -141,35 +154,53 @@
 
 					if($user_pref["crm"]!="NO")
 					{
-						$cres = mysql_query($crm_contacts_que,$db);
-						while($crow = mysql_fetch_row($cres))
-							$conid .= "oppr".$crow[0].",";
+						if($trackPref['contacts']=="Y")
+						{
+							$cres = mysql_query($crm_contacts_que,$db);
+							while($crow = mysql_fetch_row($cres))
+								$conid .= "oppr".$crow[0].",";
+						}
 
-						$cres = mysql_query($crm_active_clients_que,$db);
-						while($crow = mysql_fetch_row($cres))
-							$conid .= "acc".$crow[0].",";
-							
-						$cres = mysql_query($crm_candidates_que,$db);
-						while($crow = mysql_fetch_row($cres))
-							$conid .= "cand".$crow[0].",";
+						if($trackPref['clients']=="Y")
+						{
+							$cres = mysql_query($crm_active_clients_que,$db);
+							while($crow = mysql_fetch_row($cres))
+								$conid .= "acc".$crow[0].",";
+						}
+
+						if($trackPref['candidates']=="Y")
+						{
+							$cres = mysql_query($crm_candidates_que,$db);
+							while($crow = mysql_fetch_row($cres))
+								$conid .= "cand".$crow[0].",";
+						}
 					}
 
 					if($user_pref["hrm"]!="NO")
 					{
-						$cres = mysql_query($hrm_consultants_que,$db);
-						while($crow = mysql_fetch_row($cres))
-							$conid .= "con".$crow[0].",";
+						if($trackPref['consultants']=="Y")
+						{
+							$cres = mysql_query($hrm_consultants_que,$db);
+							while($crow = mysql_fetch_row($cres))
+								$conid .= "con".$crow[0].",";
+						}
 
-						$cres = mysql_query($hrm_employees_que,$db);
-						while($crow = mysql_fetch_row($cres))
-							$conid .= "emp".$crow[0].",";
+						if($trackPref['employees']=="Y")
+						{
+							$cres = mysql_query($hrm_employees_que,$db);
+							while($crow = mysql_fetch_row($cres))
+								$conid .= "emp".$crow[0].",";
+						}
 					}
 
 					if($user_pref["accounting"]!="NO")
 					{
-						$cres = mysql_query($acc_companies_que,$db);
-						while($crow = mysql_fetch_row($cres))
-							$conid .= "acc".$crow[0].",";
+						if($trackPref['customers']=="Y")
+						{
+							$cres = mysql_query($acc_companies_que,$db);
+							while($crow = mysql_fetch_row($cres))
+								$conid .= "acc".$crow[0].",";
+						}
 					}
 
 					$conid=unique_conid(trim($conid,","));
@@ -316,7 +347,7 @@
 		else
 		{
 			$tbl = ($tbl=='') ? "" : $tbl.".";
-			$CommonEmailCond = " (".$tbl.$col1." = '".$ChkEmail."' OR ".$tbl.$col2." = '".$ChkEmail."' OR ".$tbl.$col3." = '".$ChkEmail."') ";
+			$CommonEmailCond = " (".$tbl.$col1." = '".addslashes(trim($ChkEmail))."' OR ".$tbl.$col2." = '".addslashes(trim($ChkEmail))."' OR ".$tbl.$col3." = '".addslashes(trim($ChkEmail))."') ";
 			return $CommonEmailCond;
 		}
 	}
