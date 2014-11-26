@@ -60,7 +60,7 @@
 				else
 					$trackEmail=false;
 
-				if(($user_pref["crm"]!="NO" || $user_pref["hrm"]!="NO" || $user_pref["accounting"]!="NO") && $trackEmail && $trackPref['etrack']=="Y")
+				if(($user_pref["crm"]!="NO" || $user_pref["hrm"]!="NO" || $user_pref["accounting"]!="NO") && $trackEmail && $trackPref['etrack']=="Y" && trim($frmemail)!="")
 				{
 					$conid="";
 
