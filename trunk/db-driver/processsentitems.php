@@ -223,14 +223,14 @@
 		}
 
 		if($emails=="")
-			return false;
+			return "";
 		else
 			return "'".$emails."'";
 	}
 
 	function getActivitiesEmailCondition($ChkEmail,$tbl,$col1,$col2,$col3)
 	{	
-		$CommonEmailCond="'".addslashes(trim($ChkEmail))."' IN (".$tbl.".".$col1.",".$tbl.".".$col2.",".$tbl.".".$col3.") ";
+		$CommonEmailCond="($ChkEmail) IN (".$tbl.".".$col1.",".$tbl.".".$col2.",".$tbl.".".$col3.") ";
 		return $CommonEmailCond;
 	}
 ?>
