@@ -54,7 +54,7 @@
 		
 		if(count($recent_jo_arr) > 0){
 			// Find all applicants coming from job boards [sourcetype = 169 i.e website]
-			// Also, all applicants subscribed through talentpool 
+			// Also, all applicants subscribed through talentpool even those with no keywords specified.
 			$applicant_search_query = "SELECT							
 							api_consultant_list.name,
 							api_consultant_general.lname,
@@ -83,8 +83,7 @@
                                                         talentpool_list.miles AS miles
 						      FROM talentpool_list
                                                         WHERE talentpool_list.email != ''
-                                                        AND talentpool_list.jobboards_optin_email = 'Y'
-                                                        AND talentpool_list.job_alerts != ''";
+                                                        AND talentpool_list.jobboards_optin_email = 'Y'";
 			
 			$applicant_search_rs = mysql_query($applicant_search_query,$db);	
 			
@@ -106,8 +105,12 @@
 				$zipCodesInProximityStr = "";
 				$whereCond = "";
 				
-				// Finds whether keywords saved by applicant coming from job boards matches the job orders' ids posted to website in the past 5 mins -  searches in posdesc.search_data column in DB				
-				$jobboards_searchstr = searchSubResume($applicants_arr['jobboards_keywords'][$i]);
+				// Finds whether keywords saved by applicant coming from job boards matches the job orders' ids posted to website in the past 5 mins -  searches in posdesc.search_data column in DB
+				if(!empty($applicants_arr['jobboards_keywords'][$i])){
+					$jobboards_searchstr = searchSubResume($applicants_arr['jobboards_keywords'][$i]);
+				}else{
+					$jobboards_searchstr = "";
+				}
 				$recent_jo_ids = implode(',',$recent_jo_arr);
 				
 				// Check if preferences for miles set
@@ -127,7 +130,12 @@
 						$whereCond .= " AND country = '".$applicants_arr['country'][$i]."'";					
 					}
 				}
-				$jobboards_keywords_match_query = "SELECT posid, postitle, posdesc, requirements, post_job_chk, posted_date, company, location, joblocation FROM posdesc WHERE MATCH (posdesc.search_data) AGAINST ('".$jobboards_searchstr."' IN BOOLEAN MODE) AND posdesc.posid in (".$recent_jo_ids.")";
+				if(!empty($jobboards_searchstr)){
+					$jobboards_keywords_match_query = "SELECT posid, postitle, posdesc, requirements, post_job_chk, posted_date, company, location, joblocation FROM posdesc WHERE MATCH (posdesc.search_data) AGAINST ('".$jobboards_searchstr."' IN BOOLEAN MODE) AND posdesc.posid in (".$recent_jo_ids.")";
+				}else{
+					$jobboards_keywords_match_query = "SELECT posid, postitle, posdesc, requirements, post_job_chk, posted_date, company, location, joblocation FROM posdesc WHERE posdesc.posid in (".$recent_jo_ids.")";
+				}
+				
 				$jobboards_keywords_match_rs = mysql_query($jobboards_keywords_match_query,$db);
 				while($jobboards_keywords_match_row = mysql_fetch_assoc($jobboards_keywords_match_rs))
 				{
@@ -150,7 +158,7 @@
 					$company_location_row = mysql_fetch_row($company_location_rs);
 					$jo_location = $company_location_row[0];
 					
-					// Donot send mail alerts if applicant's preferred job location zipcode not within X radius
+					// Donot send mail alerts if applicant's preferred job location zipcode not within X radius or state and country not matching.
 					if(empty($jo_location) && $whereCond != ""){
 						break;
 					}
@@ -160,7 +168,7 @@
 					$from = $companyname." Job Alert <donot-reply@akken.com>";					
 					$to = $applicants_arr['email'][$i];
 					$subject = $jo_title." ".date('m/d/Y',strtotime($jo_posteddate));
-					$message = "Dear ".$applicants_arr['lname'][$i]."\n\n  A new job order matching your skills has been posted on ".$companyname;
+					$message = "Dear ".$applicants_arr['lname'][$i]."\n\n  A new job order matching your skills/preferences has been posted on ".$companyname;
 					$message .= "\n\n Please see below for more details".
 							"\n\n Job Title: ".$jo_title.
 							"\n Company Name: ".$jo_companyname.
