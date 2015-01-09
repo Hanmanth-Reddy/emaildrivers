@@ -6,6 +6,8 @@
 
 	// We need to set all the properties of SMTP to DEFAULT. Because if the file is included recursively in loop few of the variables like $smtp->user and $smtp->password are not resetting back to empty and mails are failing because of these set for previous user. I guess, because of this eCampaigns are not attempt to send all the times. These values are set any way in this file based on the user emailid below.
 	$smtp->ssl=0;
+	$smtp->popssl=0;
+	$smtp->og_encrypt="";
 	$smtp->pop3_auth_host="";
 	$smtp->pop3_auth_port="";
 	$smtp->user="";
@@ -13,6 +15,9 @@
 	$smtp->imapExtSno=0;
 
 	$ogsslchk="";
+	$imsslchk="";
+	$og_encrypt="";
+
 	$pophost="";
 	$popport="";
 	$popuser="";
@@ -28,7 +33,7 @@
 	}
 	else
 	{
-		$sque="select ogaddress,ogport,imaddress,import,account,passwd,mailid,disname,logon,susername,spassword,ogsslchk,sno,mtype from external_mail where username='".$username."' and mailid='".addslashes($reqemail)."'";
+		$sque="select ogaddress,ogport,imaddress,import,account,passwd,mailid,disname,logon,susername,spassword,ogsslchk,sno,mtype,og_encrypt,imsslchk from external_mail where username='".$username."' and mailid='".addslashes($reqemail)."'";
 		$sres=mysql_query($sque,$db);
 		$srow=mysql_fetch_row($sres);
 		if(mysql_num_rows($sres)>0)
@@ -43,6 +48,8 @@
 			$sdomain=explode("@",$srow[6]);
 			$realm=$sdomain[1];
 			$ogsslchk=$srow[11];
+			$og_encrypt=$srow[14];
+			$imsslchk=$srow[15];
 
 			if($srow[13]=="imap")
 				$imapExtSno = $srow[12];
@@ -62,6 +69,9 @@
 				}
 				else if($logon=="LBE")
 				{
+					if($imsslchk=="Yes")
+						$smtp->popssl=1;
+
 					$pophost=$srow[2];
 					$popport=$srow[3];
 					$popuser=$srow[4];
@@ -89,7 +99,14 @@
 	$smtp->localhost="smtp.akken.com";		/* Your computer address */
 
 	if($ogsslchk=="Yes")
+	{
 		$smtp->ssl=1;
+		$smtp->og_encrypt=$og_encrypt;
+	}
+	else
+	{
+		$smtp->ssl=0;
+	}
 
 	$smtp->pop3_auth_host=$pophost;		/* Set to the POP3 authentication host if your SMTP server requires prior POP3 authentication */
 	$smtp->pop3_auth_port=$popport;		/* Set to the POP3 authentication port if your SMTP server requires prior POP3 authentication */

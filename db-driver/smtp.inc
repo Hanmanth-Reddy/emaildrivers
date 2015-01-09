@@ -1,15 +1,4 @@
 <?php
-/*
-Modifed Date : Jan 11, 2010.
-Modified By  : Kumar Raju K.
-Purpose      : Merged the ramesh changes.
-TS Task Id   : 4892, (Ramesh) In Self service, when a time sheet is submitted, user is not getting notifications.
-
-Modifed Date:	Apr 16, 2009
-Modified By:	Ramesh-us(committing - Sundar Kota)
-Purpose:		Client is unable to get Akken email client to connect to 3rd party hosted exchange server's SMTP using known good settings and account ID/PW.
-Task Id:		4225
-*/
 class smtp_class
 {
 	var $user="";
@@ -17,14 +6,16 @@ class smtp_class
 	var $password="";
 	var $workstation="";
 	var $authentication_mechanism="";
-	var $host_name="smtp.akken.com";
+	var $host_name="pop-mail.akken.com";
 	var $host_port=25;
 	var $ssl=0;
-	var $localhost="smtp.akken.com";
+	var $popssl=0;
+	var $encrypt="";
+	var $localhost="pop-mail.akken.com";
 	var $timeout=10;
 	var $data_timeout=300;
 	var $error="";
-	var $debug=1;
+	var $debug=0;
 	var $html_debug=1;
 	var $esmtp=1;
 	var $esmtp_host="";
@@ -206,10 +197,12 @@ class smtp_class
 		return(1);
 	}
 
-	Function ConnectToHost($domain, $port, $resolve_message)
+	Function ConnectToHost($type, $domain, $port, $resolve_message)
 	{
 		if(ereg('^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$',$domain))
+		{
 			$ip=$domain;
+		}
 		else
 		{
 			if($this->debug)
@@ -220,22 +213,26 @@ class smtp_class
 
 		if(strlen($this->exclude_address) && !strcmp(@gethostbyname($this->exclude_address),$ip))
 			return("domain \"".$domain."\" resolved to an address excluded to be valid");
+
 		if($this->debug)
 			$this->OutputDebug("Connecting to host address \"".$ip."\"...");
 
 		if($this->timeout=="")
 			$this->timeout = 10;
 
-		if(strlen($this->pop3_auth_host))
+		if(strlen($this->pop3_auth_host) && $type=="pop")
 		{
 			$opts = array('socket' => array('bindto' => $_SERVER["SERVER_ADDR"].":0"));
 			$context = stream_context_create($opts);
 
-			if(($this->connection=(@stream_socket_client(($this->ssl ? "ssl://" : "").$ip.":".$port,$errno,$error,$this->timeout,STREAM_CLIENT_CONNECT,$context))))
+			if(($this->connection=(@stream_socket_client(($this->popssl ? "ssl://" : "").$ip.":".$port,$errno,$error,$this->timeout,STREAM_CLIENT_CONNECT,$context))))
 				return("");
 		}
 		else
 		{
+			if($this->encrypt=="TLS")
+				$this->ssl=0;
+
 			if(($this->connection=(@fsockopen(($this->ssl ? "ssl://" : "").$ip,$port,$errno,$error,$this->timeout))))
 				return("");
 		}
@@ -260,26 +257,29 @@ class smtp_class
 	Function SASLAuthenticate($mechanisms, $credentials, &$authenticated, &$mechanism)
 	{
 		$authenticated=0;
-		if(!function_exists("class_exists")
-		|| !class_exists("sasl_client_class"))
+		if(!function_exists("class_exists")	|| !class_exists("sasl_client_class"))
 		{
 			$this->error="it is not possible to authenticate using the specified mechanism because the SASL library class is not loaded";
 			return(0);
 		}
+
 		$sasl=new sasl_client_class;
 		$sasl->SetCredential("user",$credentials["user"]);
 		$sasl->SetCredential("password",$credentials["password"]);
+
 		if(IsSet($credentials["realm"]))
 			$sasl->SetCredential("realm",$credentials["realm"]);
 		if(IsSet($credentials["workstation"]))
 			$sasl->SetCredential("workstation",$credentials["workstation"]);
 		if(IsSet($credentials["mode"]))
 			$sasl->SetCredential("mode",$credentials["mode"]);
+
 		do
 		{
 			$status=$sasl->Start($mechanisms,$message,$interactions);
 		}
 		while($status==SASL_INTERACT);
+
 		switch($status)
 		{
 			case SASL_CONTINUE:
@@ -295,6 +295,7 @@ class smtp_class
 				$this->error="Could not start the SASL authentication client: ".$sasl->error;
 				return(0);
 		}
+
 		if(strlen($mechanism=$sasl->mechanism))
 		{
 			if($this->PutLine("AUTH ".$sasl->mechanism.(IsSet($message) ? " ".base64_encode($message) : ""))==0)
@@ -302,8 +303,10 @@ class smtp_class
 				$this->error="Could not send the AUTH command";
 				return(0);
 			}
+
 			if(!$this->VerifyResultLines(array("235","334"),$responses))
 				return(0);
+
 			switch($this->result_code)
 			{
 				case "235":
@@ -366,12 +369,15 @@ class smtp_class
 			$this->error="connection is already established";
 			return(0);
 		}
+
 		$this->error=$error="";
 		$this->esmtp_host="";
 		$this->esmtp_extensions=array();
 		$hosts=array();
+
 		if(strlen($this->host_name))
 			$hosts[]=$this->host_name;
+
 		if(strlen($this->pop3_auth_host))
 		{
 			$user=$this->user;
@@ -387,7 +393,7 @@ class smtp_class
 				return(0);
 			}
 			$domain=$this->pop3_auth_host;
-			$this->error=$this->ConnectToHost($domain, $this->pop3_auth_port, "Resolving POP3 authentication host \"".$domain."\"...");
+			$this->error=$this->ConnectToHost("pop", $domain, $this->pop3_auth_port, "Resolving POP3 authentication host \"".$domain."\"...");
 			if(strlen($this->error))
 				return(0);
 			if(strlen($response=$this->GetLine())==0)
@@ -422,22 +428,27 @@ class smtp_class
 		for($host=0, $error="not connected";strlen($error) && $host<count($hosts);$host++)
 		{
 			$domain=$hosts[$host];
-			$error=$this->ConnectToHost($domain, $this->host_port, "Resolving SMTP server domain \"$domain\"...");
+			$error=$this->ConnectToHost("smtp", $domain, $this->host_port, "Resolving SMTP server domain \"$domain\"...");
 		}
 		if(strlen($error))
 		{
 			$this->error=$error;
 			return(0);
 		}
+
 		$timeout=($this->data_timeout ? $this->data_timeout : $this->timeout);
-		if($timeout
-		&& function_exists("socket_set_timeout"))
+
+		if($timeout	&& function_exists("socket_set_timeout"))
 			socket_set_timeout($this->connection,$timeout,0);
+
 		if($this->debug)
 			$this->OutputDebug("Connected to SMTP server \"".$domain."\".");
+
 		if(!strcmp($localhost=$this->localhost,"") && !strcmp($localhost=getenv("SERVER_NAME"),"") && !strcmp($localhost=getenv("HOST"),""))
 			$localhost="localhost";
+
 		$success=0;
+
 		if($this->VerifyResultLines("220",$responses)>0)
 		{
 			$fallback=1;
@@ -465,13 +476,15 @@ class smtp_class
 							{
 								case "421":
 									$fallback=0;
-									break;
+								break;
 							}
 						}
 					}
 				}
 				else
+				{
 					$fallback=0;
+				}
 			}
 
 			if($fallback)
@@ -482,7 +495,35 @@ class smtp_class
 
 			if($success && strlen($this->user) && strlen($this->pop3_auth_host)==0)
 			{
-				if(!IsSet($this->esmtp_extensions["AUTH"]) && !IsSet($this->esmtp_extensions["STARTTLS"]))
+				if($this->encrypt=="TLS")
+				{
+					if($this->PutLine("STARTTLS") && $this->VerifyResultLines("220",$responses)>0)
+					{
+						stream_socket_enable_crypto($this->connection, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+	
+						if($fallback)
+						{
+							$this->PutLine("HELO $localhost");
+						}
+						else
+						{
+							$this->PutLine("EHLO $localhost");
+	
+							$this->esmtp_extensions=array();
+							if(($success_code=$this->VerifyResultLines("250",$responses))>0)
+							{
+								$this->esmtp_host=$this->Tokenize($responses[0]," ");
+								for($response=1;$response<count($responses);$response++)
+								{
+									$extension=strtoupper($this->Tokenize($responses[$response]," "));
+									$this->esmtp_extensions[$extension]=$this->Tokenize("");
+								}
+							}
+						}
+					}
+				}
+
+				if(!IsSet($this->esmtp_extensions["AUTH"]))
 				{
 					$this->error="server does not require authentication";
 					$success=1;
@@ -522,9 +563,7 @@ class smtp_class
 						);
 
 						if(strlen($this->realm))
-						{
 							$success=$this->SASLAuthenticate($mechanisms,$credentials,$authenticated,$mechanism);
-						}
 
 						if(!$success)
 						{
@@ -538,18 +577,12 @@ class smtp_class
 						}
 					}
 
-					if($success && strlen($mechanism)==0)
-					{
-						$success=0;
-						if(IsSet($this->esmtp_extensions["STARTTLS"]))
-							require("starttls_sasl_client.php");
-
-						if(!$success)
-							$this->error="it is not supported any of the authentication mechanisms required by the server";
-					}
+					if(!$success)
+						$this->error="it is not supported any of the authentication mechanisms required by the server";
 				}
 			}
 		}
+
 		if($success)
 		{
 			$this->state="Connected";
@@ -560,6 +593,7 @@ class smtp_class
 			fclose($this->connection);
 			$this->connection=0;
 		}
+
 		return($success);
 	}
 
