@@ -7,7 +7,7 @@
 	// We need to set all the properties of SMTP to DEFAULT. Because if the file is included recursively in loop few of the variables like $smtp->user and $smtp->password are not resetting back to empty and mails are failing because of these set for previous user. I guess, because of this eCampaigns are not attempt to send all the times. These values are set any way in this file based on the user emailid below.
 	$smtp->ssl=0;
 	$smtp->popssl=0;
-	$smtp->og_encrypt="";
+	$smtp->encrypt="";
 	$smtp->pop3_auth_host="";
 	$smtp->pop3_auth_port="";
 	$smtp->user="";
@@ -101,7 +101,7 @@
 	if($ogsslchk=="Yes")
 	{
 		$smtp->ssl=1;
-		$smtp->og_encrypt=$og_encrypt;
+		$smtp->encrypt=$og_encrypt;
 	}
 	else
 	{
