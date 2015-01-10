@@ -577,8 +577,15 @@ class smtp_class
 						}
 					}
 
-					if(!$success)
-						$this->error="it is not supported any of the authentication mechanisms required by the server";
+					if($success && strlen($mechanism)==0)
+					{
+						$success=0;
+						if(IsSet($this->esmtp_extensions["STARTTLS"]))
+							require("starttls_sasl_client.php");
+
+						if(!$success)
+							$this->error="it is not supported any of the authentication mechanisms required by the server";
+					}
 				}
 			}
 		}
