@@ -115,7 +115,7 @@
 							require("setSMTP.php");
 
 							if($statusmail=='CampaignIP-l')
-								$cque="select campaign_list.id,campaign_list.rreceipt from campaign_list left join cmngmt_pr on campaign_list.sno=cmngmt_pr.tysno left join mail_headers on cmngmt_pr.sno=mail_headers.conid where mail_headers.mailid='$mailid'";
+								$cque="select campaign_list.id,campaign_list.rreceipt,campaign_list.sno from campaign_list left join cmngmt_pr on campaign_list.sno=cmngmt_pr.tysno left join mail_headers on cmngmt_pr.sno=mail_headers.conid where mail_headers.mailid='$mailid'";
 							else
 								$cque="select job_post_det.seqnumber,job_post_det.rreceipt,job_post_det.sno from job_post_det left join cmngmt_pr on job_post_det.sno=cmngmt_pr.tysno left join mail_headers on cmngmt_pr.sno=mail_headers.conid where mail_headers.mailid='$mailid'";
 
@@ -216,6 +216,8 @@
 								$ndres=mysql_query($ndque,$db);
 								while($ndrow=mysql_fetch_row($ndres))
 								{
+									$str_mail_status	= '';
+
 									if(trim($ndrow[1])!="")
 									{
 										$uslink=genUnsubscribeLink($cmcid,$ndrow[1],$secrethash);
@@ -258,30 +260,25 @@
 											$suc=$smtp->SendMessage($from,$To_Array,$mailheaders,$Rpl_msg_body);
 											if($suc)
 											{
+												$str_mail_status	= 'sent';
 												$tsucsent++;
 												array_push($SentArray,$ndrow[1]);
 												array_push($Mail_status_array['true'],$ndrow[1]);
-												
-												if($olSync=="N")
-												{
-													$folder="sentmessages";
-													$stats="Active";
-													$last_id=mail_insert($folder,$from,$To_Array[0],'','',$Rpl_matter,$subject,'','',$attach,$mailtype,$sent,$stats,$cmnid);
-													if($last_id!="" && $last_id!=0)
-													{
-														for($i=0;$i<$flag;$i++)
-															mail_attach($last_id,$file_con[$i],$file_name[$i],$file_size[$i],$file_type[$i]);
-													}
-												}
-												else
-												{
-													//This will keep the database connection live while PHP is executing, other the db connection is closed after an hour of idle.
-													mysql_query("SELECT 1",$db);
-												}
+
+												//This will keep the database connection live while PHP is executing, other the db connection is closed after an hour of idle.
+												mysql_query("SELECT 1",$db);
 											}
 											else
 											{
+												$str_mail_status	= 'failed';
 												array_push($Mail_status_array['false'],$ndrow[1]);
+											}
+
+											// UPDATING MAIL STATUS FOR E-CAMPAIGNS GRID
+											if($olSync == "N" && $statusmail == "CampaignIP-l")
+											{
+												$upd_camp_qry	= "UPDATE campaign_userinfo SET mail_status='".$str_mail_status."' WHERE campaign_sno=".$crow[2]." AND email='".$ndrow[1]."'";
+												mysql_query($upd_camp_qry, $db);
 											}
 										}
 									}
@@ -291,11 +288,12 @@
 								{
 									$sbcc=explode(",",$bcc);
 									$lemail=array_unique(array_diff($sbcc,$SentArray));
-	
+
 									if(count($lemail)>0)
 									{
 										foreach($lemail as $e_key => $e_val)
 										{
+											$str_mail_status	= '';
 											$e_val = trim($e_val);
 											$To_Array=array();
 											array_push($To_Array,$e_val);
@@ -347,31 +345,25 @@
 
 												if($suc)
 												{
+													$str_mail_status	= 'sent';
 													$tsucsent++;
 													array_push($SentArray,$e_val);
 													array_push($Mail_status_array['true'],$e_val);
 
-													if($olSync=="N")
-													{
-														$folder="sentmessages";
-														$stats="Active";
-		
-														$last_id=mail_insert($folder,$from,$To_Array[0],'','',$Rpl_matter,$subject,'','',$attach,$mailtype,$sent,$stats,$cmnid);
-														if($last_id!="" && $last_id!=0)
-														{
-															for($i=0;$i<$flag;$i++)
-																mail_attach($last_id,$file_con[$i],$file_name[$i],$file_size[$i],$file_type[$i]);
-														}
-													}
-													else
-													{
-														//This will keep the database connection live while PHP is executing, other the db connection is closed after an hour of idle.
-														mysql_query("SELECT 1",$db);
-													}
+													//This will keep the database connection live while PHP is executing, other the db connection is closed after an hour of idle.
+													mysql_query("SELECT 1",$db);
 												}
 												else
 												{
+													$str_mail_status	= 'failed';
 													array_push($Mail_status_array['false'],$e_val);
+												}
+
+												// UPDATING MAIL STATUS FOR E-CAMPAIGNS GRID
+												if ($olSync == "N" && $statusmail == "CampaignIP-l")
+												{
+													$upd_camp_qry	= "UPDATE campaign_userinfo SET mail_status='".$str_mail_status."' WHERE campaign_sno=".$crow[2]." AND email='".$e_val."'";
+													mysql_query($upd_camp_qry, $db);
 												}
 											}
 										}
