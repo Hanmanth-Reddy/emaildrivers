@@ -319,7 +319,7 @@
 								$sms_matter = "Credential of ".$email_array['credential_candemp'].": ".$email_array[4]." having Cred No.: ".$email_array[7]." is going to expire on ".$email_array[1];								
 
 								//Call to procedure for inserting to notifications table of akken_notifications.
-								$akken_insert_notification = "call akken_notifications.insertNotification ('".$companyuser."','credential','".$email_array[9]."','".$subject."','".mysql_real_escape_string($matter)."','Active','".mysql_real_escape_string($sms_matter)."',@psno)";
+								$akken_insert_notification = "call akken_notifications.insertNotification ('".$companyuser."','credential','".$email_array[9]."','".mysql_real_escape_string($subject)."','".mysql_real_escape_string($matter)."','Active','".mysql_real_escape_string($sms_matter)."',@psno)";
 
 								$res = mysql_query($akken_insert_notification,$db);
 								$res = mysql_query("select @psno as psno",$db);

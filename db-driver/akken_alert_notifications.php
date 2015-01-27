@@ -35,9 +35,9 @@
 				while($nrow=mysql_fetch_row($nres))
 				{
 					if($event=="")
-						$event=addslashes($nrow[0])."|akkenPSplit|"."================================================"."|akkenPSplit|".str_replace("\n","|akkenPSplit|",$nrow[1]);
+						$event=addslashes($nrow[0])."|akkenPSplit|"."================================================"."|akkenPSplit|".str_replace("\n","|akkenPSplit|",addslashes($nrow[1]));
 					else
-						$event.="|akkenESplit|".addslashes($nrow[0])."|akkenPSplit|"."================================================"."|akkenPSplit|".str_replace("\n","|akkenPSplit|",$nrow[1]);
+						$event.="|akkenESplit|".addslashes($nrow[0])."|akkenPSplit|"."================================================"."|akkenPSplit|".str_replace("\n","|akkenPSplit|",addslashes($nrow[1]));
 
 					$uque="UPDATE akken_notifications.notifications_list SET alert_status='Y', alert_ndate=NOW() WHERE sno=".$nrow[2];
 					mysql_query($uque,$db);
