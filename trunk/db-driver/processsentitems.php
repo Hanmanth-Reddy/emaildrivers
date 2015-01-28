@@ -169,7 +169,7 @@
 	{
 		global $maildb;
 
-		$que="select mailid from mail_headers where username='$username' AND status='Active' AND inlineid='$mailid'";
+		$que="select mailid from mail_headers where folder='' AND username='$username' AND status='Active' AND inlineid='$mailid'";
 		$res=mysql_query($que,$db);
 		while($row=mysql_fetch_array($res))
 		{
