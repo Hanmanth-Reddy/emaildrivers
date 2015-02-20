@@ -10,13 +10,13 @@
 	require("saveemails.inc");
 	require("PrepareInline.php");
 
-/*
+	/*
 	Created Date : May 10, 2010.
 	Created By   : Ramesh C.V.
 	Purpose      : Need to provide the send mail functionality as backend process for CRM -> Groups enhancements.
 	Task ID      : 5043.
-*/	
-	
+	*/
+
 	// Instance SMTP
 	$smtp=new smtp_class;
 
@@ -120,7 +120,7 @@
 					$attach = $flag=="0" ? "NA" : "A";
 				}
 	
-				$ique="select subject,mailid from mail_headers where inlineid='$mailid'";
+				$ique="select subject,mailid from mail_headers where username='$username' AND folder='sentmessages' AND inlineid='$mailid'";
 				$ires=mysql_query($ique,$db);
 				$irow=mysql_fetch_array($ires);
 				$inlinemailid=mysql_num_rows($ires);
