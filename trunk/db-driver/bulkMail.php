@@ -220,66 +220,73 @@
 
 									if(trim($ndrow[1])!="")
 									{
-										$uslink=genUnsubscribeLink($cmcid,$ndrow[1],$secrethash);
-
-										$Rpl_msg_body=$msg_body;
-										$Rpl_msg_body=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/",$ndrow[2],$Rpl_msg_body);
-										$Rpl_msg_body=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/",$ndrow[3],$Rpl_msg_body);
-										$Rpl_msg_body=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/",$ndrow[4],$Rpl_msg_body);
-										$Rpl_msg_body=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/",$ndrow[5],$Rpl_msg_body);
-										$Rpl_msg_body=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/",$ndrow[6],$Rpl_msg_body);
-										$Rpl_msg_body=preg_replace("/{{UNSUBSCRIBE}}/","<a target=_blank href='".$uslink."'>One-click unsubscribe from all future emails.</a>",$Rpl_msg_body);
-										$Rpl_msg_body=$Rpl_msg_body.$attach_body;
-
-										$Rpl_matter=$matter;
-										$Rpl_matter=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/",$ndrow[2],$Rpl_matter);
-										$Rpl_matter=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/",$ndrow[3],$Rpl_matter);
-										$Rpl_matter=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/",$ndrow[4],$Rpl_matter);
-										$Rpl_matter=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/",$ndrow[5],$Rpl_matter);
-										$Rpl_matter=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/",$ndrow[6],$Rpl_matter);
-
-										$To_Array=array();
-										array_push($To_Array,$ndrow[1]);
-										$mailheaders[2]="To: ".$ndrow[1];
-										
-										$bccArray=explode(",",preg_replace("/ +/", "", $bcc));
-										if($campaignlist!="")
+										$csque="SELECT COUNT(1) FROM campaigns_unsubscribe WHERE email='".addslashes($ndrow[1])."'";
+										$csres=mysql_query($csque,$db);
+										$csrow=mysql_fetch_row($csres);
+										if($csrow[0]<=0)
 										{
-											$genDetails = array($ndrow[2],$ndrow[3],$ndrow[4],$ndrow[5],$ndrow[6]);
-
-											if(!isset($mailAddtionalInfo[$ndrow[7]]) && $ndrow[7] != "")
-												$mailAddtionalInfo[$ndrow[7]] = $genDetails;
-											if(!isset($mailAddtionalInfo[$ndrow[8]]) && $ndrow[8] != "")
-												$mailAddtionalInfo[$ndrow[8]] = $genDetails;
-											if(!isset($mailAddtionalInfo[$ndrow[9]]) && $ndrow[9] != "")
-												$mailAddtionalInfo[$ndrow[9]] = $genDetails;
+											$uslink=genUnsubscribeLink($cmcid,$ndrow[1],$secrethash);
+	
+											$Rpl_msg_body=$msg_body;
+											$Rpl_msg_body=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/",$ndrow[2],$Rpl_msg_body);
+											$Rpl_msg_body=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/",$ndrow[3],$Rpl_msg_body);
+											$Rpl_msg_body=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/",$ndrow[4],$Rpl_msg_body);
+											$Rpl_msg_body=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/",$ndrow[5],$Rpl_msg_body);
+											$Rpl_msg_body=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/",$ndrow[6],$Rpl_msg_body);
+											$Rpl_msg_body=preg_replace("/{{UNSUBSCRIBE}}/","<a target=_blank href='".$uslink."'>One-click unsubscribe from all future emails.</a>",$Rpl_msg_body);
+											$Rpl_msg_body=$Rpl_msg_body.$attach_body;
+	
+											$Rpl_matter=$matter;
+											$Rpl_matter=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/",$ndrow[2],$Rpl_matter);
+											$Rpl_matter=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/",$ndrow[3],$Rpl_matter);
+											$Rpl_matter=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/",$ndrow[4],$Rpl_matter);
+											$Rpl_matter=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/",$ndrow[5],$Rpl_matter);
+											$Rpl_matter=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/",$ndrow[6],$Rpl_matter);
+	
+											$To_Array=array();
+											array_push($To_Array,$ndrow[1]);
+											$mailheaders[2]="To: ".$ndrow[1];
+											
+											$bccArray=explode(",",preg_replace("/ +/", "", $bcc));
+											if($campaignlist!="")
+											{
+												$genDetails = array($ndrow[2],$ndrow[3],$ndrow[4],$ndrow[5],$ndrow[6]);
+	
+												if(!isset($mailAddtionalInfo[$ndrow[7]]) && $ndrow[7] != "")
+													$mailAddtionalInfo[$ndrow[7]] = $genDetails;
+												if(!isset($mailAddtionalInfo[$ndrow[8]]) && $ndrow[8] != "")
+													$mailAddtionalInfo[$ndrow[8]] = $genDetails;
+												if(!isset($mailAddtionalInfo[$ndrow[9]]) && $ndrow[9] != "")
+													$mailAddtionalInfo[$ndrow[9]] = $genDetails;
+											}
+	
+											if(!in_array($ndrow[1],$SentArray) && in_array($ndrow[1],$bccArray))
+											{
+												$suc=$smtp->SendMessage($from,$To_Array,$mailheaders,$Rpl_msg_body);
+												if($suc)
+												{
+													$str_mail_status	= 'sent';
+													$tsucsent++;
+													array_push($SentArray,$ndrow[1]);
+													array_push($Mail_status_array['true'],$ndrow[1]);
+												}
+												else
+												{
+													$str_mail_status	= 'failed';
+													array_push($Mail_status_array['false'],$ndrow[1]);
+												}
+	
+												if($olSync == "N" && $statusmail == "CampaignIP-l")
+												{
+													$upd_camp_qry	= "UPDATE campaign_userinfo SET mail_status='".$str_mail_status."' WHERE campaign_sno=".$crow[2]." AND email='".$ndrow[1]."'";
+													mysql_query($upd_camp_qry, $db);
+												}
+											}
 										}
-
-										if(!in_array($ndrow[1],$SentArray) && in_array($ndrow[1],$bccArray))
+										else
 										{
-											$suc=$smtp->SendMessage($from,$To_Array,$mailheaders,$Rpl_msg_body);
-											if($suc)
-											{
-												$str_mail_status	= 'sent';
-												$tsucsent++;
-												array_push($SentArray,$ndrow[1]);
-												array_push($Mail_status_array['true'],$ndrow[1]);
-
-												//This will keep the database connection live while PHP is executing, other the db connection is closed after an hour of idle.
-												mysql_query("SELECT 1",$db);
-											}
-											else
-											{
-												$str_mail_status	= 'failed';
-												array_push($Mail_status_array['false'],$ndrow[1]);
-											}
-
-											// UPDATING MAIL STATUS FOR E-CAMPAIGNS GRID
-											if($olSync == "N" && $statusmail == "CampaignIP-l")
-											{
-												$upd_camp_qry	= "UPDATE campaign_userinfo SET mail_status='".$str_mail_status."' WHERE campaign_sno=".$crow[2]." AND email='".$ndrow[1]."'";
-												mysql_query($upd_camp_qry, $db);
-											}
+											$upd_camp_qry = "UPDATE campaign_userinfo SET mail_status='Unsubscribe' WHERE campaign_sno=".$crow[2]." AND email='".$ndrow[1]."'";
+											mysql_query($upd_camp_qry, $db);
 										}
 									}
 								}
@@ -301,68 +308,75 @@
 			
 											if(!in_array($e_val,$SentArray))
 											{
-												$uslink=genUnsubscribeLink($cmcid,$e_val,$secrethash);
-
-												if(isset($mailAddtionalInfo[$e_val]))
+												$csque="SELECT COUNT(1) FROM campaigns_unsubscribe WHERE email='".addslashes($e_val)."'";
+												$csres=mysql_query($csque,$db);
+												$csrow=mysql_fetch_row($csres);
+												if($csrow[0]<=0)
 												{
-													$Rpl_msg_body=$msg_body;
-													$Rpl_msg_body=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/",$mailAddtionalInfo[$e_val][0],$Rpl_msg_body);
-													$Rpl_msg_body=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/",$mailAddtionalInfo[$e_val][1],$Rpl_msg_body);
-													$Rpl_msg_body=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/",$mailAddtionalInfo[$e_val][2],$Rpl_msg_body);
-													$Rpl_msg_body=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/",$mailAddtionalInfo[$e_val][3],$Rpl_msg_body);
-													$Rpl_msg_body=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/",$mailAddtionalInfo[$e_val][4],$Rpl_msg_body);
-													$Rpl_msg_body=$Rpl_msg_body.$attach_body;
-													
-													
-													$Rpl_matter=$matter;
-													$Rpl_matter=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/",$mailAddtionalInfo[$e_val][0],$Rpl_matter);
-													$Rpl_matter=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/",$mailAddtionalInfo[$e_val][1],$Rpl_matter);
-													$Rpl_matter=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/",$mailAddtionalInfo[$e_val][2],$Rpl_matter);
-													$Rpl_matter=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/",$mailAddtionalInfo[$e_val][3],$Rpl_matter);
-													$Rpl_matter=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/",$mailAddtionalInfo[$e_val][4],$Rpl_matter);										
+													$uslink=genUnsubscribeLink($cmcid,$e_val,$secrethash);
+	
+													if(isset($mailAddtionalInfo[$e_val]))
+													{
+														$Rpl_msg_body=$msg_body;
+														$Rpl_msg_body=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/",$mailAddtionalInfo[$e_val][0],$Rpl_msg_body);
+														$Rpl_msg_body=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/",$mailAddtionalInfo[$e_val][1],$Rpl_msg_body);
+														$Rpl_msg_body=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/",$mailAddtionalInfo[$e_val][2],$Rpl_msg_body);
+														$Rpl_msg_body=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/",$mailAddtionalInfo[$e_val][3],$Rpl_msg_body);
+														$Rpl_msg_body=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/",$mailAddtionalInfo[$e_val][4],$Rpl_msg_body);
+														$Rpl_msg_body=$Rpl_msg_body.$attach_body;
+														
+														
+														$Rpl_matter=$matter;
+														$Rpl_matter=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/",$mailAddtionalInfo[$e_val][0],$Rpl_matter);
+														$Rpl_matter=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/",$mailAddtionalInfo[$e_val][1],$Rpl_matter);
+														$Rpl_matter=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/",$mailAddtionalInfo[$e_val][2],$Rpl_matter);
+														$Rpl_matter=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/",$mailAddtionalInfo[$e_val][3],$Rpl_matter);
+														$Rpl_matter=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/",$mailAddtionalInfo[$e_val][4],$Rpl_matter);										
+													}
+													else
+													{
+														$Rpl_msg_body=$msg_body;
+														$Rpl_msg_body=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/","",$Rpl_msg_body);
+														$Rpl_msg_body=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/","",$Rpl_msg_body);
+														$Rpl_msg_body=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/","",$Rpl_msg_body);
+														$Rpl_msg_body=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/","",$Rpl_msg_body);
+														$Rpl_msg_body=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/","",$Rpl_msg_body);
+														$Rpl_msg_body=$Rpl_msg_body.$attach_body;
+														
+														
+														$Rpl_matter=$matter;
+														$Rpl_matter=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/","",$Rpl_matter);
+														$Rpl_matter=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/","",$Rpl_matter);
+														$Rpl_matter=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/","",$Rpl_matter);
+														$Rpl_matter=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/","",$Rpl_matter);
+														$Rpl_matter=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/","",$Rpl_matter);
+													}
+	
+													$Rpl_msg_body=preg_replace("/{{UNSUBSCRIBE}}/","<a target=_blank href='".$uslink."'>One-click unsubscribe from all future emails.</a>",$Rpl_msg_body);
+													$suc=$smtp->SendMessage($from,$To_Array,$mailheaders,$Rpl_msg_body);
+	
+													if($suc)
+													{
+														$str_mail_status	= 'sent';
+														$tsucsent++;
+														array_push($SentArray,$e_val);
+														array_push($Mail_status_array['true'],$e_val);
+													}
+													else
+													{
+														$str_mail_status	= 'failed';
+														array_push($Mail_status_array['false'],$e_val);
+													}
+	
+													if ($olSync == "N" && $statusmail == "CampaignIP-l")
+													{
+														$upd_camp_qry	= "UPDATE campaign_userinfo SET mail_status='".$str_mail_status."' WHERE campaign_sno=".$crow[2]." AND email='".$e_val."'";
+														mysql_query($upd_camp_qry, $db);
+													}
 												}
 												else
 												{
-													$Rpl_msg_body=$msg_body;
-													$Rpl_msg_body=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/","",$Rpl_msg_body);
-													$Rpl_msg_body=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/","",$Rpl_msg_body);
-													$Rpl_msg_body=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/","",$Rpl_msg_body);
-													$Rpl_msg_body=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/","",$Rpl_msg_body);
-													$Rpl_msg_body=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/","",$Rpl_msg_body);
-													$Rpl_msg_body=$Rpl_msg_body.$attach_body;
-													
-													
-													$Rpl_matter=$matter;
-													$Rpl_matter=preg_replace("/&lt;Salutation&gt;|<Salutation>|&amp;lt;Salutation&amp;gt;+$/","",$Rpl_matter);
-													$Rpl_matter=preg_replace("/&lt;Firstname&gt;|<Firstname>|&amp;lt;Firstname&amp;gt;+$/","",$Rpl_matter);
-													$Rpl_matter=preg_replace("/&lt;Middlename&gt;|<Middlename>|&amp;lt;Middlename&amp;gt;+$/","",$Rpl_matter);
-													$Rpl_matter=preg_replace("/&lt;Lastname&gt;|<Lastname>|&amp;lt;Lastname&amp;gt;+$/","",$Rpl_matter);
-													$Rpl_matter=preg_replace("/&lt;Suffix&gt;|<Suffix>|&amp;lt;Suffix&amp;gt;+$/","",$Rpl_matter);
-												}
-
-												$Rpl_msg_body=preg_replace("/{{UNSUBSCRIBE}}/","<a target=_blank href='".$uslink."'>One-click unsubscribe from all future emails.</a>",$Rpl_msg_body);
-												$suc=$smtp->SendMessage($from,$To_Array,$mailheaders,$Rpl_msg_body);
-
-												if($suc)
-												{
-													$str_mail_status	= 'sent';
-													$tsucsent++;
-													array_push($SentArray,$e_val);
-													array_push($Mail_status_array['true'],$e_val);
-
-													//This will keep the database connection live while PHP is executing, other the db connection is closed after an hour of idle.
-													mysql_query("SELECT 1",$db);
-												}
-												else
-												{
-													$str_mail_status	= 'failed';
-													array_push($Mail_status_array['false'],$e_val);
-												}
-
-												// UPDATING MAIL STATUS FOR E-CAMPAIGNS GRID
-												if ($olSync == "N" && $statusmail == "CampaignIP-l")
-												{
-													$upd_camp_qry	= "UPDATE campaign_userinfo SET mail_status='".$str_mail_status."' WHERE campaign_sno=".$crow[2]." AND email='".$e_val."'";
+													$upd_camp_qry = "UPDATE campaign_userinfo SET mail_status='Unsubscribe' WHERE campaign_sno=".$crow[2]." AND email='".$e_val."'";
 													mysql_query($upd_camp_qry, $db);
 												}
 											}
