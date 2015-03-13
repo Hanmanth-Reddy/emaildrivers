@@ -22,6 +22,9 @@
 			$uque="UPDATE staffoppr_contact SET dontemail='Y' WHERE dontemail='N' AND (email='".addslashes($row[1])."' OR email_2='".addslashes($row[1])."' OR email_3='".addslashes($row[1])."')";
 			mysql_query($uque,$db);
 
+			$ique="INSERT INTO campaigns_unsubscribe (email,udate) VALUES ('".addslashes($row[1])."',NOW())";
+			mysql_query($ique,$db);
+
 			$uque="UPDATE campaigns_unsubscribe SET status='Y' WHERE sno='".$row[0]."'";
 			mysql_query($uque,$maindb);
 		}
