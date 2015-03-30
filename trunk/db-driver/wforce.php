@@ -609,9 +609,12 @@
 	// for mail rules
 	function CheckCondition($strCond, $strData)
 	{
-		$bFrom1 = 0;
-		$cType = substr($strCond, 0, strpos($strCond, "-"));
-		$cKeyWord = substr($strCond, strpos($strCond, "-")+1);
+		$strCond=strtolower($strCond);
+		$strData=strtolower($strData);
+
+		$bFrom1=0;
+		$cType=strtoupper(substr($strCond,0,strpos($strCond,"-")));
+		$cKeyWord=substr($strCond,strpos($strCond,"-")+1);
 
 		if(is_array($strData))
 			$strData=implode(",",$strData);
@@ -622,20 +625,20 @@
 		{
 			if($cType == "C")
 			{
-				$bFrom1 = strpos("*" . strtolower($strData), strtolower(trim($cKeyWord1[$ck])));
+				$bFrom1 = strpos("*".$strData,trim($cKeyWord1[$ck]));
 			}
 			else if($cType == "NC")
 			{
-				$bFrom1 = !strpos("*" . strtolower($strData), strtolower(trim($cKeyWord1[$ck])));
+				$bFrom1 = !strpos("*".$strData,trim($cKeyWord1[$ck]));
 			}
 			else if($cType == "BW")
 			{
-				$bFrom1 = strpos("*" . trim(strtolower(strip_tags($strData))), strtolower(trim($cKeyWord1[$ck]))) === 1;
+				$bFrom1 = strpos("*".trim(strip_tags($strData)),trim($cKeyWord1[$ck])) === 1;
 			}
 			else
 			{
-				$strData1 = trim(strtolower(strip_tags($strData)));
-				$bFrom1 = (substr($strData1, -1*strlen($cKeyWord1[$ck])) == strtolower(trim($cKeyWord1[$ck])));
+				$strData1 = trim(strip_tags($strData));
+				$bFrom1 = (substr($strData1,-1*strlen($cKeyWord1[$ck])) == trim($cKeyWord1[$ck]));
 			}
 
 			if($bFrom1)
