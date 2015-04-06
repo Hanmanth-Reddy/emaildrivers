@@ -77,7 +77,7 @@
 	
 	/***************
 	1) IF THE FILE IS RELEASED TO DEV ROOT THEN
-	$dque="select capp_info.comp_id from company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno where capp_info.comp_id='naveend' ".$version_clause; 
+	$dque="select capp_info.comp_id from company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno where capp_info.comp_id='pavankumar' ".$version_clause; 
 	2) IF THE FILE IS RELEASED TO ALPHA ROOT THEN
 	$dque="select capp_info.comp_id from company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno where capp_info.comp_id='alphaasd' ".$version_clause;
 	3) IF THE FILE IS RELEASED TO PRODUCTION/BETA ROOT THEN
@@ -91,6 +91,7 @@
 		$inc=0;
 		$incW=0;
 
+
 		// Checking the count of Companyies
 		while($drow=mysql_fetch_row($dres))
 		{
@@ -99,6 +100,9 @@
 
 			require("maildatabase.inc");
 			require("database.inc");
+
+			// Getting sort options for all the templates
+			$template_sort_options	= getSortingOptionsForAllTemplates();
 
 			$ubque="SELECT DISTINCT users.username FROM users LEFT JOIN email_invoice ON users.username=email_invoice.created_by WHERE users.type NOT IN ('con','cllacc') AND users.status!='DA' AND email_invoice.status='0' AND (email_invoice.to_email!='' || email_invoice.bcc!='' || email_invoice.cc!='')";
 			$ubres=mysql_query($ubque,$db);
@@ -128,7 +132,7 @@
 						$mailidList	= '';
 					}
 
-					$inv_que="SELECT a.bcc,a.from,a.inv_subject,a.id,a.attach,a.to_email,a.status,a.charset,a.body,a.inv_sno,a.inv_number,a.timesheet_attach as timesheet_attach,a.cc,a.filename as inv_filename,staffacc_contact.sno as contactId FROM email_invoice a 
+					$inv_que="SELECT a.bcc,a.from,a.inv_subject,a.id,a.attach,a.to_email,a.status,a.charset,a.body,a.inv_sno,a.inv_number,a.timesheet_attach as timesheet_attach,a.cc,a.filename as inv_filename,staffacc_contact.sno as contactId, invoice.templateid FROM email_invoice a 
 LEFT JOIN  invoice ON a.inv_sno=invoice.sno LEFT JOIN staffacc_cinfo ON staffacc_cinfo.sno = invoice.client_name 
 LEFT JOIN staffacc_contact ON staffacc_cinfo.bill_contact = staffacc_contact.sno 
 WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status = 'ACTIVE' AND invoice.client_name=staffacc_cinfo.sno AND (a.to_email!='' || a.bcc!='' || a.cc!='') order by a.id";
@@ -183,6 +187,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 							$emailopt = $inv_row['timesheet_attach'];
 							$statusmail=$inv_row['status'];
 							$contactId = $inv_row['contactId'];
+							$template_id = $inv_row['templateid'];
 
 							$msgs=$mailid;
 							$inv_id=$inv_row['inv_number'];
@@ -309,6 +314,32 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 							$serfdate1=$serfdate[1]."/".$serfdate[2]."/".$serfdate[0];
 							$sertodate1=$sertodate[1]."/".$sertodate[2]."/".$sertodate[0];
 
+							$ts_order_clause	= $template_sort_options[$template_id]['ts_order'];
+							$ep_order_clause	= $template_sort_options[$template_id]['ep_order'];
+
+							if ($ts_order_clause == "") {
+
+								$ts_order_clause	= "ORDER BY emp_list.name,timesheet.sdate";
+							}
+
+							if ($ep_order_clause == "") {
+
+								$ep_order_clause	= "ORDER BY emp_list.name,expense.parid,expense.edate";
+							}
+
+							$ts_employee_name	= $template_sort_options[$template_id]['ts_empname'];
+							$ep_employee_name	= $template_sort_options[$template_id]['ep_empname'];
+
+							if ($ts_employee_name == "") {
+
+								$ts_employee_name	= "emp_list.name";
+							}
+
+							if ($ep_employee_name == "") {
+
+								$ep_employee_name	= "emp_list.name";
+							}
+
 							if($inv_tmp_selected == "OLD")
 							{
 								//For Timesheet Details
@@ -317,12 +348,12 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 							}
 							else
 							{
-								$eque = "SELECT emp_list.username,emp_list.name,CONCAT_WS(' - ',".tzRetQueryStringDate('par_timesheet.sdate','Date','/').",".tzRetQueryStringDate('par_timesheet.edate','Date','/')."),invoice_multiplerates.pusername, invoice_multiplerates.project,invoice_multiplerates.refcode,invoice_multiplerates.ponumber, class_setup.classname, invoice_lines.custom1,invoice_lines.custom2,invoice_multiplerates.ratetype,SUM(timesheet.hours),invoice_multiplerates.rate, invoice_multiplerates.period,ROUND(SUM(( ROUND(CAST(timesheet.hours AS DECIMAL(12,2)),2) * IF(invoice_multiplerates.period='YEAR',ROUND((CAST( invoice_multiplerates.rate AS DECIMAL(12,2))/(8*261)),2), IF(invoice_multiplerates.period = 'MONTH',ROUND((CAST( invoice_multiplerates.rate AS DECIMAL(12,2))/(8*(261/12))),2),IF(invoice_multiplerates.period='WEEK',ROUND(( CAST(invoice_multiplerates.rate AS DECIMAL(12,2))/(8*5)),2),IF(invoice_multiplerates.period='DAY',ROUND((CAST(invoice_multiplerates.rate AS DECIMAL(12,2))/8),2), ROUND(CAST(invoice_multiplerates.rate AS DECIMAL(12,2)),2))))))),2),timesheet.tax,timesheet.parid,PerDiem.rate,IF(timesheet.perdiem_billed='billable','Y','N'),PerDiem.period FROM timesheet_hours AS timesheet LEFT JOIN emp_list ON timesheet.username = emp_list.username LEFT JOIN invoice_multiplerates ON (invoice_multiplerates.pusername = timesheet.assid AND timesheet.billable = invoice_multiplerates.invid AND invoice_multiplerates.rateid = timesheet.hourstype) LEFT JOIN (SELECT rate,period,pusername,invid FROM invoice_multiplerates WHERE rateid='rate4') PerDiem ON (PerDiem.pusername = timesheet.assid AND timesheet.billable = PerDiem.invid) LEFT JOIN par_timesheet ON(par_timesheet.sno = timesheet.parid) LEFT JOIN invoice_lines ON(invoice_lines.lineid = timesheet.parid AND invoice_lines.ratetype = invoice_multiplerates.rateid AND invoice_lines.pusername = invoice_multiplerates.pusername AND invoice_lines.invid = '".$hrow[0]."' AND invoice_lines.linetype = 'TS')  LEFT JOIN class_setup ON (invoice_lines.classid = class_setup.sno) WHERE timesheet.billable ='".$hrow[0]."' AND timesheet.billable != '' AND timesheet.type != 'EARN' AND invoice_multiplerates.invid ='".$hrow[0]."' GROUP BY timesheet.username,timesheet.parid,timesheet.assid ORDER BY emp_list.name,timesheet.sdate";
+								$eque = "SELECT emp_list.username,".$ts_employee_name.",CONCAT_WS(' - ',".tzRetQueryStringDate('par_timesheet.sdate','Date','/').",".tzRetQueryStringDate('par_timesheet.edate','Date','/')."),invoice_multiplerates.pusername, invoice_multiplerates.project,invoice_multiplerates.refcode,invoice_multiplerates.ponumber, class_setup.classname, invoice_lines.custom1,invoice_lines.custom2,invoice_multiplerates.ratetype,SUM(timesheet.hours),invoice_multiplerates.rate, invoice_multiplerates.period,ROUND(SUM(( ROUND(CAST(timesheet.hours AS DECIMAL(12,2)),2) * IF(invoice_multiplerates.period='YEAR',ROUND((CAST( invoice_multiplerates.rate AS DECIMAL(12,2))/(8*261)),2), IF(invoice_multiplerates.period = 'MONTH',ROUND((CAST( invoice_multiplerates.rate AS DECIMAL(12,2))/(8*(261/12))),2),IF(invoice_multiplerates.period='WEEK',ROUND(( CAST(invoice_multiplerates.rate AS DECIMAL(12,2))/(8*5)),2),IF(invoice_multiplerates.period='DAY',ROUND((CAST(invoice_multiplerates.rate AS DECIMAL(12,2))/8),2), ROUND(CAST(invoice_multiplerates.rate AS DECIMAL(12,2)),2))))))),2),timesheet.tax,timesheet.parid,PerDiem.rate,IF(timesheet.perdiem_billed='billable','Y','N'),PerDiem.period FROM timesheet_hours AS timesheet LEFT JOIN emp_list ON timesheet.username = emp_list.username LEFT JOIN hrcon_general ON emp_list.username = hrcon_general.username LEFT JOIN hrcon_jobs ON (hrcon_jobs.pusername = timesheet.assid and hrcon_jobs.username = timesheet.username) LEFT JOIN invoice_multiplerates ON (invoice_multiplerates.pusername = timesheet.assid AND timesheet.billable = invoice_multiplerates.invid AND invoice_multiplerates.rateid = timesheet.hourstype) LEFT JOIN (SELECT rate,period,pusername,invid FROM invoice_multiplerates WHERE rateid='rate4') PerDiem ON (PerDiem.pusername = timesheet.assid AND timesheet.billable = PerDiem.invid) LEFT JOIN par_timesheet ON(par_timesheet.sno = timesheet.parid) LEFT JOIN invoice_lines ON(invoice_lines.lineid = timesheet.parid AND invoice_lines.ratetype = invoice_multiplerates.rateid AND invoice_lines.pusername = invoice_multiplerates.pusername AND invoice_lines.invid = '".$hrow[0]."' AND invoice_lines.linetype = 'TS')  LEFT JOIN class_setup ON (invoice_lines.classid = class_setup.sno) WHERE timesheet.billable ='".$hrow[0]."' AND timesheet.billable != '' AND timesheet.type != 'EARN' AND invoice_multiplerates.invid ='".$hrow[0]."' GROUP BY timesheet.username,timesheet.parid,timesheet.assid ".$ts_order_clause;
 								$template_Time_Values = getTimesheetHours_Details($eque,$db,$hrow[0]);
 							}	
 
 							// To Get Expense Details
-							$expense_values	= getExpenseDetails($hrow[0], $reqclient);
+							$expense_values	= getExpenseDetails($hrow[0], $reqclient, $ep_order_clause, $ep_employee_name);
 
 							// To Get Email Invoice Attachments
 							$email_attachments	= getEmailInvoiceAttachments($inv_id, $reqclient);
@@ -1521,7 +1552,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 	}
 	
 	// Function To Get Expense Details
-	function getExpenseDetails($invoiceid, $clientid) 
+	function getExpenseDetails($invoiceid, $clientid, $order_clause, $employee_name) 
 	{
 		global $db;
 	
@@ -1533,7 +1564,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 			users.name, users.type, expense.sno, expense.assid, expense.parid, expense.expid, expense.client,
 			expense.quantity, expense.unitcost, (expense.quantity * expense.unitcost) AS amount, expense.advance,
 			expense.billable, expense.expnotes, expense.status, expense.approveuser, expense.expense_billrate AS billrate,
-			expense.classid, expense.payable, exp_type.title, emp_list.name AS employee, staffacc_cinfo.cname, ' .
+			expense.classid, expense.payable, exp_type.title, '.$employee_name.' AS employee, staffacc_cinfo.cname, ' .
 			tzRetQueryStringDate('expense.edate', 'Date', '/') . ' AS createdon,' .
 			tzRetQueryStringDTime('expense.approvetime', 'DateTime', '/') . " AS approvedon
 			FROM
@@ -1541,14 +1572,14 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 			LEFT JOIN exp_type ON exp_type.sno=expense.expid
 			LEFT JOIN par_expense ON expense.parid = par_expense.sno
 			LEFT JOIN emp_list ON emp_list.username = par_expense.username
+			LEFT JOIN hrcon_general ON emp_list.username = hrcon_general.username
 			LEFT JOIN staffacc_cinfo ON staffacc_cinfo.sno = expense.client
 			LEFT JOIN users ON users.username = expense.approveuser
 			WHERE
 			expense.billable='$invoiceid' AND expense.client='$clientid'
 			AND par_expense.astatus IN ('Approved','Billed','ER')
 			AND expense.status IN ('Approved','Billed')
-			ORDER BY
-			expense.edate";
+			$order_clause";
 		$result_expenses	= mysql_query($query_expenses, $db);
 		while ($row_query = mysql_fetch_object($result_expenses)) 
 		{
@@ -1559,7 +1590,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 				array_push($assignment_ids, $assignmentid);
 				$count	= 0;
 			}
-	
+
 			if ($row_query->type == 'cllacc' && !empty($row_query->approveuser)) 
 			{
 				if ($row_query->status == 'Approved' || $row_query->status == 'Billed') 
@@ -1578,10 +1609,10 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 			{
 				$approvedby	= 'Pending';
 			}
-	
+
 			$payable	= ($row_query->payable == 'pay') ? 'Yes' : 'No';
 			$billable	= (isset($row_query->billable) && !empty($row_query->billable)) ? 'Yes' : 'No';
-	
+
 			$expense_details[$assignmentid]['username']	= $row_query->employee;
 			$expense_details[$assignmentid][$count]['payable']	= $payable;
 			$expense_details[$assignmentid][$count]['billable']	= $billable;
@@ -1691,5 +1722,117 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 				unlink($file);
 		}
 		rmdir($dir);
+	}
+
+	/*
+	* This function gets the sorting options(timesheet & expense), for all the invoice templates
+	*
+	* return array $sort_options
+	*/
+	function getSortingOptionsForAllTemplates() {
+
+		global $db;
+
+		$sort_options	= array();
+
+		$query_sort	= "SELECT
+						temp.invtmp_sno, IFNULL(sort.inv_s_sno, 0) AS inv_s_sno, sort.inv_s_tscolumns, 
+						sort.inv_s_tsorder, sort.inv_s_epcolumns, sort.inv_s_eporder
+					FROM
+						Invoice_Template temp
+						LEFT JOIN IT_Sort sort ON (temp.invtmp_sort = sort.inv_s_sno)
+					ORDER BY
+						temp.invtmp_sno";
+
+		$result_sort	= mysql_query($query_sort, $db);
+
+		if (mysql_num_rows($result_sort) > 0) {
+
+			while ($row_query = mysql_fetch_object($result_sort)) {
+
+				if (!empty($row_query->inv_s_sno)) {
+
+					// FOR TIMESHEETS
+					$ts_clist	= array();
+					$ts_order	= $row_query->inv_s_tsorder;
+					$ts_columns	= explode(',', $row_query->inv_s_tscolumns);
+
+					foreach ($ts_columns as $column) {
+
+						switch ($column) {
+
+							case 'fname' :		$ts_clist[] = "hrcon_general.fname ".$ts_order;break;
+							case 'lname' :		$ts_clist[] = "hrcon_general.lname ".$ts_order;break;
+							case 'sdate' :		$ts_clist[] = "timesheet.sdate ".$ts_order;break;
+							case 'pusername':	$ts_clist[] = "hrcon_jobs.pusername ".$ts_order;break;
+							case 'project':		$ts_clist[] = "hrcon_jobs.project ".$ts_order;break;
+							case 'po_num':		$ts_clist[] = "hrcon_jobs.po_num ".$ts_order;break;
+						}
+					}
+
+					$ts_order_by	= implode(',', $ts_clist);
+					$ts_order_by	= "ORDER BY ".$ts_order_by.",timesheet.sno ". $ts_order;
+
+					if (strpos($row_query->inv_s_tscolumns, "lname,fname") !== false) {
+
+						$ts_empname	= "CONCAT(hrcon_general.lname,' ',hrcon_general.fname) AS `name`";
+
+					} else {
+
+						$ts_empname	= "CONCAT(hrcon_general.fname,' ',hrcon_general.lname) AS `name`";
+					}
+
+					unset($ts_clist);
+
+					// FOR EXPENSE
+					$ep_clist	= array();
+					$ep_order	= $row_query->inv_s_eporder;
+					$ep_columns	= explode(',', $row_query->inv_s_epcolumns);
+
+					foreach ($ep_columns as $column) {
+
+						switch ($column) {
+
+							case 'fname' :		$ep_clist[] = "hrcon_general.fname ".$ep_order;break;
+							case 'lname' :		$ep_clist[] = "hrcon_general.lname ".$ep_order;break;
+							case 'edate' :		$ep_clist[] = "expense.edate ".$ep_order;break;
+							case 'pusername':	$ep_clist[] = "hrcon_jobs.pusername ".$ep_order;break;
+							case 'project':		$ep_clist[] = "hrcon_jobs.project ".$ep_order;break;
+							case 'po_num':		$ep_clist[] = "hrcon_jobs.po_num ".$ep_order;break;
+						}
+					}
+
+					$ep_order_by	= implode(',', $ep_clist);
+					$ep_order_by	= "ORDER BY ".$ep_order_by.",expense.sno ".$ep_order;
+
+					if (strpos($row_query->inv_s_epcolumns, "lname,fname") !== false) {
+
+						$ep_empname	= "CONCAT(hrcon_general.lname,' ',hrcon_general.fname) AS `name`";
+
+					} else {
+
+						$ep_empname	= "CONCAT(hrcon_general.fname,' ',hrcon_general.lname) AS `name`";
+					}
+
+					unset($ep_clist);
+
+				} else {
+
+					$ts_empname	= "emp_list.name";
+					$ep_empname	= "emp_list.name";
+
+					$ts_order_by	= "ORDER BY emp_list.name,timesheet.sdate";
+					$ep_order_by	= "ORDER BY emp_list.name,expense.parid,expense.edate";
+				}
+
+				$sort_options[$row_query->invtmp_sno]['ts_order']	= $ts_order_by;
+				$sort_options[$row_query->invtmp_sno]['ep_order']	= $ep_order_by;
+
+				$sort_options[$row_query->invtmp_sno]['ts_empname']	= $ts_empname;
+				$sort_options[$row_query->invtmp_sno]['ep_empname']	= $ep_empname;
+			}
+		}
+
+		return $sort_options;
 	}
 ?>
