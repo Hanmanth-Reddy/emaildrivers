@@ -308,8 +308,10 @@ class popper extends mimepart
 		mysql_query($que,$db);
 
 		$raction=$calinfo["VCALENDAR"]["VEVENT"]["ATTENDEE"][0]["param"]["PARTSTAT"];
-		$attendee=$calinfo["VCALENDAR"]["VEVENT"]["ATTENDEE"][0]["value"];
-		preg_match(EMAIL_REG_EXP,$attendee,$eemail);
+		$attendee=explode("mailto:",strtolower($calinfo["VCALENDAR"]["VEVENT"]["ATTENDEE"][0]["value"]));
+
+		$atemail=$attendee[count($attendee)-1];
+		preg_match(EMAIL_REG_EXP,$atemail,$eemail);
 		$aemail=trim($eemail[0]);
 
 		if($aemail!="" && $raction!="")
