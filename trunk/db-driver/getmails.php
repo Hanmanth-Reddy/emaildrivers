@@ -475,11 +475,12 @@
 			{
 				preg_match(EMAIL_REG_EXP,$from,$eemail);
 				$frmemail=strtolower($eemail[0]);
+
 				for($i=0;$i<count($mail_rules);$i++)
 				{
 					if($mail_rules[$i]["folder"]=="spam")
 					{
-						if($mail_rules[$i]["from"]!="" && strpos("**".$mail_rules[$i]["from"],$frmemail)>0)
+						if($mail_rules[$i]["from"]!="" && strpos("**".strtolower($mail_rules[$i]["from"]),$frmemail)>0)
 							$ffolder="spam";
 						break;
 					}
@@ -666,11 +667,11 @@
 		$res=mysql_query($que,$db);
 		while($row=mysql_fetch_row($res))
 		{
-			$mail_rules[$i]["from"]=strtolower($row[0]);
-			$mail_rules[$i]["to"]=strtolower($row[1]);
-			$mail_rules[$i]["subject"]=strtolower($row[2]);
-			$mail_rules[$i]["message"]=strtolower($row[3]);
-			$mail_rules[$i]["folder"]=strtolower($row[4]);
+			$mail_rules[$i]["from"]=$row[0];
+			$mail_rules[$i]["to"]=$row[1];
+			$mail_rules[$i]["subject"]=$row[2];
+			$mail_rules[$i]["message"]=$row[3];
+			$mail_rules[$i]["folder"]=$row[4];
 			$i++;
 		}
 		return $mail_rules;
