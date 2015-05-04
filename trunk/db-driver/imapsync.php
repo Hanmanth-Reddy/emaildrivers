@@ -1,4 +1,13 @@
 <?php
+	$pop3->imap_capability();
+
+	$folderlist=$pop3->imap_list_mailbox();
+	if(!in_array($pop3->TRASH_BOX,$folderlist))
+	{
+		$pop3->imap_create_mailbox($pop3->TRASH_BOX);
+		$pop3->imap_subscribe_mailbox($pop3->TRASH_BOX);
+	}
+
 	$setQry = "SET SESSION group_concat_max_len=1073740800";
 	mysql_query($setQry,$db);
 
@@ -8,7 +17,7 @@
 	$iuidls="'".implode("','",$cdb_uidls)."'";
 	$duidls="'".implode("','",$ddb_uidls)."'";
 
-	$que1="SELECT GROUP_CONCAT(messageid) FROM mail_headers WHERE inlineid=0 AND status='Active' AND folder='trash' AND extid='$extsno' AND sfolder='$sextno'";
+	$que1="SELECT GROUP_CONCAT(messageid) FROM mail_headers WHERE folder='trash' AND extid='$extsno' AND sfolder='$sextno'";
 	$res1=mysql_query($que1,$db);
 	$row1=mysql_fetch_row($res1);
 	if($row1[0]!="")
@@ -21,12 +30,24 @@
 			{
 				$msgno=$pop3->imap_search_uid($val);
 				if(trim($msgno)!="" && $msgno>0)
-					$pop3->imap_move_messages($msgno, $pop3->TRASH_BOX);
+				{
+					if(in_array("MOVE",$pop3->CAPABILITY))
+					{
+						$pop3->imap_move_messages($msgno, $pop3->TRASH_BOX);
+					}
+					else
+					{
+						$pop3->imap_copy_messages($msgno, $pop3->TRASH_BOX);
+						$pop3->imap_delete_message($msgno);
+					}
+				}
 			}
+
+			$pop3->imap_expunge();
 		}
 	}
 
-	$que1="SELECT MIN(CAST(messageid AS SIGNED)) FROM mail_headers WHERE status='Active' AND folder!='sentmessages' AND extid='$extsno' AND sfolder='$sextno' AND inlineid=0";
+	$que1="SELECT MIN(messageid) FROM mail_headers WHERE status='Active' AND folder!='sentmessages' AND extid='$extsno' AND sfolder='$sextno'";
 	$res1=mysql_query($que1,$db);
 	$row1=mysql_fetch_row($res1);
 	$am_uidl = $row1[0];

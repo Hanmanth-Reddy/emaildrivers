@@ -29,7 +29,7 @@
 		$irow[0] = ($irow[0]=="") ? "N" : $irow[0];
 		$DEFAULT_IMAPSYNC = $irow[0];
 
-		$que="select external_mail.imaddress,external_mail.import,external_mail.account,external_mail.passwd,external_mail.lcopy,external_mail.username,external_mail.sno,external_uidls.uidls,external_mail.imsslchk,external_mail.mtype,external_uidls.last_rdate,external_uidls.luidl,if(external_mail.folder is NULL,'inbox',external_mail.folder),external_mail.host_exchange,external_mail.stime,external_mail.lcount,external_uidls.sno, external_uidls.afolder,external_uidls.sfolder from external_mail LEFT JOIN external_uidls ON external_uidls.extsno=external_mail.sno LEFT JOIN users ON external_mail.username=users.username where external_uidls.afolder!='sentmessages' AND ((UNIX_TIMESTAMP()-(UNIX_TIMESTAMP(external_mail.cdate)+external_mail.reminder))>0) and external_mail.lockm='No' and external_mail.reminder!='0' and users.usertype!='' and users.status!='DA'";
+		$que="select external_mail.imaddress,external_mail.import,external_mail.account,external_mail.passwd,external_mail.lcopy,external_mail.username,external_mail.sno,external_uidls.uidls,external_mail.imsslchk,external_mail.mtype,external_uidls.last_rdate,external_uidls.luidl,if(external_mail.folder is NULL,'inbox',external_mail.folder),external_mail.host_exchange,external_mail.stime,external_mail.lcount,external_uidls.sno,external_uidls.afolder,external_uidls.sfolder,external_mail.trashfolder from external_mail LEFT JOIN external_uidls ON external_uidls.extsno=external_mail.sno LEFT JOIN users ON external_mail.username=users.username where external_uidls.afolder!='sentmessages' AND ((UNIX_TIMESTAMP()-(UNIX_TIMESTAMP(external_mail.cdate)+external_mail.reminder))>0) and external_mail.lockm='No' and external_mail.reminder!='0' and users.usertype!='' and users.status!='DA'";
 		$res=mysql_query($que,$db);
 		while($row=mysql_fetch_row($res))
 		{
@@ -82,8 +82,11 @@
 				if($imsslchk=="Yes")
 					$pop3->TLS=1;
 
+				if($row[19]!="")
+					$pop3->TRASH_BOX=$row[19];
+
 				if($row[17]!="inbox")
-					$pop3->MAIL_BOX = $row[18];
+					$pop3->MAIL_BOX=$row[18];
 
 				if($ext_type=="imap")
 					$count = $pop3->imap_login($account,$passwd);

@@ -1,26 +1,26 @@
 <?php
 class POP3
 {
-	var $ERROR		= "";			//	Error string.
-	var $TIMEOUT	= 30;			//	Default timeout before giving up on a network operation.
-	var $COUNT		= -1;			//	Mailbox msg count
-	var $BUFFER		= 8192;			//	Socket buffer for socket fgets() calls. Per RFC 1939 the returned line a POP3 server can send is 512 bytes.
-	var $UID_BUFFER		= 128;			//	UIDL Buffer Length
-	var $FP			= "";			//	The connection to the server's file descriptor
-	var $DEBUG		= false;		//  set to true to echo pop3 commands and responses to error_log this WILL log passwords!
-	var $BANNER		= "";			//	Holds the banner returned by the pop server - used for apop()
-	var $RFC1939	= true;			//	Set by noop(). See rfc1939.txt
-	var $ALLOWAPOP	= false;		//	Allow or disallow apop() This must be set to true manually.
-	var $VMAILMGR	= false;		//	Set to true if using VMailMgr
-	var $MAILSERVER	= "";			//	Holds the server name
-	var $PORT		= "";			//	Holds the server port
-	var $TLS		= 0;			//	Establish secure connections using TLS
-	var $TAG		= "";			//  Need TAG to access IMAP Accounts
-	var $MAIL_BOX	= "INBOX";		//  Default folder we process for IMAP Accounts
-	var $SENT_BOX	= "Sent Items";	//  Sent Items folder to save sent items on IMAP Server
-	var $MUST_UPDATE= false;		//  Optional for us, we do not switch over the folders for IMAP
-	var $STAGE		= "INIT";		//  Not required
-	var $TRASH_BOX		= "[Gmail]/Trash";		//  Not required
+	var $ERROR			= "";						//	Error string.
+	var $TIMEOUT		= 30;						//	Default timeout before giving up on a network operation.
+	var $COUNT			= -1;						//	Mailbox msg count
+	var $BUFFER			= 8192;						//	Socket buffer for socket fgets() calls. Per RFC 1939 the returned line a POP3 server can send is 512 bytes.
+	var $UID_BUFFER		= 128;						//	UIDL Buffer Length
+	var $FP				= "";						//	The connection to the server's file descriptor
+	var $DEBUG			= false;					//  set to true to echo pop3 commands and responses to error_log this WILL log passwords!
+	var $BANNER			= "";						//	Holds the banner returned by the pop server - used for apop()
+	var $RFC1939		= true;						//	Set by noop(). See rfc1939.txt
+	var $ALLOWAPOP		= false;					//	Allow or disallow apop() This must be set to true manually.
+	var $VMAILMGR		= false;					//	Set to true if using VMailMgr
+	var $MAILSERVER		= "";						//	Holds the server name
+	var $PORT			= "";						//	Holds the server port
+	var $TLS			= 0;						//	Establish secure connections using TLS
+	var $TAG			= "";						//  Need TAG to access IMAP Accounts
+	var $MAIL_BOX		= "INBOX";					//  Default folder we process for IMAP Accounts
+	var $SENT_BOX		= "Sent Items";				//  Sent Items folder to save sent items on IMAP Server
+	var $MUST_UPDATE	= false;					//  Optional for us, we do not switch over the folders for IMAP
+	var $TRASH_BOX		= "Deleted Items";	//  If no trash folder defined for IMAPSYNC then we create this folder and use it for Trash Folder.
+	var $CAPABILITY		= array();					//  CAPABILITIES of IMAP Server. This will tell us the server supports moving emails. Other wise, we have to copy and then delete the email. 
 
 	function POP3 ( $server = "localhost", $port = "110", $timeout = "" )
 	{
@@ -975,12 +975,17 @@ class POP3
 		return $return_arr;
 	}
 
-	function imap_create_mailbox()
+	function imap_create_mailbox($mailbox)
 	{
-		$sentBox="\"".$this->SENT_BOX."\"";
-		if($this->imap_put_line($this->TAG." CREATE $sentBox"))
+		$sentBox="\"".$mailbox."\"";
+		$cmd=$this->TAG." CREATE $sentBox";
+
+		if($this->imap_put_line($cmd))
 		{
 			$reply=$this->imap_get_server_responce();
+
+			if($this->DEBUG) { @error_log("IMAP SEND [$cmd] GOT [$reply]",0); }
+
 			if(!$this->imap_is_ok($reply))			
 				return false;
 		}
@@ -991,12 +996,17 @@ class POP3
 		return true;
 	}
 
-	function imap_subscribe_mailbox()
+	function imap_subscribe_mailbox($mailbox)
 	{
-		$sentBox="\"".$this->SENT_BOX."\"";
-		if($this->imap_put_line($this->TAG." SUBSCRIBE $sentBox"))
+		$sentBox="\"".$mailbox."\"";
+		$cmd=$this->TAG." SUBSCRIBE $sentBox";
+
+		if($this->imap_put_line($cmd))
 		{
 			$reply=$this->imap_get_server_responce();
+
+			if($this->DEBUG) { @error_log("IMAP SEND [$cmd] GOT [$reply]",0); }
+
 			if(!$this->imap_is_ok($reply))			
 				return false;
 		}
@@ -1157,7 +1167,7 @@ class POP3
 		return $reply;
 	}
 
-	function imap_delete_message($msgno,$uid)
+	function imap_delete_message($msgno)
 	{
 		$this->MUST_UPDATE=true;
 		return $this->imap_store_mail_flag($msgno,"+Flags","\\Deleted");
@@ -1204,6 +1214,73 @@ class POP3
 		}
 	}
 
+	function imap_copy_messages($messages, $tofolder)
+	{
+		$cmd=$this->TAG." COPY $messages \"$tofolder\"";
+
+		if($this->imap_put_line($cmd))
+		{
+			$reply=$this->imap_get_server_responce();
+
+			if($this->DEBUG) { @error_log("IMAP SEND [$cmd] GOT [$reply]",0); }
+
+			if(!$this->imap_is_ok($reply))
+				return false;
+			else
+				return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	function imap_expunge()
+	{
+		$cmd=$this->TAG." EXPUNGE";
+
+		if($this->imap_put_line($cmd))
+		{
+			$reply=$this->imap_get_server_responce();
+
+			if($this->DEBUG) { @error_log("IMAP SEND [$cmd] GOT [$reply]",0); }
+
+			if(!$this->imap_is_ok($reply))
+				return false;
+			else
+				return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	function imap_capability()
+	{
+		$cmd=$this->TAG." CAPABILITY";
+
+		if($this->imap_put_line($cmd))
+		{
+			$reply=$this->imap_get_server_responce();
+
+			if($this->DEBUG) { @error_log("IMAP SEND [$cmd] GOT [$reply]",0); }
+
+			$caps=substr($reply,strpos($reply,"CAPABILITY ")+strlen("CAPABILITY "));
+			$caps=substr($caps,0,strpos($caps,$this->TAG));
+			$this->CAPABILITY=explode(" ",$caps);
+
+			if(!$this->imap_is_ok($reply))
+				return false;
+			else
+				return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
 	function imap_search_uid($uid)
 	{
 		$cmd=$this->TAG." SEARCH UID $uid";
@@ -1211,6 +1288,8 @@ class POP3
 		if($this->imap_put_line($cmd))
 		{
 			$reply=$this->imap_get_server_responce();
+
+			if($this->DEBUG) { @error_log("IMAP SEND [$cmd] GOT [$reply]",0); }
 
 			if(!$this->imap_is_ok($reply))
 				return false;
