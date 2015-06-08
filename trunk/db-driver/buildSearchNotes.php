@@ -39,7 +39,7 @@
 			$srow=mysql_fetch_row($sres);
 
 			if($srow[0]>0)
-				$uque="UPDATE search_notes SET notes = CONCAT(notes,' ','".$nrow[2])."') WHERE uid='".$nrow[1]."' AND type='".$nrow[0]."'";
+				$uque="UPDATE search_notes SET notes = CONCAT(notes,' ','".$nrow[2]."') WHERE uid='".$nrow[1]."' AND type='".$nrow[0]."'";
 			else
 				$uque="INSERT INTO search_notes (uid,type,notes) VALUES ('".$nrow[1]."','".$nrow[0]."','".$nrow[2]."')";
 			mysql_query($uque,$db);
