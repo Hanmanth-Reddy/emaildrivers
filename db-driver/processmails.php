@@ -223,7 +223,7 @@
 						$cto=utf8_encode($cto);
 						$cadd=utf8_encode($cadd);
 
-					 	$que="insert into contact_email( sno, username, contactsno, subject, fromadd, toadd, ccadd, date, inlineid, type, sdate, xmltype, xmlbody,charset) values ('', '$username', '$conid', '".addslashes($csubject)."', '".addslashes($cfrom)."','".addslashes($cto)."','".addslashes($cadd)."','".addslashes($senddate)."', '0', '$mailtype', '$findate', '".addslashes($varxmltype)."', '','".addslashes($CharSet_mail)."')";
+					 	$que="insert into contact_email( sno, username, contactsno, subject, fromadd, toadd, ccadd, date, inlineid, type, sdate, xmltype, xmlbody,charset) values ('', '$username', '$conid', '".addslashes($csubject)."', '".addslashes($cfrom)."','".addslashes($cto)."','".addslashes($cadd)."','".addslashes($senddate)."', '0', '$mailtype', '$findate', '".addslashes($varxmltype)."', '',SUBSTRING_INDEX('".addslashes($CharSet_mail)."','\\r','1'))";
 						mysql_query($que,$db);
 						$eid=mysql_insert_id($db);
 
