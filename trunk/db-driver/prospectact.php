@@ -89,7 +89,7 @@
 
 					if($newrecord=="YES")
 					{
-						$que="insert into contact_email (sno,username,contactsno,subject,fromadd,toadd,ccadd,date,inlineid,type,sdate,charset) values ('', '$username', '$opprconid', '".addslashes($csubject)."','".addslashes($from)."','".addslashes($to)."','".addslashes($cc)."','$date','0','".$mailtype."', '".$findate."','".addslashes($CharSet_mail)."')";
+						$que="insert into contact_email (sno,username,contactsno,subject,fromadd,toadd,ccadd,date,inlineid,type,sdate,charset) values ('', '$username', '$opprconid', '".addslashes($csubject)."','".addslashes($from)."','".addslashes($to)."','".addslashes($cc)."','$date','0','".$mailtype."', '".$findate."',SUBSTRING_INDEX('".addslashes($CharSet_mail)."','\\r','1'))";
 						mysql_query($que,$db);
 						$eid=mysql_insert_id($db);
 

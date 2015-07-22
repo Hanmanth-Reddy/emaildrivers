@@ -526,7 +526,7 @@ WHERE cmngmt_pr.sno =".$cmntid;
 		else
 			$seen="U";
 		
-		$que="insert into mail_headers (mailid,username,folder,messageid,attach,seen,reply,forward,flag,fromadd,toadd,ccadd,bccadd,subject,date,udate,size,mailtype,inlineid,conid,status,sent,xmltype,xmlbody,charset) values ('','$username','$folder','$msg_id','$attach','".$seen."','N','N','NF','".addslashes($from)."','".addslashes($to)."','".addslashes($cc)."','".addslashes($bcc)."','".addslashes($subject)."','$date','$udate','','$mailtype','0','".$x."','$status','".$sent."','".addslashes($xmltype)."','".$xmlbody."','".addslashes($CharSet_mail)."')";
+		$que="insert into mail_headers (mailid,username,folder,messageid,attach,seen,reply,forward,flag,fromadd,toadd,ccadd,bccadd,subject,date,udate,size,mailtype,inlineid,conid,status,sent,xmltype,xmlbody,charset) values ('','$username','$folder','$msg_id','$attach','".$seen."','N','N','NF','".addslashes($from)."','".addslashes($to)."','".addslashes($cc)."','".addslashes($bcc)."','".addslashes($subject)."','$date','$udate','','$mailtype','0','".$x."','$status','".$sent."','".addslashes($xmltype)."','".$xmlbody."',SUBSTRING_INDEX('".addslashes($CharSet_mail)."','\\r','1'))";
 		mysql_query($que,$db);
         $insid=mysql_insert_id($db);
 
