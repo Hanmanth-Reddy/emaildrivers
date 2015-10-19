@@ -21,6 +21,8 @@
 		$dorow=mysql_fetch_row($dores);
 		$dlist=explode(",",strtolower($dorow[0]));
 
+		$trackPref=getTrackingPref();
+
 		$ubque="select username from users where usertype!='' and status!='DA'";
 		$ubres=mysql_query($ubque,$db);
 		while($ubrow=mysql_fetch_row($ubres))
@@ -28,39 +30,36 @@
 			$username=$ubrow[0];
 			$user_pref=getUserPref($username,$db);
 
-			$que="select mail_headers.mailid,mail_headers.fromadd,mail_headers.subject,mail_headers.toadd,mail_headers.ccadd,mail_headers.mailtype,mail_headers.udate,mail_headers.xmltype,mail_headers.date,mail_headers.xmlbody,if(mail_headers.charset!='',mail_headers.charset,'utf-8') from mail_headers LEFT JOIN external_mail ON mail_headers.extid=external_mail.sno where mail_headers.folder='sentmessages' AND mail_headers.sent='DOW' AND mail_headers.status='Active' AND mail_headers.inlineid='0' AND mail_headers.username='$username' AND mail_headers.calendar!='Y'";
-			$res=mysql_query($que,$db);
-			while($row=mysql_fetch_row($res))
+			$lque="select mail_headers.mailid,mail_headers.fromadd,mail_headers.subject,mail_headers.toadd,mail_headers.ccadd,mail_headers.mailtype,mail_headers.udate,mail_headers.xmltype,mail_headers.date,mail_headers.xmlbody,if(mail_headers.charset!='',mail_headers.charset,'utf-8') from mail_headers where mail_headers.folder='sentmessages' AND mail_headers.sent='DOW' AND mail_headers.status='Active' AND mail_headers.inlineid='0' AND mail_headers.username='$username' AND mail_headers.calendar!='Y'";
+			$lres=mysql_query($lque,$db);
+			while($lrow=mysql_fetch_row($lres))
 			{
 				$cmid="";
-				$jobinq="";
 				$varConcat="";
 
-				$mailid=$row[0];
-				$cfrom=$row[1];
-				$csubject=$row[2];
-				$cto=$row[3];
-				$cadd=$row[4];
-				$mailtype=$row[5];
-				$udate=$row[6];
-				$varxmltype=$row[7];
-				$senddate=$row[8];
-				$varxmlbody=$row[9];
-				$CharSet_mail=$row[10];
+				$mailid=$lrow[0];
+				$cfrom=$lrow[1];
+				$csubject=$lrow[2];
+				$cto=$lrow[3];
+				$cadd=$lrow[4];
+				$mailtype=$lrow[5];
+				$udate=$lrow[6];
+				$varxmltype=$lrow[7];
+				$senddate=$lrow[8];
+				$varxmlbody=$lrow[9];
+				$CharSet_mail=$lrow[10];
 
 				$fullelist = $cfrom.",".$cto.",".$cadd;
 
 				$emaillist = $cto.",".$cadd;
 				$frmemail=parseEmailAddresses($emaillist);
 
-				$trackPref=getTrackingPref();
-
 				if($trackPref['etrack']=="Y")
 					$trackEmail=trackEmail($dlist,$fullelist);
 				else
 					$trackEmail=false;
 
-				if(($user_pref["crm"]!="NO" || $user_pref["hrm"]!="NO" || $user_pref["accounting"]!="NO") && $trackEmail && $trackPref['etrack']=="Y" && trim($frmemail)!="")
+				if(($user_pref["crm"]!="NO" || $user_pref["hrm"]!="NO" || $user_pref["accounting"]!="NO") && $trackEmail && trim($frmemail)!="")
 				{
 					$conid="";
 
@@ -118,14 +117,6 @@
 					}
 
 					$conid=unique_conid(trim($conid,","));
-
-					if($jobinq!="")
-					{
-						if($conid=="")
-							$conid=$jobinq;
-						else 
-							$conid.=",".$jobinq;
-					}
 
 					if($conid!="")
 					{
@@ -229,8 +220,16 @@
 	}
 
 	function getActivitiesEmailCondition($ChkEmail,$tbl,$col1,$col2,$col3)
-	{	
-		$CommonEmailCond="($ChkEmail) IN (".$tbl.".".$col1.",".$tbl.".".$col2.",".$tbl.".".$col3.") ";
-		return $CommonEmailCond;
+	{
+		if($ChkEmail=="")
+		{
+			return " 1=2 ";
+		}
+		else
+		{
+			$tbl=$tbl.".";
+			$CommonEmailCond = " (".$tbl.$col1." IN ($ChkEmail) OR ".$tbl.$col2." IN ($ChkEmail) OR ".$tbl.$col3." IN ($ChkEmail)) ";
+			return $CommonEmailCond;
+		}
 	}
 ?>
