@@ -10,7 +10,7 @@
 
 	$smtp=new smtp_class;
 	$smtp->host_name="smtp.akken.com";
-	$smtp->host_port="465";
+	$smtp->host_port="25";
 	$smtp->localhost="smtp.akken.com";
 
 	$dque="select capp_info.comp_id from company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno LEFT JOIN options ON options.sno=company_info.sno where company_info.status='ER' ".$version_clause;

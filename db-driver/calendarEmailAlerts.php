@@ -15,7 +15,7 @@
 
 	$smtp=new smtp_class;
 	$smtp->host_name="smtp.akken.com";
-	$smtp->host_port="465";
+	$smtp->host_port="25";
 	$smtp->localhost="smtp.akken.com";
 
 	$from = "Akken Notifications <donot-reply@akken.com>";
