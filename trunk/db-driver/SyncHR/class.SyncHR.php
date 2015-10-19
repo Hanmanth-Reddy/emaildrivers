@@ -7,6 +7,7 @@ class SyncHR
 	private $apihost = 'stage-clients.synchr.com';
 	private $apiport = '443';
 	private $apipath = '/synchr/api/1.0/';
+	private $rpwdUrl = '/synchr/password/resetRequest';
 
 	public $client;
 	public $debug = false;
@@ -116,6 +117,9 @@ class SyncHR
 
 		$personsData=array();
 
+		$bque="UPDATE syncHR_personData SET process='B', pdate=NOW() where acStatus='T' AND process='N'";
+		mysql_query($bque,$db);
+
 		$pque="SELECT sno,username,acStatus,empNo,effectiveDate,emplHireDate,endDate,payThroughDate,fName,mName,lName,locationCode,benefitStatus,emplStatus,emplPermanency,employmentType,emplClass,emplFulltimePercent,emplServiceDate,emplSenorityDate,emplBenefithireDate,streetAddress,streetAddress2,countryCode,city,stateProvinceCode,postalCode,phoneno,emailAddress,birthDate,genderCode,netId,SSN,emplEvent FROM syncHR_personData WHERE SSN!='' AND locid='$locid' AND process='N' ORDER BY cdate";
 		$pres=mysql_query($pque,$db);
 		while($prow=mysql_fetch_assoc($pres))
@@ -181,6 +185,41 @@ class SyncHR
 		}
 	}
 
+	function createNetID($empNo,$fname,$lname,$cnt)
+	{
+		if($cnt==0)
+			$temp_netId=strtolower(substr(trim($fname),0,2).trim($lname))."@qgtemp";
+		else
+			$temp_netId=strtolower(substr(trim($fname),0,2).trim($lname)).$cnt."@qgtemp";
+
+		$netId=$this->checkPersonIdentity($temp_netId,"netId");
+		if(trim($netId['personIdentity'][0]['identity'])=="")
+		{
+			$personData = array("empNo" => $empNo, "identityType" => "netId", "identity" => $temp_netId);
+			return $this->shCreateAPI("personIdentity",$personData);
+		}
+		else
+		{
+			$cnt++;
+			$this->createNetID($empNo,$fname,$lname,$cnt);
+		}
+	}
+
+	function resetPassword($email)
+	{
+		$data['email']=$email;
+
+		$client = new HttpClient($this->apihost, $this->apiport);
+		$result = $client->get($this->rpwdUrl,$data);
+	}
+
+	function setNetID_PWD($personData)
+	{
+		$shNetId=$this->createNetID($personData['empNo'],$personData['fName'],$personData['lName'],0);
+		if(trim($personData['emailAddress'])!="")
+			$shPwd=$this->resetPassword($personData['emailAddress']);
+	}
+
 	function createPersonIdentity($empNo,$eID,$eType="SSN")
 	{
 		$this->client->setAuthorization($this->apiKey, $this->token);
@@ -222,6 +261,8 @@ class SyncHR
 		{
 			$shVitals=$this->createPersonVitals($personData['empNo'],$personData['birthDate'],$personData['genderCode'],$personData['effectiveDate']);
 			$shSSN=$this->createPersonIdentity($personData['empNo'],$personData['SSN'],"SSN");
+
+			$this->setNetID_PWD($personData);
 
 			$this->updatePersonStatus($personData,"Y");
 
@@ -598,7 +639,6 @@ class SyncHR
 		$this->updatePersonVitals($personData);
 		$this->updatePersonLocation($personData);
 
-
 		if($personData['acStatus']=="T")
 		{
 			$this->terminateEmployment($personData);
@@ -624,7 +664,7 @@ class SyncHR
 
 		$positionData=array();
 
-		$pque="SELECT sno,username,empNo,positionCode,positionTitle,positionEvent,effectiveDate,scheduleFrequency,scheduledHours,partialPercent,persPosEvent,managingPosition,hrOrganization,eeoCode,companyOfficer,flsaProfile,flsaCode,mgmtClass,grade,workersCompProfile,workersCompCode,orgCode,posOrgPercent,earningsCode,frequencyCode,currencyCode,compEvent,compAmount,compLimit,increaseAmount,compLimitCode,shiftCode,payOvertime,SSN FROM syncHR_positionData WHERE process='N' AND username='".$personData['username']."' AND parid='".$personData['sno']."'";
+		$pque="SELECT sno,username,empNo,positionCode,positionTitle,positionEvent,effectiveDate,scheduleFrequency,scheduledHours,partialPercent,persPosEvent,managingPosition,hrOrganization,IF(eeoCode=0,50,eeoCode),companyOfficer,flsaProfile,flsaCode,mgmtClass,grade,workersCompProfile,workersCompCode,orgCode,posOrgPercent,earningsCode,frequencyCode,currencyCode,compEvent,compAmount,compLimit,increaseAmount,compLimitCode,shiftCode,payOvertime,SSN FROM syncHR_positionData WHERE process='N' AND username='".$personData['username']."' AND parid='".$personData['sno']."'";
 		$pres=mysql_query($pque,$db);
 		$prow=mysql_fetch_assoc($pres);
 		if(mysql_num_rows($pres)>0)
@@ -1074,7 +1114,7 @@ class SyncHR
 			$bfolder=$WDOCUMENT_ROOT.$this->bcode."/".$this->bcode;
 			$csvfile=$bfolder."/".$this->bcode.".csv";
 	
-			$to="rc.vempati@gmail.com";
+			$to="ssorrells@qgsearch.com, s.anderson@qgsearch.com, lsabin@qgsearch.com, ijohnson2@qgsearch.com, rvempati@akkencloud.com";
 			$from="donot-reply@akken.com";	
 			$subject=$this->bcode." :: Status of SyncHR Person / Position Data Push";
 	
@@ -1225,7 +1265,7 @@ class SyncHR
 			}
 		}
 
-		$to="rc.vempati@gmail.com";
+		$to="ssorrells@qgsearch.com, s.anderson@qgsearch.com, lsabin@qgsearch.com, ijohnson2@qgsearch.com, rvempati@akkencloud.com";
 		$from="donot-reply@akken.com";	
 		$subject=$status_subj." :: Status of SyncHR Payroll Data Push";
 
@@ -1233,7 +1273,7 @@ class SyncHR
 		$orig_message.="<b>SyncHR Company File : </b>".$brow['heading']."<br>\n";
 		$orig_message.="<b>Pay Unit Code : </b>".$brow['payunit']."<br>\n";
 		$orig_message.="<b>Pay Process : </b>".$brow['payprocess']."<br>\n";
-		$orig_message.="<b>Pay Period Start Date : </b>".$brow['payedate']."<br>\n";
+		$orig_message.="<b>Pay Period Start Date : </b>".$brow['paysdate']."<br>\n";
 		$orig_message.="<b>Pay Period End Date : </b>".$brow['payedate']."<br>\n";
 		$orig_message.="<b>Batch Name : </b>".$brow['paybname']."<br>\n";
 		$orig_message.="<b>Batch Code : </b>".$brow['paybcode']."<br>\n";

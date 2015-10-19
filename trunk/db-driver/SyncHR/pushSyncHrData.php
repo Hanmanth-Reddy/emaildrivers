@@ -73,7 +73,11 @@
 								}
 								else
 								{
+									if(trim($ssn['personIdentity'][0]['netId'])=="")
+										$synchr->setNetID_PWD($personsData[$i]);
+
 									$synchr->updatePerson($personsData[$i]);
+
 									if($personsData[$i]['acStatus']!="T")
 									{
 										$positionCode=$synchr->checkPersonPositionStatus($personsData[$i]);
