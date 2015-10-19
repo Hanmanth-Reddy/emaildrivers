@@ -29,6 +29,8 @@ class HttpClient
 	var $atype;
 
 	// Response vars
+	var $res_status;
+	var $res_error;
 	var $status;
 	var $status_string;
 	var $headers = array();
@@ -85,7 +87,7 @@ class HttpClient
 		$this->method = 'DELETE';
 
 		if($data)
-			$this->path.='?'.http_build_query($data);
+			$this->postdata = json_encode($data);
 
 		return $this->doRequest();
 	}
@@ -249,9 +251,18 @@ class HttpClient
 		}
 
 		if($this->getStatus()>="200" && $this->getStatus()<"300")
+		{
+			$this->res_status=true;
 			return true;
+		}
 		else
+		{
+			$this->res_status=false;
+			if(trim($this->getContent())!="")
+				$this->res_error.=$this->getContent()."\n\n\n";
+
 			return false;
+		}
 	}
 
 	function buildRequest()
