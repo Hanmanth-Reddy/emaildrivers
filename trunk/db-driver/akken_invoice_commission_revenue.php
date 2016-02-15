@@ -26,7 +26,7 @@
             $invoiceToDate  = ""; //variable for getting today date.
 
             //Query to fetch today date and current month starting date
-            $getCurDate     = "SELECT CURDATE() AS 'tdate', CONCAT(YEAR(CURDATE()),'-',MONTH(CURDATE()),'-01') AS 'fdate'";
+            $getCurDate     = "SELECT DATE_ADD(CURDATE(), INTERVAL -1 DAY) AS 'tdate', CONCAT(DATE_FORMAT((DATE_ADD(CURDATE(), INTERVAL -1 DAY)), '%Y-%m'),'-01') AS 'fdate'";
             $getCurDateRes  = mysql_query($getCurDate, $db);
             $getCurDateRow  = mysql_fetch_array($getCurDateRes);
 
@@ -43,149 +43,51 @@
     {
             global $db;
 
-            /* Calling below function to drop temp tables and functions created and exists */
-            droptemptables();	
-
-            /*
-             * Creating Temporary Functions Start
-             * Function -1
-             */
-            $tmpFuncCreateSql_1 = "CREATE FUNCTION rpt_tmp_InvComm_getPayBurdenFlat(hrcon_sno int) RETURNS double
-                                    BEGIN
-                                            
-                                            DECLARE pBurden double DEFAULT '0.00';
-                                            
-                                            SELECT
-                                                IF(SUM(c.burden_value) IS NULL,'0.00',SUM(c.burden_value)) as pBurden 
-                                            FROM
-                                                hrcon_burden_details b, 
-                                                burden_items c 
-                                            WHERE
-                                                b.hrcon_jobs_sno=hrcon_sno AND 
-                                                b.ratemasterid='rate1' AND 
-                                                b.ratetype='payrate' AND 
-                                                c.sno=b.bi_id AND 
-                                                c.burden_mode='flat' INTO pBurden;
-                                            
-                                            RETURN pBurden;
-                                    END";
-            mysql_query($tmpFuncCreateSql_1, $db);
-
-            //Function -2
-            $tmpFuncCreateSql_2 = "CREATE FUNCTION rpt_tmp_InvComm_getPayBurdenPerc(hrcon_sno int) RETURNS double
-                                    BEGIN
-                                            
-                                            DECLARE pBurden double DEFAULT '0.00';
-                                            
-                                            SELECT
-                                                IF(SUM(c.burden_value) IS NULL,'0.00',SUM(c.burden_value)) as pBurden 
-                                            FROM
-                                                hrcon_burden_details b, 
-                                                burden_items c 
-                                            WHERE
-                                                b.hrcon_jobs_sno=hrcon_sno AND 
-                                                b.ratemasterid='rate1' AND 
-                                                b.ratetype='payrate' AND 
-                                                c.sno=b.bi_id AND 
-                                                c.burden_mode='percentage' INTO pBurden;
-                                            
-                                            RETURN pBurden;
-                                    END";
-            mysql_query($tmpFuncCreateSql_2, $db);
-
-            //Function -3
-            $tmpFuncCreateSql_3 = "CREATE FUNCTION rpt_tmp_InvComm_getBillBurdenFlat(hrcon_sno int) RETURNS double
-                                    BEGIN
-                                            
-                                            DECLARE bBurden double DEFAULT '0.00';
-                                            
-                                            SELECT
-                                                IF(SUM(c.burden_value) IS NULL,'0.00',SUM(c.burden_value)) as bBurden 
-                                            FROM
-                                                hrcon_burden_details b, 
-                                                burden_items c 
-                                            WHERE
-                                                b.hrcon_jobs_sno=hrcon_sno AND 
-                                                b.ratemasterid='rate1' AND 
-                                                b.ratetype='payrate' AND 
-                                                c.sno=b.bi_id AND 
-                                                c.burden_mode='flat' INTO bBurden;
-                                            
-                                            RETURN bBurden;
-                                    END";
-            mysql_query($tmpFuncCreateSql_3, $db);
-
-            //Function - 4
-            $tmpFuncCreateSql_4 = "CREATE FUNCTION rpt_tmp_InvComm_getBillBurdenPerc(hrcon_sno int) RETURNS double
-                                    BEGIN
-                                            
-                                            DECLARE bBurden double DEFAULT '0.00';
-                                            
-                                            SELECT
-                                                IF(SUM(c.burden_value) IS NULL,'0.00',SUM(c.burden_value)) as bBurden 
-                                            FROM
-                                                hrcon_burden_details b, 
-                                                burden_items c 
-                                            WHERE
-                                                b.hrcon_jobs_sno=hrcon_sno AND 
-                                                b.ratemasterid='rate1' AND 
-                                                b.ratetype='payrate' AND 
-                                                c.sno=b.bi_id AND 
-                                                c.burden_mode='percentage' INTO bBurden;
-                                            
-                                            RETURN bBurden;
-                                    END";
-            mysql_query($tmpFuncCreateSql_4, $db);
-
-            //Fucntion - 5
-            $tmpFuncCreateSql_5 = "CREATE FUNCTION rpt_tmp_InvComm_getQuanMarginTotalAmount(quantity int, payrate double, billrate double, burden double, bill_burden double, burden_flat double, bill_burden_flat double) RETURNS double
-                                    BEGIN
-                                            
-                                            DECLARE returnStr double DEFAULT '0.00';
-                                            
-                                            SELECT ROUND((ROUND(( ((billrate-(bill_burden / 100) * billrate) - bill_burden_flat) - (payrate + (((burden / 100) * payrate) + burden_flat) )), 2) * quantity), 2) INTO returnStr;
-                                            
-                                            RETURN returnStr;
-                                            
-                                    END";
-            mysql_query($tmpFuncCreateSql_5, $db);
-
-            //Function - 6
-            $tmpFuncCreateSql_6 = "CREATE FUNCTION rpt_tmp_InvComm_getPayAdjExpense(customer_id TEXT, emp_user_id TEXT, invfromdate date, invtodate date,payNonBillCond TEXT) RETURNS double 
-                                    BEGIN
-                                            DECLARE returnStr double DEFAULT '0.00';
-                                            
-                                            SELECT
-                                                SUM(expense.quantity * expense.unitcost) 
-                                            FROM
-                                                par_expense,expense
-                                            WHERE
-                                                expense.parid = par_expense.sno 
-                                                AND expense.client = customer_id
-                                                AND  par_expense.username = emp_user_id
-                                                AND par_expense.astatus = 'Approved'
-                                                AND expense.status = 'Approved'
-                                                AND expense.payable = payNonBillCond 
-                                                AND expense.billable = '' 
-                                                AND expense.edate >= invfromdate
-                                                AND expense.edate <= invtodate  
-                                            GROUP BY
-                                                customer_id,emp_user_id
-                                            INTO returnStr;
-                                            
-                                            RETURN returnStr;
-                                    END";
-            mysql_query($tmpFuncCreateSql_6, $db);
-            //Creating Temporary Functions End
+            /* Calling below function to truncate temp tables created and exists */
+            truncatetemptables();
 
             /*
              * Creating the Temporary Tables Start
              * Step 1 Start
              * Temp - 1
              */
-            $tmpTableCreateSql_1    = "CREATE TABLE IF NOT EXISTS rpt_tmp_InvComm_cmsn_details_individual AS 
-                                        SELECT
-                                            a.sno, 
+            $tmpTableCreateSql_1 = "CREATE TABLE IF NOT EXISTS rpt_tmp_InvComm_cmsn_details_individual (
+                                        rowid int(15) unsigned NOT NULL AUTO_INCREMENT,
+                                        sno int(15) NOT NULL DEFAULT 0,
+                                        amount double (10,2),
+                                        co_type varchar(15) NOT NULL DEFAULT '',
+                                        comm_calc varchar(15) NOT NULL DEFAULT '',
+                                        type varchar(10) NOT NULL DEFAULT '',
+                                        cempname varchar(255) NOT NULL DEFAULT '',
+                                        person varchar(15) NOT NULL DEFAULT '',
+                                        assignid int(15) NOT NULL DEFAULT 0,
+                                        roletitle varchar(255) NOT NULL DEFAULT '',
+                                        employee_sno int(15) NOT NULL DEFAULT 0,
+                                        manage_comm_sno int(15) NOT NULL DEFAULT 0,
+                                        manage_comm_period_sno int(15) NOT NULL DEFAULT 0,
+                                        commlevelsno int(15) NOT NULL DEFAULT 0,
+                                        commission_level varchar(255) NOT NULL DEFAULT '',
+                                        startdate date DEFAULT '0000-00-00',
+                                        enddate date DEFAULT '0000-00-00', 
+                                        PRIMARY KEY (rowid),
+                                        KEY sno (sno),
+                                        KEY person (person),
+                                        KEY assignid (assignid),
+                                        KEY type (type),
+                                        KEY employee_sno (employee_sno),
+                                        KEY manage_comm_sno (manage_comm_sno),
+                                        KEY manage_comm_period_sno (manage_comm_period_sno),
+                                        KEY commlevelsno (commlevelsno),
+                                        KEY startdate (startdate),
+                                        KEY enddate (enddate)
+                                        ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=latin1 PACK_KEYS=1 CHECKSUM=1";
+	    mysql_query($tmpTableCreateSql_1, $db);
+
+            //Temp - 1.1 - Insertion
+            $tmpTableInsertSql_1_1 = "INSERT INTO rpt_tmp_InvComm_cmsn_details_individual
+                                    (sno, amount, co_type, comm_calc, type, cempname, person, assignid, roletitle, employee_sno,
+                                    manage_comm_sno, manage_comm_period_sno, commlevelsno, commission_level, startdate, enddate) 
+                                    SELECT a.sno, 
                                             a.amount, 
                                             co_type, 
                                             comm_calc, 
@@ -200,61 +102,76 @@
                                             cl.sno 'commlevelsno',
                                             cl.commission_level,
                                             mcp.startdate,
-                                            mcp.enddate 
-                                        FROM
-                                            assign_commission a, 
+                                            mcp.enddate  
+
+                                    FROM	assign_commission a, 
                                             emp_list el, 
-                                            manage_commission mc 
-                                        LEFT JOIN
-                                            manage_commission_periods mcp ON (mcp.manage_commission_id = mc.sno) 
-                                        LEFT JOIN
-                                            commission_levels cl ON (cl.sno = mcp.commission_level_sno), company_commission cc 
-                                        WHERE
-                                            a.assigntype = 'H' AND 
+                                            manage_commission mc  
+
+                                    LEFT JOIN manage_commission_periods mcp ON (mcp.manage_commission_id = mc.sno) 
+                                    LEFT JOIN commission_levels cl ON (cl.sno = mcp.commission_level_sno), company_commission cc 
+
+                                    WHERE 	a.assigntype = 'H' AND 
                                             a.type='E' AND 
                                             el.username = a.person AND 
                                             el.sno = mc.employee_id AND 
                                             cc.sno = a.roleid";
-            mysql_query($tmpTableCreateSql_1, $db);
+            mysql_query($tmpTableInsertSql_1_1, $db);
 
-            //Temp - 1.1 - Insertion
-            $tmpTableCreateSql_1_1  = "INSERT INTO rpt_tmp_InvComm_cmsn_details_individual 
-                                        SELECT
-                                            a.sno, 
-                                            a.amount, 
-                                            co_type, 
-                                            comm_calc, 
-                                            a.type, 
-                                            el.name AS cempname, 
-                                            person, 
-                                            a.assignid, 
-                                            cc.roletitle, 
-                                            el.sno 'employee_sno',
-                                            mc.sno 'manage_comm_sno', 
-                                            mcs.sno 'manage_comm_split_sno', 
-                                            cl.sno 'commlevelsno', 
-                                            cl.commission_level, 
-                                            mcs.startdate, 
-                                            mcs.enddate 
-                                        FROM
-                                            assign_commission a, 
-                                            emp_list el 
-                                        LEFT JOIN
-                                            manage_commission_splits mcs ON (el.sno = mcs.employee_id)
-                                        LEFT JOIN
-                                            manage_commission mc ON (mcs.manage_commission_id = mc.sno)
-                                        LEFT JOIN
-                                            commission_levels cl ON (cl.sno = mcs.commission_level_sno), company_commission cc 
-                                        WHERE
-                                            a.assigntype = 'H' AND 
-                                            a.type='E' AND 
-                                            el.username = a.person AND 
-                                            cc.sno = a.roleid AND 
-                                            mcs.employee_id NOT IN (SELECT DISTINCT employee_id FROM manage_commission)";
-            mysql_query($tmpTableCreateSql_1_1, $db);
+            //Temp - 1.2 - Insertion
+            $tmpTableInsertSql_1_2 = "INSERT INTO rpt_tmp_InvComm_cmsn_details_individual
+                                    (sno, amount, co_type, comm_calc, type, cempname, person, assignid, roletitle, employee_sno,
+                                    manage_comm_sno, manage_comm_period_sno, commlevelsno, commission_level, startdate, enddate) 
+                                    SELECT
+                                        a.sno, 
+                                        a.amount, 
+                                        co_type, 
+                                        comm_calc, 
+                                        a.type, 
+                                        el.name AS cempname, 
+                                        person, 
+                                        a.assignid, 
+                                        cc.roletitle, 
+                                        el.sno 'employee_sno',
+                                        mc.sno 'manage_comm_sno', 
+                                        mcs.sno 'manage_comm_split_sno', 
+                                        cl.sno 'commlevelsno', 
+                                        cl.commission_level, 
+                                        mcs.startdate, 
+                                        mcs.enddate 
+                                    FROM
+                                        assign_commission a, 
+                                        emp_list el 
+                                    LEFT JOIN
+                                        manage_commission_splits mcs ON (el.sno = mcs.employee_id)
+                                    LEFT JOIN
+                                        manage_commission mc ON (mcs.manage_commission_id = mc.sno)
+                                    LEFT JOIN
+                                        commission_levels cl ON (cl.sno = mcs.commission_level_sno), company_commission cc 
+                                    WHERE
+                                        a.assigntype = 'H' AND 
+                                        a.type='E' AND 
+                                        el.username = a.person AND 
+                                        cc.sno = a.roleid AND 
+                                        mcs.employee_id NOT IN (SELECT DISTINCT employee_id FROM manage_commission)";
+            mysql_query($tmpTableInsertSql_1_2, $db);
 
             //Temp - 2
-            $tmpTableCreateSql_2    = "CREATE TABLE IF NOT EXISTS rpt_tmp_InvComm_invactual_amount AS 
+            $tmpTableCreateSql_2 = "CREATE TABLE IF NOT EXISTS rpt_tmp_InvComm_invactual_amount (
+                                        rowid int(15) unsigned NOT NULL AUTO_INCREMENT,
+                                        invoiceActualAmt double (10,2),
+                                        invoice_number int(15) NOT NULL DEFAULT 0,
+                                        sno int(15) NOT NULL DEFAULT 0,
+                                        PRIMARY KEY (rowid),
+                                        KEY invoiceActualAmt (invoiceActualAmt),
+                                        KEY invoice_number (invoice_number),
+                                        KEY sno (sno)
+                                        ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=latin1 PACK_KEYS=1 CHECKSUM=1";
+            mysql_query($tmpTableCreateSql_2, $db);
+
+            //Temp - 2.1 - Insertion
+            $tmpTableInsertSql_2_1 = "INSERT INTO rpt_tmp_InvComm_invactual_amount
+                                    (invoiceActualAmt, invoice_number, sno) 
                                         SELECT
                                             SUM((-1 * acctrans.amount)) AS invoiceActualAmt, 
                                             inv.invoice_number, 
@@ -269,7 +186,7 @@
                                             acctrans.status = 'ACTIVE' 
                                         GROUP BY
                                             acctrans.txnId";
-            mysql_query($tmpTableCreateSql_2, $db);
+            mysql_query($tmpTableInsertSql_2_1, $db);
 
             //Temp - 3
             $tmpTableCreateSql_3    = "CREATE TABLE IF NOT EXISTS rpt_tmp_InvComm_all_cmsn_details (
@@ -392,10 +309,10 @@
                                             tinvact.invoiceActualAmt AS actualInvoiceAmt, 
                                             (ROUND(SUM(timesheet.hours),2) * (IF(multiplerates_master.name='DoubleTime',hrcon_jobs.double_prate_amt,IF(multiplerates_master.name='OverTime',hrcon_jobs.otprate_amt,hrcon_jobs.pamount)))) AS pay_amount, 
                                             (ROUND(SUM(timesheet.hours),2) * (IF(multiplerates_master.name='DoubleTime',hrcon_jobs.double_brate_amt,IF(multiplerates_master.name='OverTime',hrcon_jobs.otbrate_amt,hrcon_jobs.bamount)))) AS bill_amount,
-                                            rpt_tmp_InvComm_getPayBurdenPerc(hrcon_jobs.sno),
-                                            rpt_tmp_InvComm_getPayBurdenFlat(hrcon_jobs.sno),
-                                            rpt_tmp_InvComm_getBillBurdenPerc(hrcon_jobs.sno),
-                                            rpt_tmp_InvComm_getBillBurdenFlat(hrcon_jobs.sno) 
+                                            invComm_getPayBurdenPerc(hrcon_jobs.sno),
+                                            invComm_getPayBurdenFlat(hrcon_jobs.sno),
+                                            invComm_getBillBurdenPerc(hrcon_jobs.sno),
+                                            invComm_getBillBurdenFlat(hrcon_jobs.sno) 
                                         FROM
                                             staffacc_cinfo, Client_Accounts
                                         LEFT JOIN
@@ -493,10 +410,10 @@
                                             tinvact.invoiceActualAmt AS actualInvoiceAmt,
                                             (IF(timesheet.edate='0000-00-00',COUNT(DISTINCT(timesheet.sdate)),DATEDIFF(timesheet.edate,timesheet.sdate)+1) * hrcon_jobs.diem_total) AS pay_amount,
                                             (IF(timesheet.edate='0000-00-00',COUNT(DISTINCT(timesheet.sdate)),DATEDIFF(timesheet.edate,timesheet.sdate)+1) * (IF(hrcon_jobs.diem_billable='Y',hrcon_jobs.diem_total,0))) AS bill_amount ,
-                                            rpt_tmp_InvComm_getPayBurdenPerc(hrcon_jobs.sno),
-                                            rpt_tmp_InvComm_getPayBurdenFlat(hrcon_jobs.sno),
-                                            rpt_tmp_InvComm_getBillBurdenPerc(hrcon_jobs.sno),
-                                            rpt_tmp_InvComm_getBillBurdenFlat(hrcon_jobs.sno) 
+                                            invComm_getPayBurdenPerc(hrcon_jobs.sno),
+                                            invComm_getPayBurdenFlat(hrcon_jobs.sno),
+                                            invComm_getBillBurdenPerc(hrcon_jobs.sno),
+                                            invComm_getBillBurdenFlat(hrcon_jobs.sno) 
                                         FROM
                                             staffacc_cinfo, Client_Accounts
                                         LEFT JOIN
@@ -593,10 +510,10 @@
                                             tinvact.invoiceActualAmt AS actualInvoiceAmt, 
                                             ((IF(acc_transaction.txnLineType = 'Expense', expense.quantity, 0.00)) * 0) AS pay_amount, 
                                             IF(acc_transaction.txnLineType = 'Expense', (expense.quantity * 0), hj.placement_fee) AS bill_amount,
-                                            rpt_tmp_InvComm_getPayBurdenPerc(hj.sno),
-                                            rpt_tmp_InvComm_getPayBurdenFlat(hj.sno),
-                                            rpt_tmp_InvComm_getBillBurdenPerc(hj.sno),
-                                            rpt_tmp_InvComm_getBillBurdenFlat(hj.sno) 
+                                            invComm_getPayBurdenPerc(hj.sno),
+                                            invComm_getPayBurdenFlat(hj.sno),
+                                            invComm_getBillBurdenPerc(hj.sno),
+                                            invComm_getBillBurdenFlat(hj.sno) 
                                         FROM
                                             staffacc_cinfo, Client_Accounts
                                         LEFT JOIN
@@ -649,7 +566,7 @@
             //Temp - 3.2 - Updating
             $tmpTableCreateSql_3_2  = "UPDATE rpt_tmp_InvComm_all_cmsn_details SET 
                                         pay_burden_amount = ROUND((((total_pay_burden_perc/100) * (pay_amount)) + (total_pay_burden_flat * Quantity)), 2),
-                                        quantityMarginTotal = rpt_tmp_InvComm_getQuanMarginTotalAmount(Quantity, payrate, billrate, total_pay_burden_perc, total_bill_burden_perc, total_pay_burden_flat, total_bill_burden_flat)";
+                                        quantityMarginTotal = invComm_getQuanMarginTotalAmount(Quantity, payrate, billrate, total_pay_burden_perc, total_bill_burden_perc, total_pay_burden_flat, total_bill_burden_flat)";
             mysql_query($tmpTableCreateSql_3_2, $db);
 
             //Step 1 End
@@ -658,7 +575,44 @@
              * Step - 2 Start
              * Temp - 4
              */
-            $tmpTableCreateSql_4    = "CREATE TABLE IF NOT EXISTS rpt_tmp_InvComm_gp_cmsntiers_calc AS 
+            $tmpTableCreateSql_4 = "CREATE TABLE IF NOT EXISTS rpt_tmp_InvComm_gp_cmsntiers_calc (
+                                        rowid int(15) unsigned NOT NULL AUTO_INCREMENT,
+                                        deptname varchar(255) NOT NULL DEFAULT '',
+                                        assgn_number varchar(255) NOT NULL DEFAULT '',
+                                        invoiceNo int(15) NOT NULL DEFAULT 0,
+                                        invoice_date date DEFAULT '0000-00-00',
+                                        InvoiceTotal double (10,2), 
+                                        customer varchar(255) NOT NULL DEFAULT '', 
+                                        emp_name varchar(255) NOT NULL DEFAULT '',
+                                        Quantity int(15) NOT NULL DEFAULT 0, 
+                                        payrate int(15) NOT NULL DEFAULT 0, 
+                                        billrate int(15) NOT NULL DEFAULT 0, 
+                                        pay_amount double (10,2), 
+                                        bill_amount double (10,2), 
+                                        burden double (10,2), 
+                                        pay_burden_amount double (10,2), 
+                                        non_billed_paid_expense double (10,2),  
+                                        cmsnAmt double (10,2), 
+                                        CommissionPerson varchar(255) NOT NULL DEFAULT '',  
+                                        Roletitle varchar(255) NOT NULL DEFAULT '',  
+                                        commissionTier varchar(255) NOT NULL DEFAULT '',  
+                                        cmsnLevelSno int(15) NOT NULL DEFAULT 0,
+                                        quantityMarginTotal double (10,2), 
+                                        PRIMARY KEY (rowid),
+                                        KEY assgn_number (assgn_number),
+                                        KEY invoiceNo (invoiceNo),
+                                        KEY invoice_date (invoice_date),
+                                        KEY cmsnLevelSno (cmsnLevelSno),
+                                        KEY commissionTier (commissionTier)
+                                        ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=latin1 PACK_KEYS=1 CHECKSUM=1";
+            mysql_query($tmpTableCreateSql_4, $db);
+
+            //Temp - 4.1 - Insertion
+            $tmpTableInsertSql_4_1 = "INSERT INTO rpt_tmp_InvComm_gp_cmsntiers_calc 
+                                    (deptname, assgn_number, invoiceNo, invoice_date, InvoiceTotal, customer, 
+                                    emp_name, Quantity, payrate, billrate, pay_amount, bill_amount, burden, 
+                                    pay_burden_amount, non_billed_paid_expense, cmsnAmt, CommissionPerson, 
+				    Roletitle, commissionTier, cmsnLevelSno, quantityMarginTotal) 
                                         SELECT
                                             deptname, 
                                             GROUP_CONCAT(DISTINCT assgn_name) AS assgn_number, 
@@ -674,7 +628,7 @@
                                             SUM(DISTINCT bill_amount) AS bill_amount, 
                                             burden, 
                                             SUM(DISTINCT pay_burden_amount) AS pay_burden_amount,
-                                            rpt_tmp_InvComm_getPayAdjExpense(cust_sno,emp_uname,'".$invoiceFrDate."','".$invoiceToDate."','') AS 'non_billed_paid_expense', 
+                                            invComm_getPayAdjExpense(cust_sno,emp_uname,'".$invoiceFrDate."','".$invoiceToDate."','') AS 'non_billed_paid_expense', 
                                             cmsnAmt, 
                                             CommissionPerson, 
                                             Roletitle, 
@@ -692,7 +646,7 @@
                                             emp_sno, 
                                             invoiceNo,
                                             CommissionPerson";
-            mysql_query($tmpTableCreateSql_4, $db);
+            mysql_query($tmpTableInsertSql_4_1, $db);
             
             //Temp Delete - 1
             $tmpTableDelSql_1   = "DELETE FROM tmp_InvComm_Revenue_trans_details WHERE DATE_FORMAT(invoice_date, '%Y-%m-%d') >= '".$invoiceFrDate."'";
@@ -808,51 +762,29 @@
              * Creating the Temporary Tables End
              */
 
-            /* Calling below function to drop temp tables and functions created and exists */
-            droptemptables();
+            /* Calling below function to truncate temp tables created and exists */
+            truncatetemptables();
     }
 
-    /* Function to Drop temp tables and functions created for Invoice Commission Revenue */
-    function droptemptables()
+    /* Function to Truncate temp tables created for Invoice Commission Revenue */
+    function truncatetemptables()
     {
             global $db;
 
             //Dropping Temporary Tables Start
 
-            $tmpTable1DropSql_1 = "DROP TABLE IF EXISTS rpt_tmp_InvComm_cmsn_details_individual";
+            $tmpTable1DropSql_1 = "TRUNCATE TABLE rpt_tmp_InvComm_cmsn_details_individual";
             mysql_query($tmpTable1DropSql_1, $db);
 
-            $tmpTable1DropSql_2 = "DROP TABLE IF EXISTS rpt_tmp_InvComm_invactual_amount";
+            $tmpTable1DropSql_2 = "TRUNCATE TABLE rpt_tmp_InvComm_invactual_amount";
             mysql_query($tmpTable1DropSql_2, $db);
 
-            $tmpTable1DropSql_3 = "DROP TABLE IF EXISTS rpt_tmp_InvComm_all_cmsn_details";
+            $tmpTable1DropSql_3 = "TRUNCATE TABLE rpt_tmp_InvComm_all_cmsn_details";
             mysql_query($tmpTable1DropSql_3, $db);
 
-            $tmpTable1DropSql_4 = "DROP TABLE IF EXISTS rpt_tmp_InvComm_gp_cmsntiers_calc";
+            $tmpTable1DropSql_4 = "TRUNCATE TABLE rpt_tmp_InvComm_gp_cmsntiers_calc";
             mysql_query($tmpTable1DropSql_4, $db);
     
             //Dropping Temporary Tables End
-
-            //Dropping Temporary Functions Start
-
-            $tmpFuncDropSql_1   = "DROP FUNCTION IF EXISTS rpt_tmp_InvComm_getPayBurdenFlat";
-            mysql_query($tmpFuncDropSql_1, $db);
-
-            $tmpFuncDropSql_2   = "DROP FUNCTION IF EXISTS rpt_tmp_InvComm_getPayBurdenPerc";
-            mysql_query($tmpFuncDropSql_2, $db);
-
-            $tmpFuncDropSql_3   = "DROP FUNCTION IF EXISTS rpt_tmp_InvComm_getBillBurdenFlat";
-            mysql_query($tmpFuncDropSql_3, $db);
-
-            $tmpFuncDropSql_4   = "DROP FUNCTION IF EXISTS rpt_tmp_InvComm_getBillBurdenPerc";
-            mysql_query($tmpFuncDropSql_4, $db);
-
-            $tmpFuncDropSql_5   = "DROP FUNCTION IF EXISTS rpt_tmp_InvComm_getQuanMarginTotalAmount";
-            mysql_query($tmpFuncDropSql_5, $db);
-
-            $tmpFuncDropSql_6   = "DROP FUNCTION IF EXISTS rpt_tmp_InvComm_getPayAdjExpense";
-            mysql_query($tmpFuncDropSql_6, $db);
-
-            //Dropping Temporary Functions End
     }
 ?>
