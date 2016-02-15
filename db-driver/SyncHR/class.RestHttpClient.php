@@ -118,25 +118,46 @@ class HttpClient
 		return $querystring;
 	}
 
-	function doRequest()
+	function doConnect($cnt)
 	{
 		if(!$fp = @fsockopen("ssl://".$this->host, $this->port, $errno, $errstr, $this->timeout))
 		{
 			switch($errno)
 			{
 				case -3:
-					$this->errormsg = 'Socket creation failed (-3)';
+					$this->errormsg = 'AkkenCloud :: Socket creation failed (-3)';
 				case -4:
-					$this->errormsg = 'DNS lookup failure (-4)';
+					$this->errormsg = 'AkkenCloud :: DNS lookup failure (-4)';
 				case -5:
-					$this->errormsg = 'Connection refused or timed out (-5)';
+					$this->errormsg = 'AkkenCloud :: Connection refused or timed out (-5)';
 				default:
-					$this->errormsg = 'Connection failed ('.$errno.')';
+					$this->errormsg = 'AkkenCloud :: Connection failed ('.$errno.')';
 				$this->errormsg .= ' '.$errstr;
 				$this->debug($this->errormsg);
 			}
-			return false;
+
+			if($cnt<3)
+			{
+				$cnt++;
+				$this->doConnect($cnt);
+			}
+			else
+			{
+				$this->res_status=false;
+				$this->res_error.=$this->errormsg."\n\n\n";
+				return false;
+			}
 		}
+
+		return $fp;
+	}
+
+	function doRequest()
+	{
+		$fp=$this->doConnect(0);
+
+		if(!$fp)
+			return false;
 
 		socket_set_timeout($fp, $this->timeout);
 
@@ -164,8 +185,11 @@ class HttpClient
 				$atStart = false;
 				if (!preg_match('/HTTP\/(\\d\\.\\d)\\s*(\\d+)\\s*(.*)/', $line, $m))
 				{
-					$this->errormsg = "Status code line invalid: ".htmlentities($line);
+					$this->errormsg = "AkkenCloud :: Status code line invalid : ".htmlentities($line);
 					$this->debug($this->errormsg);
+					$this->res_status=false;
+					$this->res_error.=$this->errormsg."\n\n\n";
+
 					return false;
 				}
 

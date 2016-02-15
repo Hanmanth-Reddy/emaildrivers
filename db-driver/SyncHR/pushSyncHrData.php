@@ -62,7 +62,19 @@
 						}
 						else
 						{
-							if($synchr->updateSyncHREmpNo($ssn['personIdentity'][0]['empNo'],$personsData[$i]['empNo']))
+							$empSync=$synchr->updateSyncHREmpNo($ssn['personIdentity'][0]['empNo'],$personsData[$i]['empNo']);
+
+							if(!$empSync && trim($personsData[$i]['empNo'])!="")
+							{
+								$empSync=$synchr->createPersonEmpNO($ssn['personIdentity'][0]['identity'],$personsData[$i]['empNo']);
+								if($empSync)
+								{
+									$ssn['personIdentity'][0]['empNo']=$personsData[$i]['empNo'];
+									$synchr->updateSyncHRCheck($personsData[$i]['empNo']);
+								}
+							}
+
+							if($empSync)
 							{
 								$personsData[$i]['empNo']=$ssn['personIdentity'][0]['empNo'];
 
@@ -76,22 +88,16 @@
 									if(trim($ssn['personIdentity'][0]['netId'])=="")
 										$synchr->setNetID_PWD($personsData[$i]);
 
-									$synchr->updatePerson($personsData[$i]);
-
 									if($personsData[$i]['acStatus']!="T")
 									{
-										$positionCode=$synchr->checkPersonPositionStatus($personsData[$i]);
-										if(!$positionCode)
+										if($personPositionData=$synchr->getPersonPositionData($personsData[$i]))
 										{
-											if($personPositionData=$synchr->getPersonPositionData($personsData[$i]))
-												$synchr->updatePosition($personPositionData,"");
-										}
-										else
-										{
-											if($personPositionData=$synchr->getPersonPositionData($personsData[$i]))
-												$synchr->updatePosition($personPositionData,$positionCode);
+											$positionCode=$synchr->checkPersonPositionStatus($personsData[$i],$personPositionData['positionCode']);
+											$synchr->updatePosition($personPositionData,$positionCode);
 										}
 									}
+
+									$synchr->updatePerson($personsData[$i]);
 								}
 							}
 							else
