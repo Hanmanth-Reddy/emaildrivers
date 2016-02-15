@@ -79,11 +79,10 @@ class SyncHR
 		return $result;
 	}
 
-	function dataCheck($aCloudData,$syncHrArray,$cfields)
+	function dataCheck($aCloudData,$syncHrArray,$cfields,$shElement)
 	{
 		$chkFlag=false;
-
-		$syncHrData=$syncHrArray[count($syncHrArray)-1];
+		$syncHrData=$syncHrArray[$shElement];
 
 		foreach($cfields as $key => $val)
 			if(trim($aCloudData[$key])!="")
@@ -100,6 +99,7 @@ class SyncHR
 				}
 				else 
 				{
+					//print "dataCheck :: $shElement :: $val :: ".$syncHrData[$val]." :: $key :: ".$aCloudData[$key]." :: \n==============\n";
 					if($syncHrData[$val]!=$aCloudData[$key])
 						return false;
 				}
@@ -107,6 +107,24 @@ class SyncHR
 		}
 
 		return $chkFlag;
+	}
+
+	function checkElement($shData,$key,$val)
+	{
+		$retval=-1;
+
+		for($i=0;$i<count($shData);$i++)
+		{
+			if($shData[$i][$key]==$val)
+			{
+				$retval=$i;
+				break;
+			}
+		}
+
+		//print "checkElement :: $key :: ".$shData[$i][$key]." :: $val :: $retval\n==============\n";
+
+		return $retval;
 	}
 
 	//******** PERSON FUNCTIONS **********//
@@ -117,10 +135,7 @@ class SyncHR
 
 		$personsData=array();
 
-		$bque="UPDATE syncHR_personData SET process='B', pdate=NOW() where acStatus='T' AND process='N'";
-		mysql_query($bque,$db);
-
-		$pque="SELECT sno,username,acStatus,empNo,effectiveDate,emplHireDate,endDate,payThroughDate,fName,mName,lName,locationCode,benefitStatus,emplStatus,emplPermanency,employmentType,emplClass,emplFulltimePercent,emplServiceDate,emplSenorityDate,emplBenefithireDate,streetAddress,streetAddress2,countryCode,city,stateProvinceCode,postalCode,phoneno,emailAddress,birthDate,genderCode,netId,SSN,emplEvent FROM syncHR_personData WHERE SSN!='' AND locid='$locid' AND process='N' ORDER BY cdate";
+		$pque="SELECT sno,username,acStatus,empNo,effectiveDate,emplHireDate,endDate,payThroughDate,fName,mName,lName,DBA,locationCode,benefitStatus,emplStatus,emplPermanency,employmentType,emplClass,emplFulltimePercent,emplServiceDate,emplSenorityDate,emplBenefithireDate,streetAddress,streetAddress2,countryCode,city,stateProvinceCode,postalCode,phoneno,emailAddress,birthDate,genderCode,netId,SSN,emplEvent FROM syncHR_personData WHERE SSN!='' AND locid='$locid' AND process='N' ORDER BY cdate";
 		$pres=mysql_query($pque,$db);
 		while($prow=mysql_fetch_assoc($pres))
 			$personsData[]=$prow;
@@ -220,6 +235,15 @@ class SyncHR
 			$shPwd=$this->resetPassword($personData['emailAddress']);
 	}
 
+	function createPersonEmpNO($SSN,$empNo)
+	{
+		$this->client->setAuthorization($this->apiKey, $this->token);
+
+		$personData = array("SSN" => $SSN, "identityType" => "empNo", "identity" => $empNo);
+
+		return $this->shCreateAPI("personIdentity",$personData);
+	}
+
 	function createPersonIdentity($empNo,$eID,$eType="SSN")
 	{
 		$this->client->setAuthorization($this->apiKey, $this->token);
@@ -244,7 +268,10 @@ class SyncHR
 	{
 		$this->client->setAuthorization($this->apiKey, $this->token);
 
+		$data['nametype'] = "Legal";
+
 		$fields = array("empNo","effectiveDate","emplHireDate","fName","mName","lName","locationCode","emplStatus","emplPermanency","employmentType","emplClass","emplFulltimePercent","emplServiceDate","emplSenorityDate","emplBenefithireDate","streetAddress","streetAddress2","countryCode","city","stateProvinceCode","postalCode","phoneno","emailAddress","emplEvent");
+
 		foreach($fields as $key => $val)
 			$personData[$val]=$data[$val];
 
@@ -254,11 +281,30 @@ class SyncHR
 		return $this->shCreateAPI("personData",$personData);
 	}
 
+	function createPersonDBA($data)
+	{
+		$this->client->setAuthorization($this->apiKey, $this->token);
+
+		$data['nametype'] = "DBA";
+
+		$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","fName" => "fName","mName" => "mName","lName" => "lName","DBA" => "name","nametype" => "nametype","emplEvent" => "emplEvent");
+
+		foreach($fields as $key => $val)
+			$personName[$val]=$data[$key];
+
+		return $this->shCreateAPI("personName",$personName);
+	}
+
 	function insertPersonData($personData)
 	{
+		$personData['effectiveDate']=$personData['emplHireDate'];
+
 		$shPersonData=$this->createPersonData($personData);
 		if($shPersonData)
 		{
+			if(trim($personData['DBA'])!="" && $personData['emplStatus']=="C")
+				$this->createPersonDBA($personData);
+
 			$shVitals=$this->createPersonVitals($personData['empNo'],$personData['birthDate'],$personData['genderCode'],$personData['effectiveDate']);
 			$shSSN=$this->createPersonIdentity($personData['empNo'],$personData['SSN'],"SSN");
 
@@ -280,13 +326,24 @@ class SyncHR
 		return $this->shCreateAPI("personVitals",$personData);
 	}
 
-	function updatePersonName($data)
+	function createPersonPayroll($effectiveDate,$empNo,$payUnitCode)
+	{
+		$this->client->setAuthorization($this->apiKey, $this->token);
+
+		$personPayroll = array("effectiveDate" => $effectiveDate, "empNo" => $empNo, "payUnitCode" => $payUnitCode, "payrollevent" => "Enrol", "payrolleventDescription" => "Enrollment", "payunitrelationship" => "M", "payunitrelationshipDescription" => "Member", "payrollstatus" => "A", "payrolltype" => "Y");
+
+		return $this->shCreateAPI("personPayroll",$personPayroll);
+	}
+
+	function updatePersonDBA($data)
 	{
 		$this->client->setAuthorization($this->apiKey, $this->token);
 
 		if($shData=$this->checkPersonStatus($data['empNo'],"personName"))
 		{
-			$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","fName" => "fname","mName" => "mname","lName" => "lname");
+			$data['nametype'] = "DBA";
+
+			$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","fName" => "fname","mName" => "mname","lName" => "lname","DBA" => "name","nametype" => "nametype");
 
 			$personName['nameevent']="NameChg";
 			foreach($fields as $key => $val)
@@ -294,11 +351,58 @@ class SyncHR
 
 			if(count($shData['personName'])>0)
 			{
-				$cfields = array("fName" => "fname","mName" => "mname","lName" => "lname");
-				if(!$this->dataCheck($data,$shData['personName'],$cfields))
-					return $this->shUpdateAPI("personName",$personName);
+				$shElement=$this->checkElement($shData['personName'],"nametype",$data['nametype']);
+				if($shElement>=0)
+				{
+					$cfields = array("fName" => "fname","mName" => "mname","lName" => "lname","DBA" => "name","nametype" => "nametype");
+					if(!$this->dataCheck($data,$shData['personName'],$cfields,$shElement))
+						return $this->shUpdateAPI("personName",$personName);
+					else
+						return true;
+				}
 				else
-					return true;
+				{
+					return $this->shCreateAPI("personName",$personName);
+				}
+			}
+			else
+			{
+				return $this->shCreateAPI("personName",$personName);
+			}
+		}
+
+		return false;
+	}
+
+	function updatePersonName($data)
+	{
+		$this->client->setAuthorization($this->apiKey, $this->token);
+
+		if($shData=$this->checkPersonStatus($data['empNo'],"personName"))
+		{
+			$data['nametype'] = "Legal";
+
+			$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","fName" => "fname","mName" => "mname","lName" => "lname","nametype" => "nametype");
+
+			$personName['nameevent']="NameChg";
+			foreach($fields as $key => $val)
+				$personName[$val]=$data[$key];
+
+			if(count($shData['personName'])>0)
+			{
+				$shElement=$this->checkElement($shData['personName'],"nametype",$data['nametype']);
+				if($shElement>=0)
+				{
+					$cfields = array("fName" => "fname","mName" => "mname","lName" => "lname","nametype" => "nametype");
+					if(!$this->dataCheck($data,$shData['personName'],$cfields,$shElement))
+						return $this->shUpdateAPI("personName",$personName);
+					else
+						return true;
+				}
+				else
+				{
+					return $this->shCreateAPI("personName",$personName);
+				}
 			}
 			else
 			{
@@ -315,7 +419,9 @@ class SyncHR
 
 		if($shData=$this->checkPersonStatus($data['empNo'],"personAddress"))
 		{
-			$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","streetAddress" => "streetAddress","streetAddress2" => "streetAddress2","countryCode" => "countryCode","city" => "city","stateProvinceCode" => "stateProvinceCode","postalCode" => "postalCode");
+			$data['addressType']="Res";
+
+			$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","streetAddress" => "streetAddress","streetAddress2" => "streetAddress2","countryCode" => "countryCode","city" => "city","stateProvinceCode" => "stateProvinceCode","postalCode" => "postalCode","addressType" => "addressType");
 
 			$personAddress['emplEvent']="Status";
 			foreach($fields as $key => $val)
@@ -323,11 +429,19 @@ class SyncHR
 
 			if(count($shData['personAddress'])>0)
 			{
-				$cfields = array("streetAddress" => "streetAddress","streetAddress2" => "streetAddress2","countryCode" => "countryCode","city" => "city","stateProvinceCode" => "stateProvinceCode","postalCode" => "postalCode");
-				if(!$this->dataCheck($data,$shData['personAddress'],$cfields))
-					return $this->shUpdateAPI("personAddress",$personAddress);
+				$shElement=$this->checkElement($shData['personAddress'],"addressType",$data['addressType']);
+				if($shElement>=0)
+				{
+					$cfields = array("streetAddress" => "streetAddress","streetAddress2" => "streetAddress2","countryCode" => "countryCode","city" => "city","stateProvinceCode" => "stateProvinceCode","postalCode" => "postalCode","addressType" => "addressType");
+					if(!$this->dataCheck($data,$shData['personAddress'],$cfields,$shElement))
+						return $this->shUpdateAPI("personAddress",$personAddress);
+					else
+						return true;
+				}
 				else
-					return true;
+				{
+					return $this->shCreateAPI("personAddress",$personAddress);
+				}
 			}
 			else
 			{
@@ -341,7 +455,6 @@ class SyncHR
 	function updatePersonPhone($data)
 	{
 		$data['phoneno']=preg_replace("/[^0-9]/","",$data['phoneno']);
-		$data['phoneContactType']="Home";
 
 		if(trim($data['phoneno'])!="")
 		{
@@ -349,50 +462,77 @@ class SyncHR
 	
 			if($shData=$this->checkPersonStatus($data['empNo'],"personPhone"))
 			{
+				$data['phoneContactType']="Home";
+
+				$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","phoneno" => "phoneNo","phoneContactType" => "phoneContactType");
+
+				foreach($fields as $key => $val)
+					$personPhone[$val]=$data[$key];
+
 				if(count($shData['personPhone'])>0)
 				{
-					return true;
+					$shElement=$this->checkElement($shData['personPhone'],"phoneContactType",$data['phoneContactType']);
+					if($shElement>=0)
+					{
+						$cfields = array("phoneno" => "phoneNo","phoneContactType" => "phoneContactType");
+						if(!$this->dataCheck($data,$shData['personPhone'],$cfields,$shElement))
+							return $this->shUpdateAPI("personPhone",$personPhone);
+						else
+							return true;
+					}
+					else
+					{
+						return $this->shCreateAPI("personPhone",$personPhone);
+					}
 				}
 				else
 				{
-					$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","phoneno" => "phoneNo","phoneContactType" => "phoneContactType");
-
-					foreach($fields as $key => $val)
-						$personPhone[$val]=$data[$key];
-
 					return $this->shCreateAPI("personPhone",$personPhone);
 				}
 			}
 		}
+
 		return false;
-		
 	}
 
 	function updatePersonEmail($data)
 	{
-		$data['netContactType']="Email";
-
 		if(trim($data['emailAddress'])!="")
 		{
 			$this->client->setAuthorization($this->apiKey, $this->token);
 
 			if($shData=$this->checkPersonStatus($data['empNo'],"personEmail"))
 			{
+				$data['netContactType']="HomeEmail";
+
+				$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","emailAddress" => "url","netContactType" => "netContactType");
+
+				foreach($fields as $key => $val)
+					$personEmail[$val]=$data[$key];
+
 				if(count($shData['personEmail'])>0)
 				{
-					return true;
+					$shElement=$this->checkElement($shData['personEmail'],"netContactType",$data['netContactType']);
+					if($shElement>=0)
+					{
+						$cfields = array("emailAddress" => "url","netContactType" => "netContactType");
+						if(!$this->dataCheck($data,$shData['personEmail'],$cfields,$shElement))
+							return $this->shUpdateAPI("personEmail",$personEmail);
+						else
+							return true;
+					}
+					else
+					{
+						return $this->shCreateAPI("personEmail",$personEmail);
+					}
 				}
 				else
 				{
-					$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","emailAddress" => "url","netContactType" => "netContactType");
-
-					foreach($fields as $key => $val)
-						$personEmail[$val]=$data[$key];
-
 					return $this->shCreateAPI("personEmail",$personEmail);
 				}
 			}
 		}
+
 		return false;
 	}
 
@@ -424,7 +564,7 @@ class SyncHR
 			if($data['acStatus']=="T")
 			{
 				$personEmployment['emplEvent']="InvTerm";
-				$personEmployment['emplEventDETCode']="H";
+				$personEmployment['emplEventDETCode']="EA";
 			}
 			else if($data['acStatus']=="R")
 			{
@@ -443,7 +583,7 @@ class SyncHR
 			if(count($shData['personEmployment'])>0)
 			{
 				$cfields = array("emplStatus" => "emplStatus","emplClass" => "emplClass","emplHireDate" => "emplHireDate","emplServiceDate" => "emplServiceDate","emplSenorityDate" => "emplSenorityDate","emplBenefithireDate" => "emplBenefithireDate");
-				if(!$this->dataCheck($data,$shData['personEmployment'],$cfields))
+				if(!$this->dataCheck($data,$shData['personEmployment'],$cfields,count($shData['personEmployment'])-1))
 					return $this->shUpdateAPI("personEmployment",$personEmployment);
 				else
 					return true;
@@ -460,7 +600,7 @@ class SyncHR
 	function terminateEmployment($data)
 	{
 		$data['emplEvent']="InvTerm";
-		$data['emplEventdetCode']="H";
+		$data['emplEventdetCode']="EA";
 
 		$this->client->setAuthorization($this->apiKey, $this->token);
 
@@ -474,7 +614,7 @@ class SyncHR
 			if(count($shData['personEmployment'])>0)
 			{
 				$cfields = array("emplStatus" => "emplStatus","emplHireDate" => "emplHireDate","benefitStatus" => "benefitStatus","payThroughDate" => "payThroughDate","emplEvent" => "emplEvent","emplEventdetCode" => "emplEventdetCode");
-				if(!$this->dataCheck($data,$shData['personEmployment'],$cfields))
+				if(!$this->dataCheck($data,$shData['personEmployment'],$cfields,count($shData['personEmployment'])-1))
 					return $this->shUpdateAPI("personEmployment",$personEmployment);
 				else
 					return true;
@@ -525,7 +665,7 @@ class SyncHR
 			if(count($shData['personEmployment'])>0)
 			{
 				$cfields = array("emplStatus" => "emplStatus","emplClass" => "emplClass","emplHireDate" => "emplHireDate","emplServiceDate" => "emplServiceDate","emplSenorityDate" => "emplSenorityDate","emplBenefithireDate" => "emplBenefithireDate","benefitStatus" => "benefitStatus","emplEvent" => "emplEvent","emplEventdetCode" => "emplEventdetCode");
-				if(!$this->dataCheck($data,$shData['personEmployment'],$cfields))
+				if(!$this->dataCheck($data,$shData['personEmployment'],$cfields,count($shData['personEmployment'])-1))
 					return $this->shUpdateAPI("personEmployment",$personEmployment);
 				else
 					return true;
@@ -554,7 +694,7 @@ class SyncHR
 			if(count($shData['personVitals'])>0)
 			{
 				$cfields = array("birthDate" => "birthDate", "genderCode" => "genderCode");
-				if(!$this->dataCheck($data,$shData['personVitals'],$cfields))
+				if(!$this->dataCheck($data,$shData['personVitals'],$cfields,count($shData['personVitals'])-1))
 					return $this->shUpdateAPI("personVitals",$personVitals);
 				else
 					return true;
@@ -583,7 +723,7 @@ class SyncHR
 			if(count($shData['personLocation'])>0)
 			{
 				$cfields = array("locationCode" => "locationCode");
-				if(!$this->dataCheck($data,$shData['personLocation'],$cfields))
+				if(!$this->dataCheck($data,$shData['personLocation'],$cfields,count($shData['personLocation'])-1))
 					return $this->shUpdateAPI("personLocation",$personLocation);
 				else
 					return true;
@@ -591,6 +731,41 @@ class SyncHR
 			else
 			{
 				return $this->shCreateAPI("personLocation",$personLocation);
+			}
+		}
+
+		return false;
+	}
+
+	function updatePersonPayroll($data)
+	{
+		$this->client->setAuthorization($this->apiKey, $this->token);
+
+		if($shData=$this->checkPersonStatus($data['empNo'],"personPayroll"))
+		{
+			$data['payrollevent']="Enrol";
+			$data['payrolleventDescription']="Enrollment";
+			$data['payrollstatus']="A";
+			$data['payrolltype']="Y";
+			$data['payunitrelationship']="M";
+			$data['payunitrelationshipDescription']="Member";
+
+			$fields = array("effectiveDate" => "effectiveDate", "empNo" => "empNo", "payUnitCode" => "payUnitCode", "payrollevent" => "payrollevent", "payrolleventDescription" => "payrolleventDescription", "payrollstatus" => "payrollstatus", "payrolltype" => "payrolltype", "payunitrelationship" => "payunitrelationship", "payunitrelationshipDescription" => "payunitrelationshipDescription");
+
+			foreach($fields as $key => $val)
+				$personPayroll[$val]=$data[$key];
+
+			if(count($shData['personPayroll'])>0)
+			{
+				$cfields = array("payUnitCode" => "payUnitCode","payrollstatus" => "payrollstatus");
+				if(!$this->dataCheck($data,$shData['personPayroll'],$cfields,count($shData['personPayroll'])-1))
+					return $this->shUpdateAPI("personPayroll",$personPayroll);
+				else
+					return true;
+			}
+			else
+			{
+				return $this->shCreateAPI("personPayroll",$personPayroll);
 			}
 		}
 
@@ -636,6 +811,10 @@ class SyncHR
 		$this->updatePersonAddress($personData);
 		$this->updatePersonPhone($personData);
 		$this->updatePersonEmail($personData);
+
+		if(trim($personData['DBA'])!="" && $personData['emplStatus']=="C")
+			$this->updatePersonDBA($personData);
+
 		$this->updatePersonVitals($personData);
 		$this->updatePersonLocation($personData);
 
@@ -664,7 +843,7 @@ class SyncHR
 
 		$positionData=array();
 
-		$pque="SELECT sno,username,empNo,positionCode,positionTitle,positionEvent,effectiveDate,scheduleFrequency,scheduledHours,partialPercent,persPosEvent,managingPosition,hrOrganization,IF(eeoCode=0,50,eeoCode),companyOfficer,flsaProfile,flsaCode,mgmtClass,grade,workersCompProfile,workersCompCode,orgCode,posOrgPercent,earningsCode,frequencyCode,currencyCode,compEvent,compAmount,compLimit,increaseAmount,compLimitCode,shiftCode,payOvertime,SSN FROM syncHR_positionData WHERE process='N' AND username='".$personData['username']."' AND parid='".$personData['sno']."'";
+		$pque="SELECT sno,username,empNo,positionCode,positionTitle,positionEvent,effectiveDate,sDate,scheduleFrequency,scheduledHours,partialPercent,persPosEvent,managingPosition,hrOrganization,IF(eeoCode=0,50,eeoCode),companyOfficer,flsaProfile,flsaCode,mgmtClass,grade,workersCompProfile,workersCompCode,orgCode,budgetOrgCode,posOrgPercent,earningsCode,frequencyCode,currencyCode,compEvent,compAmount,compLimit,increaseAmount,compLimitCode,shiftCode,payOvertime,payUnitCode,SSN FROM syncHR_positionData WHERE process='N' AND username='".$personData['username']."' AND parid='".$personData['sno']."'";
 		$pres=mysql_query($pque,$db);
 		$prow=mysql_fetch_assoc($pres);
 		if(mysql_num_rows($pres)>0)
@@ -691,11 +870,15 @@ class SyncHR
 	{
 		if($positionData=$this->getPersonPositionData($personData))
 		{
+			$positionData['effectiveDate']=$personData['emplHireDate'];
+
 			$shPositionData=$this->createPositionData($positionData);
 			if($shPositionData)
 			{
 				$this->createPersonCompensation($positionData);
 				$this->createPersonPostion($positionData);
+				$this->createPersonPayroll($positionData['effectiveDate'],$positionData['empNo'],$positionData['payUnitCode']);
+				$this->createPositionBudgetOrganization($positionData);
 				$this->updatePositionStatus($positionData,"Y");
 			}
 			else
@@ -705,14 +888,36 @@ class SyncHR
 		}
 	}
 
+	function insertNewPositionData($positionData)
+	{
+		$shPositionData=$this->createPositionData($positionData);
+		if($shPositionData)
+		{
+			$this->updatePersonCompensation($positionData);
+			$this->createPersonPostion($positionData);
+			$this->updatePersonPayroll($positionData);
+			$this->createPositionBudgetOrganization($positionData);
+			$this->updatePositionStatus($positionData,"Y");
+		}
+		else
+		{
+			$this->updatePositionStatus($positionData,"F");
+		}
+	}
+
 	function createPositionData($data)
 	{
 		$this->client->setAuthorization($this->apiKey, $this->token);
 
-		$fields = array("positionCode","positionTitle","positionEvent","effectiveDate","hrOrganization","eeoCode","companyOfficer","flsaProfile","flsaCode","mgmtClass","grade","workersCompProfile","workersCompCode","shiftCode","payOvertime","orgCode");
+		$fields = array("positionCode","positionTitle","positionEvent","effectiveDate","sDate","hrOrganization","eeoCode","companyOfficer","flsaProfile","flsaCode","mgmtClass","grade","workersCompProfile","workersCompCode","shiftCode","payOvertime");
 
 		foreach($fields as $key => $val)
-			$positionData[$val]=$data[$val];
+		{
+			if($val=="sDate")
+				$positionData['effectiveDate']=$data[$val];
+			else
+				$positionData[$val]=$data[$val];
+		}
 
 		return $this->shCreateAPI("positionData",$positionData);
 	}
@@ -746,36 +951,17 @@ class SyncHR
 		return $this->shCreateAPI("personPosition",$personPosition);
 	}
 
-	function replacePositionData($data,$positionCode)
+	function createPositionBudgetOrganization($data)
 	{
 		$this->client->setAuthorization($this->apiKey, $this->token);
 
-		if($data['positionCode']!=$positionCode)
-		{
-			$data['positionXID']=$data['positionCode'];
-			$data['positionCode']=$positionCode;
+		$fields = array("effectiveDate","positionCode","budgetOrgCode","posOrgPercent");
 
-			if($shData=$this->checkPositionStatus($data['positionCode'],"positionData"))
-			{
-				$fields = array("positionCode" => "positionCode","effectiveDate" => "effectiveDate","positionTitle" => "positionTitle","positionXID" => "positionXID");
+		$positionBudgetOrganization['posOrgRelEvent'] = "NewPos";
+		foreach($fields as $key => $val)
+			$positionBudgetOrganization[$val]=$data[$val];
 
-				$positionData['positionEvent']="Title";
-				foreach($fields as $key => $val)
-					$positionData[$val]=$data[$key];
-
-				$cfields = array("positionTitle" => "positionTitle","positionXID" => "positionXID");
-				if(!$this->dataCheck($data,$shData['positionData'],$cfields))
-					return $this->shUpdateAPI("positionData",$positionData);
-				else
-					return true;
-			}
-		}
-		else
-		{
-			return $this->updatePositionData($data);
-		}
-
-		return false;
+		return $this->shCreateAPI("positionBudgetOrganization",$positionBudgetOrganization);
 	}
 
 	function updatePositionData($data)
@@ -792,8 +978,8 @@ class SyncHR
 
 			if(count($shData['positionData'])>0)
 			{
-				$cfields = array("positionCode" => "positionCode","positionTitle" => "positionTitle","flsaProfile" => "flsaProfile","workersCompProfile" => "workersCompProfile","workersCompCode" => "workersCompCode");
-				if(!$this->dataCheck($data,$shData['positionData'],$cfields))
+				$cfields = array("positionTitle" => "positionTitle","flsaProfile" => "flsaProfile","workersCompProfile" => "workersCompProfile","workersCompCode" => "workersCompCode");
+				if(!$this->dataCheck($data,$shData['positionData'],$cfields,count($shData['positionData'])-1))
 					return $this->shUpdateAPI("positionData",$positionData);
 				else
 					return true;
@@ -826,18 +1012,18 @@ class SyncHR
 
 			if(count($shData['personCompensation'])>0)
 			{
-				$syncHrData=$shData['personCompensation'][count($shData['personCompensation'])-1];
-				if($syncHrData['earningsCode']!=$data['earningsCode'])
+				$shElement=$this->checkElement($shData['personCompensation'],"earningsCode",$data['earningsCode']);
+				if($shElement>=0)
 				{
-					return $this->shCreateAPI("personCompensation",$personCompensation);
-				}
-				else
-				{
-					$cfields = array("earningsCode" => "earningsCode","frequencyCode" => "frequencyCode","currencyCode" => "currencyCode","compAmount" => "compAmount");
-					if(!$this->dataCheck($data,$shData['personCompensation'],$cfields))
+					$cfields = array("frequencyCode" => "frequencyCode","currencyCode" => "currencyCode","compAmount" => "compAmount","earningsCode" => "earningsCode");
+					if(!$this->dataCheck($data,$shData['personCompensation'],$cfields,$shElement))
 						return $this->shUpdateAPI("personCompensation",$personCompensation);
 					else
 						return true;
+				}
+				else
+				{
+					return $this->shCreateAPI("personCompensation",$personCompensation);
 				}
 			}
 			else
@@ -849,7 +1035,7 @@ class SyncHR
 		return false;
 	}
 
-	function checkPersonPositionStatus($data)
+	function checkPersonPositionStatus($data,$posCode)
 	{
 		$this->client->setAuthorization($this->apiKey, $this->token);
 
@@ -858,12 +1044,12 @@ class SyncHR
 			if(count($shData['personPosition'])>0)
 			{
 				$syncHrData=$shData['personPosition'][count($shData['personPosition'])-1];
-				if($syncHrData['positionCode']!=$data['positionCode'])
+				if($syncHrData['positionCode']!=$posCode)
 					return $syncHrData['positionCode'];
 			}
 		}
 
-		return false;
+		return "";
 	}
 
 	function updatePersonPosition($data)
@@ -881,7 +1067,7 @@ class SyncHR
 			if(count($shData['personPosition'])>0)
 			{
 				$cfields = array("positionCode" => "positionCode","scheduleFrequency" => "scheduleFrequency","scheduledHours" => "scheduledHours","partialPercent" => "partialPercent");
-				if(!$this->dataCheck($data,$shData['personPosition'],$cfields))
+				if(!$this->dataCheck($data,$shData['personPosition'],$cfields,count($shData['personPosition'])-1))
 					return $this->shUpdateAPI("personPosition",$personPosition);
 				else
 					return true;
@@ -889,6 +1075,35 @@ class SyncHR
 			else
 			{
 				return $this->shCreateAPI("personPosition",$personPosition);
+			}
+		}
+
+		return false;
+	}
+
+	function updatePositionBudgetOrganization($data)
+	{
+		$this->client->setAuthorization($this->apiKey, $this->token);
+
+		if($shData=$this->checkPositionStatus($data['positionCode'],"positionBudgetOrganization"))
+		{
+			$fields = array("effectiveDate" => "effectiveDate","positionCode" => "positionCode","budgetOrgCode" => "budgetOrgCode","posOrgPercent" => "posOrgPercent");
+
+			$positionBudgetOrganization['posOrgRelEvent']="NewPos";
+			foreach($fields as $key => $val)
+				$positionBudgetOrganization[$val]=$data[$key];
+
+			if(count($shData['positionBudgetOrganization'])>0)
+			{
+				$cfields = array("budgetOrgCode" => "budgetOrgCode");
+				if(!$this->dataCheck($data,$shData['positionBudgetOrganization'],$cfields,count($shData['positionBudgetOrganization'])-1))
+					return $this->shUpdateAPI("positionBudgetOrganization",$positionBudgetOrganization);
+				else
+					return true;
+			}
+			else
+			{
+				return $this->shCreateAPI("positionBudgetOrganization",$positionBudgetOrganization);
 			}
 		}
 
@@ -928,22 +1143,36 @@ class SyncHR
 		$this->clear_debug();
 	}
 
-	function updatePosition($positionData,$positionCode)
+	function updatePosition($posData,$positionCode)
 	{
-		if($positionCode!="")
+		if($positionCode=="")
 		{
-			$this->replacePositionData($positionData,$positionCode);
-			$this->updatePersonCompensation($positionData);
-			//$this->updatePersonPosition($positionData);
+			$this->updatePositionData($posData);
+			$this->updatePersonCompensation($posData);
+			$this->updatePersonPosition($posData);
+			$this->updatePersonPayroll($posData);
+			$this->updatePositionBudgetOrganization($posData);
+
+			$this->updatePositionStatus($posData,"U");
 		}
 		else
 		{
-			$this->updatePositionData($positionData);
-			$this->updatePersonCompensation($positionData);
-			$this->updatePersonPosition($positionData);
-		}
+			$yesday = mktime(0,0,0,date("m"),date("d")-1,date("Y"));
+			$endDate = date("Y-m-d",$yesday);
+			$posData['endDate']=$endDate;
 
-		$this->updatePositionStatus($positionData,"U");
+			$data = $posData;
+
+			if($shData=$this->checkPositionStatus($data['positionCode'],"positionData"))
+			{
+				$this->terminatePersonPosition($posData);
+
+				if(count($shData['positionData'])>0)
+					$this->updatePosition($posData,"");
+				else
+					$this->insertNewPositionData($posData);
+			}
+		}
 	}
 
 	function updatePersonPositionStatus($personsData,$status)
@@ -1058,7 +1287,6 @@ class SyncHR
 	{
 		$this->client->setAuthorization($this->apiKey, $this->token);
 
-		//$fields = array("personTimeCode","empNo","payTimeControlBatchCode","payUnitCode","workStartDate","periodEndDate","payProcessType","edtCode","hours","payRate","payAmount","deductionClass","activityCode","locationCode","orgCode","budgetOrgCode","shiftCode","workersCompCode");
 		$fields = array("personTimeCode","empNo","payTimeControlBatchCode","payUnitCode","workStartDate","periodEndDate","payProcessType","edtCode","hours","payRate","payAmount","activityCode","deductionClass");
 		foreach($fields as $key => $val)
 			$personTime[$val]=$data[$val];
@@ -1104,7 +1332,7 @@ class SyncHR
 
 	function notifyBatchStatus()
 	{
-		global $WDOCUMENT_ROOT,$db;
+		global $pri_production,$WDOCUMENT_ROOT,$db;
 
 		if($this->generateLogFiles()>0)
 		{
@@ -1113,8 +1341,12 @@ class SyncHR
 	
 			$bfolder=$WDOCUMENT_ROOT.$this->bcode."/".$this->bcode;
 			$csvfile=$bfolder."/".$this->bcode.".csv";
+
+			if($pri_production)
+				$to="ssorrells@qgsearch.com, s.anderson@qgsearch.com, lsabin@qgsearch.com, ijohnson2@qgsearch.com, kbond@qgsearch.com, mmalloy@qgsearch.com, rvempati@akkencloud.com";
+			else
+				$to="rvempati@akkencloud.com";
 	
-			$to="ssorrells@qgsearch.com, s.anderson@qgsearch.com, lsabin@qgsearch.com, ijohnson2@qgsearch.com, rvempati@akkencloud.com";
 			$from="donot-reply@akken.com";	
 			$subject=$this->bcode." :: Status of SyncHR Person / Position Data Push";
 	
@@ -1175,7 +1407,7 @@ class SyncHR
 	{
 		global $WDOCUMENT_ROOT,$db;
 
-		$bque="SELECT e.acStatus as acStatus,e.sno as esno,a.sno as asno,e.empNo,e.effectiveDate,e.emplHireDate,e.emplLastHireDate,e.payThroughDate,e.fName,e.mName,e.lName,e.locationCode,e.emplStatus,e.emplPermanency,e.employmentType,e.emplClass,e.emplFulltimePercent,e.emplServiceDate,e.emplSenorityDate,e.emplBenefithireDate,e.streetAddress,e.streetAddress2,e.countryCode,e.city,e.stateProvinceCode,e.postalCode,e.phoneno,e.emailAddress,e.shError as eshError,a.positionCode,a.positionTitle,a.hrOrganization,a.eeoCode,a.companyOfficer,a.flsaProfile,a.flsaCode,a.mgmtClass,a.grade,a.workersCompProfile,a.workersCompCode,a.shiftCode,a.payOvertime,a.orgCode,a.shError as ashError FROM syncHR_personData e LEFT JOIN syncHR_positionData a ON e.sno=a.parid WHERE e.acStatus!='T' AND e.process!='N' AND a.process!='N' AND e.bcode='".$this->bcode."' AND a.bcode='".$this->bcode."' AND (e.shError!='' OR a.shError!='') UNION SELECT e.acStatus as acStatus,e.sno as esno,'' as asno,e.empNo,e.effectiveDate,e.emplHireDate,e.emplLastHireDate,e.payThroughDate,e.fName,e.mName,e.lName,e.locationCode,e.emplStatus,e.emplPermanency,e.employmentType,e.emplClass,e.emplFulltimePercent,e.emplServiceDate,e.emplSenorityDate,e.emplBenefithireDate,e.streetAddress,e.streetAddress2,e.countryCode,e.city,e.stateProvinceCode,e.postalCode,e.phoneno,e.emailAddress,e.shError as eshError,'' as positionCode,'' as positionTitle,'' as hrOrganization,'' as eeoCode,'' as companyOfficer,'' as flsaProfile,'' as flsaCode,'' as mgmtClass,'' as grade,'' as workersCompProfile,'' as workersCompCode,'' as shiftCode,'' as payOvertime,'' as orgCode,'' as ashError FROM syncHR_personData e WHERE e.acStatus='T' AND e.process!='N' AND e.bcode='".$this->bcode."' AND e.shError!=''";
+		$bque="SELECT e.process as Processed,e.SSN as SSN,e.acStatus as acStatus,e.sno as esno,a.sno as asno,e.empNo,e.effectiveDate,e.emplHireDate,e.emplLastHireDate,e.payThroughDate,e.fName,e.mName,e.lName,e.locationCode,e.emplStatus,e.emplPermanency,e.employmentType,e.emplClass,e.emplFulltimePercent,e.emplServiceDate,e.emplSenorityDate,e.emplBenefithireDate,e.streetAddress,e.streetAddress2,e.countryCode,e.city,e.stateProvinceCode,e.postalCode,e.phoneno,e.emailAddress,e.shError as eshError,a.positionCode,a.positionTitle,a.hrOrganization,a.eeoCode,a.companyOfficer,a.flsaProfile,a.flsaCode,a.mgmtClass,a.grade,a.workersCompProfile,a.workersCompCode,a.shiftCode,a.payOvertime,a.orgCode,a.shError as ashError FROM syncHR_personData e LEFT JOIN syncHR_positionData a ON e.sno=a.parid WHERE e.acStatus!='T' AND e.process!='N' AND a.process!='N' AND e.bcode='".$this->bcode."' AND a.bcode='".$this->bcode."' AND (e.shError!='' OR a.shError!='') UNION SELECT e.SSN as SSN,e.acStatus as acStatus,e.sno as esno,'' as asno,e.empNo,e.effectiveDate,e.emplHireDate,e.emplLastHireDate,e.payThroughDate,e.fName,e.mName,e.lName,e.locationCode,e.emplStatus,e.emplPermanency,e.employmentType,e.emplClass,e.emplFulltimePercent,e.emplServiceDate,e.emplSenorityDate,e.emplBenefithireDate,e.streetAddress,e.streetAddress2,e.countryCode,e.city,e.stateProvinceCode,e.postalCode,e.phoneno,e.emailAddress,e.shError as eshError,'' as positionCode,'' as positionTitle,'' as hrOrganization,'' as eeoCode,'' as companyOfficer,'' as flsaProfile,'' as flsaCode,'' as mgmtClass,'' as grade,'' as workersCompProfile,'' as workersCompCode,'' as shiftCode,'' as payOvertime,'' as orgCode,'' as ashError FROM syncHR_personData e WHERE e.acStatus='T' AND e.process!='N' AND e.bcode='".$this->bcode."' AND e.shError!=''";
 		$bres=mysql_query($bque,$db);
 		$bcount=mysql_num_rows($bres);
 		if($bcount>0)
@@ -1186,13 +1418,18 @@ class SyncHR
 			$bfolder=$WDOCUMENT_ROOT.$this->bcode."/".$this->bcode;
 			mkdir($bfolder,0777);
 
-			$fields = array("empNo","effectiveDate","emplHireDate","emplLastHireDate","payThroughDate","fName","mName","lName","locationCode","emplStatus","emplPermanency","employmentType","emplClass","emplFulltimePercent","emplServiceDate","emplSenorityDate","emplBenefithireDate","streetAddress","streetAddress2","countryCode","city","stateProvinceCode","postalCode","phoneno","emailAddress","positionCode","positionTitle","hrOrganization","eeoCode","companyOfficer","flsaProfile","flsaCode","mgmtClass","grade","workersCompProfile","workersCompCode","shiftCode","payOvertime","orgCode","eshError","ashError");
+			$ptype = array("Y" => "Inserted", "U" => "Updated", "F" => "Failed", "B" => "Backup");
+
+			$fields = array("empNo","effectiveDate","emplHireDate","emplLastHireDate","payThroughDate","SSN","fName","mName","lName","locationCode","emplStatus","emplPermanency","employmentType","emplClass","emplFulltimePercent","emplServiceDate","emplSenorityDate","emplBenefithireDate","streetAddress","streetAddress2","countryCode","city","stateProvinceCode","postalCode","phoneno","emailAddress","positionCode","positionTitle","hrOrganization","eeoCode","companyOfficer","flsaProfile","flsaCode","mgmtClass","grade","workersCompProfile","workersCompCode","shiftCode","payOvertime","orgCode","Processed","eshError","ashError");
 			$csv_content='"'.implode('","',$fields).'"'."\n";
 
 			while($brow=mysql_fetch_assoc($bres))
 			{
 				foreach($fields as $key => $val)
 				{
+					if($key=="Processed")
+						$brow[$val] = $ptype[$brow[$val]];
+
 					$nrow[$val]=stripslashes(str_replace("\r\n","",str_replace("\n","",$brow[$val])));
 					$contents=$this->generateCsv($nrow);
 				}
@@ -1237,7 +1474,7 @@ class SyncHR
 
 	function notifyTimeBatchStatus($batchId)
 	{
-		global $WDOCUMENT_ROOT,$db;
+		global $pri_production,$WDOCUMENT_ROOT,$db;
 
 		$bque="SELECT l.heading,b.payunit,b.paysdate,b.payedate,b.paybname,b.paybcode,b.payprocess,b.shError,b.process FROM syncHR_payUnitBatch b, contact_manage l WHERE b.locid=l.serial_no AND b.sno='$batchId'";
 		$bres=mysql_query($bque,$db);
@@ -1265,7 +1502,11 @@ class SyncHR
 			}
 		}
 
-		$to="ssorrells@qgsearch.com, s.anderson@qgsearch.com, lsabin@qgsearch.com, ijohnson2@qgsearch.com, rvempati@akkencloud.com";
+		if($pri_production)
+			$to="ssorrells@qgsearch.com, s.anderson@qgsearch.com, lsabin@qgsearch.com, ijohnson2@qgsearch.com, kbond@qgsearch.com, mmalloy@qgsearch.com, rvempati@akkencloud.com";
+		else
+			$to="rvempati@akkencloud.com";
+
 		$from="donot-reply@akken.com";	
 		$subject=$status_subj." :: Status of SyncHR Payroll Data Push";
 
