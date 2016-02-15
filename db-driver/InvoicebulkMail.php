@@ -1574,6 +1574,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 			LEFT JOIN emp_list ON emp_list.username = par_expense.username
 			LEFT JOIN hrcon_general ON emp_list.username = hrcon_general.username
 			LEFT JOIN staffacc_cinfo ON staffacc_cinfo.sno = expense.client
+			LEFT JOIN hrcon_jobs ON hrcon_jobs.pusername=expense.assid
 			LEFT JOIN users ON users.username = expense.approveuser
 			WHERE
 			expense.billable='$invoiceid' AND expense.client='$clientid'
@@ -1807,11 +1808,11 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 
 					if (strpos($row_query->inv_s_epcolumns, "lname,fname") !== false) {
 
-						$ep_empname	= "CONCAT(hrcon_general.lname,' ',hrcon_general.fname) AS `name`";
+						$ep_empname	= "CONCAT(hrcon_general.lname,' ',hrcon_general.fname)";
 
 					} else {
 
-						$ep_empname	= "CONCAT(hrcon_general.fname,' ',hrcon_general.lname) AS `name`";
+						$ep_empname	= "CONCAT(hrcon_general.fname,' ',hrcon_general.lname)";
 					}
 
 					unset($ep_clist);
