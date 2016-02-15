@@ -1407,7 +1407,7 @@ class SyncHR
 	{
 		global $WDOCUMENT_ROOT,$db;
 
-		$bque="SELECT e.process as Processed,e.SSN as SSN,e.acStatus as acStatus,e.sno as esno,a.sno as asno,e.empNo,e.effectiveDate,e.emplHireDate,e.emplLastHireDate,e.payThroughDate,e.fName,e.mName,e.lName,e.locationCode,e.emplStatus,e.emplPermanency,e.employmentType,e.emplClass,e.emplFulltimePercent,e.emplServiceDate,e.emplSenorityDate,e.emplBenefithireDate,e.streetAddress,e.streetAddress2,e.countryCode,e.city,e.stateProvinceCode,e.postalCode,e.phoneno,e.emailAddress,e.shError as eshError,a.positionCode,a.positionTitle,a.hrOrganization,a.eeoCode,a.companyOfficer,a.flsaProfile,a.flsaCode,a.mgmtClass,a.grade,a.workersCompProfile,a.workersCompCode,a.shiftCode,a.payOvertime,a.orgCode,a.shError as ashError FROM syncHR_personData e LEFT JOIN syncHR_positionData a ON e.sno=a.parid WHERE e.acStatus!='T' AND e.process!='N' AND a.process!='N' AND e.bcode='".$this->bcode."' AND a.bcode='".$this->bcode."' AND (e.shError!='' OR a.shError!='') UNION SELECT e.SSN as SSN,e.acStatus as acStatus,e.sno as esno,'' as asno,e.empNo,e.effectiveDate,e.emplHireDate,e.emplLastHireDate,e.payThroughDate,e.fName,e.mName,e.lName,e.locationCode,e.emplStatus,e.emplPermanency,e.employmentType,e.emplClass,e.emplFulltimePercent,e.emplServiceDate,e.emplSenorityDate,e.emplBenefithireDate,e.streetAddress,e.streetAddress2,e.countryCode,e.city,e.stateProvinceCode,e.postalCode,e.phoneno,e.emailAddress,e.shError as eshError,'' as positionCode,'' as positionTitle,'' as hrOrganization,'' as eeoCode,'' as companyOfficer,'' as flsaProfile,'' as flsaCode,'' as mgmtClass,'' as grade,'' as workersCompProfile,'' as workersCompCode,'' as shiftCode,'' as payOvertime,'' as orgCode,'' as ashError FROM syncHR_personData e WHERE e.acStatus='T' AND e.process!='N' AND e.bcode='".$this->bcode."' AND e.shError!=''";
+		$bque="SELECT e.process as Processed,e.SSN as SSN,e.acStatus as acStatus,e.sno as esno,a.sno as asno,e.empNo,e.effectiveDate,e.emplHireDate,e.emplLastHireDate,e.payThroughDate,e.fName,e.mName,e.lName,e.locationCode,e.emplStatus,e.emplPermanency,e.employmentType,e.emplClass,e.emplFulltimePercent,e.emplServiceDate,e.emplSenorityDate,e.emplBenefithireDate,e.streetAddress,e.streetAddress2,e.countryCode,e.city,e.stateProvinceCode,e.postalCode,e.phoneno,e.emailAddress,e.shError as eshError,a.positionCode,a.positionTitle,a.hrOrganization,a.eeoCode,a.companyOfficer,a.flsaProfile,a.flsaCode,a.mgmtClass,a.grade,a.workersCompProfile,a.workersCompCode,a.shiftCode,a.payOvertime,a.orgCode,a.shError as ashError FROM syncHR_personData e LEFT JOIN syncHR_positionData a ON e.sno=a.parid WHERE e.acStatus!='T' AND e.process!='N' AND a.process!='N' AND e.bcode='".$this->bcode."' AND a.bcode='".$this->bcode."' AND (e.shError!='' OR a.shError!='') UNION SELECT e.process as Processed,e.SSN as SSN,e.acStatus as acStatus,e.sno as esno,'' as asno,e.empNo,e.effectiveDate,e.emplHireDate,e.emplLastHireDate,e.payThroughDate,e.fName,e.mName,e.lName,e.locationCode,e.emplStatus,e.emplPermanency,e.employmentType,e.emplClass,e.emplFulltimePercent,e.emplServiceDate,e.emplSenorityDate,e.emplBenefithireDate,e.streetAddress,e.streetAddress2,e.countryCode,e.city,e.stateProvinceCode,e.postalCode,e.phoneno,e.emailAddress,e.shError as eshError,'' as positionCode,'' as positionTitle,'' as hrOrganization,'' as eeoCode,'' as companyOfficer,'' as flsaProfile,'' as flsaCode,'' as mgmtClass,'' as grade,'' as workersCompProfile,'' as workersCompCode,'' as shiftCode,'' as payOvertime,'' as orgCode,'' as ashError FROM syncHR_personData e WHERE e.acStatus='T' AND e.process!='N' AND e.bcode='".$this->bcode."' AND e.shError!=''";
 		$bres=mysql_query($bque,$db);
 		$bcount=mysql_num_rows($bres);
 		if($bcount>0)
@@ -1418,8 +1418,6 @@ class SyncHR
 			$bfolder=$WDOCUMENT_ROOT.$this->bcode."/".$this->bcode;
 			mkdir($bfolder,0777);
 
-			$ptype = array("Y" => "Inserted", "U" => "Updated", "F" => "Failed", "B" => "Backup");
-
 			$fields = array("empNo","effectiveDate","emplHireDate","emplLastHireDate","payThroughDate","SSN","fName","mName","lName","locationCode","emplStatus","emplPermanency","employmentType","emplClass","emplFulltimePercent","emplServiceDate","emplSenorityDate","emplBenefithireDate","streetAddress","streetAddress2","countryCode","city","stateProvinceCode","postalCode","phoneno","emailAddress","positionCode","positionTitle","hrOrganization","eeoCode","companyOfficer","flsaProfile","flsaCode","mgmtClass","grade","workersCompProfile","workersCompCode","shiftCode","payOvertime","orgCode","Processed","eshError","ashError");
 			$csv_content='"'.implode('","',$fields).'"'."\n";
 
@@ -1427,9 +1425,6 @@ class SyncHR
 			{
 				foreach($fields as $key => $val)
 				{
-					if($key=="Processed")
-						$brow[$val] = $ptype[$brow[$val]];
-
 					$nrow[$val]=stripslashes(str_replace("\r\n","",str_replace("\n","",$brow[$val])));
 					$contents=$this->generateCsv($nrow);
 				}
