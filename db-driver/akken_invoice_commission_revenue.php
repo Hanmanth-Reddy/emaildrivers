@@ -160,7 +160,7 @@
             $tmpTableCreateSql_2 = "CREATE TABLE IF NOT EXISTS rpt_tmp_InvComm_invactual_amount (
                                         rowid int(15) unsigned NOT NULL AUTO_INCREMENT,
                                         invoiceActualAmt double (10,2),
-                                        invoice_number int(15) NOT NULL DEFAULT 0,
+                                        invoice_number varchar(50) NOT NULL DEFAULT '',
                                         sno int(15) NOT NULL DEFAULT 0,
                                         PRIMARY KEY (rowid),
                                         KEY invoiceActualAmt (invoiceActualAmt),
@@ -191,7 +191,7 @@
             //Temp - 3
             $tmpTableCreateSql_3    = "CREATE TABLE IF NOT EXISTS rpt_tmp_InvComm_all_cmsn_details (
                                         rowid int(15) unsigned NOT NULL AUTO_INCREMENT,
-                                        invoiceNo int(15) NOT NULL DEFAULT 0,
+                                        invoiceNo varchar(50) NOT NULL DEFAULT '',
                                         invoice_date date DEFAULT '0000-00-00',
                                         cust_sno int(15) NOT NULL DEFAULT 0,
                                         customer varchar(255) NOT NULL DEFAULT '',
@@ -579,7 +579,7 @@
                                         rowid int(15) unsigned NOT NULL AUTO_INCREMENT,
                                         deptname varchar(255) NOT NULL DEFAULT '',
                                         assgn_number varchar(255) NOT NULL DEFAULT '',
-                                        invoiceNo int(15) NOT NULL DEFAULT 0,
+                                        invoiceNo varchar(50) NOT NULL DEFAULT '',
                                         invoice_date date DEFAULT '0000-00-00',
                                         InvoiceTotal double (10,2), 
                                         customer varchar(255) NOT NULL DEFAULT '', 
@@ -597,12 +597,14 @@
                                         Roletitle varchar(255) NOT NULL DEFAULT '',  
                                         commissionTier varchar(255) NOT NULL DEFAULT '',  
                                         cmsnLevelSno int(15) NOT NULL DEFAULT 0,
-                                        quantityMarginTotal double (10,2), 
+                                        quantityMarginTotal double (10,2),
+                                        cmsnSno int(15) NOT NULL DEFAULT 0, 
                                         PRIMARY KEY (rowid),
                                         KEY assgn_number (assgn_number),
                                         KEY invoiceNo (invoiceNo),
                                         KEY invoice_date (invoice_date),
-                                        KEY cmsnLevelSno (cmsnLevelSno),
+                                        KEY cmsnLevelSno (cmsnLevelSno), 
+                                        KEY cmsnSno (cmsnSno), 
                                         KEY commissionTier (commissionTier)
                                         ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=latin1 PACK_KEYS=1 CHECKSUM=1";
             mysql_query($tmpTableCreateSql_4, $db);
@@ -612,7 +614,7 @@
                                     (deptname, assgn_number, invoiceNo, invoice_date, InvoiceTotal, customer, 
                                     emp_name, Quantity, payrate, billrate, pay_amount, bill_amount, burden, 
                                     pay_burden_amount, non_billed_paid_expense, cmsnAmt, CommissionPerson, 
-				    Roletitle, commissionTier, cmsnLevelSno, quantityMarginTotal) 
+				    Roletitle, commissionTier, cmsnLevelSno, quantityMarginTotal, cmsnSno) 
                                         SELECT
                                             deptname, 
                                             GROUP_CONCAT(DISTINCT assgn_name) AS assgn_number, 
@@ -634,7 +636,8 @@
                                             Roletitle, 
                                             commissionTier, 
                                             cmsnLevelSno,
-                                            quantityMarginTotal
+                                            quantityMarginTotal,
+					    cmsnSno 
                                         FROM
                                             rpt_tmp_InvComm_all_cmsn_details 
                                         WHERE
@@ -645,7 +648,7 @@
                                             cust_sno, 
                                             emp_sno, 
                                             invoiceNo,
-                                            CommissionPerson";
+                                            cmsnSno";
             mysql_query($tmpTableInsertSql_4_1, $db);
             
             //Temp Delete - 1
@@ -680,7 +683,7 @@
                                             tct.customer, 
                                             tct.emp_name, 
                                             tct.invoiceNo,
-                                            tct.CommissionPerson 
+                                            tct.cmsnSno 
                                         ORDER BY
                                             tct.CommissionPerson,
                                             tct.Roletitle,
@@ -743,7 +746,7 @@
                                                 '".mysql_real_escape_string($tmpTableSelRw_1["assignment_id"])."',
                                                 '".mysql_real_escape_string($tmpTableSelRw_1["customer_name"])."',
                                                 '".$tmpTableSelRw_1["invoice_date"]."',
-                                                '".$tmpTableSelRw_1["invoice_number"]."',
+                                                '".mysql_real_escape_string($tmpTableSelRw_1["invoice_number"])."',
                                                 '".$tmpTableSelRw_1["invoice_total"]."',
                                                 '".$tmpTableSelRw_1["before_burden_gp_amount"]."',
                                                 '".$tmpTableSelRw_1["gp_amount"]."',
