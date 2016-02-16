@@ -26,15 +26,22 @@
             $invoiceToDate  = ""; //variable for getting today date.
 
             //Query to fetch today date and current month starting date
-            $getCurDate     = "SELECT DATE_ADD(CURDATE(), INTERVAL -1 DAY) AS 'tdate', CONCAT(DATE_FORMAT((DATE_ADD(CURDATE(), INTERVAL -1 DAY)), '%Y-%m'),'-01') AS 'fdate'";
+            $getCurDate     = "SELECT
+                                    DISTINCT(DATE_FORMAT(STR_TO_DATE(invoice_date,'%m/%d/%Y'),'%Y-%m-01')) AS 'fdate', 
+                                    LAST_DAY(DATE_FORMAT(STR_TO_DATE(invoice_date,'%m/%d/%Y'),'%Y-%m-01')) AS 'tdate'
+                                FROM invoice
+                                WHERE DATE_FORMAT(stime,'%Y-%m-%d') = DATE_ADD(CURDATE(), INTERVAL -1 DAY) 
+                                ORDER BY STR_TO_DATE(invoice_date,'%m/%d/%Y')";
             $getCurDateRes  = mysql_query($getCurDate, $db);
-            $getCurDateRow  = mysql_fetch_array($getCurDateRes);
-
-            $invoiceFrDate  = $getCurDateRow['fdate'];
-            $invoiceToDate  = $getCurDateRow['tdate'];
-
-            //Calling function to create temp tables and functions for Invoice Commission Revenue 
-            getCommRevenueData($invoiceFrDate, $invoiceToDate);
+            
+            while($getCurDateRow  = mysql_fetch_array($getCurDateRes))
+            {
+                $invoiceFrDate  = $getCurDateRow['fdate'];
+                $invoiceToDate  = $getCurDateRow['tdate'];
+    
+                //Calling function to create temp tables and functions for Invoice Commission Revenue 
+                getCommRevenueData($invoiceFrDate, $invoiceToDate);
+            }
         }
     }
 
@@ -275,8 +282,8 @@
                                             'Timesheet' AS LineType,
                                             ROUND(SUM(timesheet.hours),2) AS Quantity,
                                             CONCAT(invoice_multiplerates.rate,'(',invoice_multiplerates.period,')') AS Cost,
-                                            hrcon_jobs.pamount payrate,
-                                            hrcon_jobs.bamount billrate,
+                                            IF(hrcon_jobs.mdate > invoice.stime, invComm_getAsgnRateValue(hrcon_jobs.pusername,invoice.stime,multiplerates_assignment.ratemasterid,multiplerates_assignment.ratetype), hrcon_jobs.pamount) AS payrate,
+                                            IF(hrcon_jobs.mdate > invoice.stime, invComm_getAsgnRateValue(hrcon_jobs.pusername,invoice.stime,mulbill.ratemasterid,mulbill.ratetype), hrcon_jobs.bamount) AS billrate,
                                             hrcon_jobs.burden,
                                             hrcon_jobs.bill_burden AS bill_burden,
                                             hrcon_jobs.sno,
@@ -307,12 +314,12 @@
                                             cmsn.startdate AS commissionTierStartDate,
                                             cmsn.enddate AS commissionTierEndDate, 
                                             tinvact.invoiceActualAmt AS actualInvoiceAmt, 
-                                            SUM(timesheet.hours) * multiplerates_assignment.rate AS pay_amount, 
-                                            SUM(timesheet.hours) * mulbill.rate AS bill_amount,
+                                            IF(hrcon_jobs.mdate > invoice.stime, (SUM(timesheet.hours) * invComm_getAsgnRateValue(hrcon_jobs.pusername,invoice.stime,multiplerates_assignment.ratemasterid,multiplerates_assignment.ratetype)), (SUM(timesheet.hours) * multiplerates_assignment.rate)) AS pay_amount, 
+                                            IF(hrcon_jobs.mdate > invoice.stime, (SUM(timesheet.hours) * invComm_getAsgnRateValue(hrcon_jobs.pusername,invoice.stime,mulbill.ratemasterid,mulbill.ratetype)), (SUM(timesheet.hours) * mulbill.rate)) AS bill_amount,
                                             invComm_getPayBurdenPerc(hrcon_jobs.sno,multiplerates_assignment.ratemasterid),
                                             invComm_getPayBurdenFlat(hrcon_jobs.sno,multiplerates_assignment.ratemasterid),
-                                            invComm_getBillBurdenPerc(hrcon_jobs.sno,multiplerates_assignment.ratemasterid),
-                                            invComm_getBillBurdenFlat(hrcon_jobs.sno,multiplerates_assignment.ratemasterid) 
+                                            invComm_getBillBurdenPerc(hrcon_jobs.sno,mulbill.ratemasterid),
+                                            invComm_getBillBurdenFlat(hrcon_jobs.sno,mulbill.ratemasterid) 
                                         FROM
                                             acc_transaction 
                                         JOIN
@@ -377,8 +384,8 @@
                                             'Per Diem' AS LineType,
                                             IF(timesheet.edate='0000-00-00',COUNT(DISTINCT(timesheet.sdate)),DATEDIFF(timesheet.edate,timesheet.sdate)+1) AS Quantity,
                                             CONCAT(invoice_multiplerates.rate,'(',invoice_multiplerates.period,')') AS Cost,
-                                            hrcon_jobs.diem_total payrate,
-                                            IF(hrcon_jobs.diem_billable='Y',hrcon_jobs.diem_total,'') billrate,
+                                            hrcon_jobs.diem_total AS payrate,
+                                            IF(hrcon_jobs.diem_billable='Y',hrcon_jobs.diem_total,'') AS billrate,
                                             hrcon_jobs.burden,
                                             hrcon_jobs.bill_burden,
                                             hrcon_jobs.sno,
@@ -651,7 +658,7 @@
             mysql_query($tmpTableInsertSql_4_1, $db);
             
             //Temp Delete - 1
-            $tmpTableDelSql_1   = "DELETE FROM tmp_InvComm_Revenue_trans_details WHERE DATE_FORMAT(invoice_date, '%Y-%m-%d') >= '".$invoiceFrDate."'";
+            $tmpTableDelSql_1   = "DELETE FROM tmp_InvComm_Revenue_trans_details WHERE DATE_FORMAT(invoice_date, '%Y-%m-%d') >= '".$invoiceFrDate."' AND DATE_FORMAT(invoice_date, '%Y-%m-%d') <= '".$invoiceToDate."'";
             mysql_query($tmpTableDelSql_1, $db);
 
             //Temp Select - 1
@@ -685,7 +692,6 @@
                                         tct.cmsnSno 
                                     ORDER BY
                                         tct.CommissionPerson,
-                                        tct.Roletitle,
                                         tct.invoice_date,
                                         tct.invoiceNo";
             $tmpTableSelRs_1    = mysql_query($tmpTableSelSql_1, $db);
