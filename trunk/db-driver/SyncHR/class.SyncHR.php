@@ -178,7 +178,7 @@ class SyncHR
 		{
 			if($shempNo!=$acempNo)
 			{
-				$uque="UPDATE emp_list SET syncHRempNo='$shempNo', syncHRcheck='Y' WHERE syncHRempNo='$acempNo'";
+				$uque="UPDATE emp_list SET syncHRempNo='$shempNo', syncHRcheck='Y' WHERE lstatus!='DA' AND syncHRempNo='$acempNo'";
 				mysql_query($uque,$db);
 
 				$uque="UPDATE syncHR_personData SET empNo='$shempNo' WHERE empNo='$acempNo'";
@@ -870,8 +870,7 @@ class SyncHR
 	{
 		if($positionData=$this->getPersonPositionData($personData))
 		{
-			$positionData['effectiveDate']=$personData['emplHireDate'];
-
+			$positionData['effectiveDate']=$positionData['sDate'];
 			$shPositionData=$this->createPositionData($positionData);
 			if($shPositionData)
 			{
@@ -890,6 +889,7 @@ class SyncHR
 
 	function insertNewPositionData($positionData)
 	{
+		$positionData['effectiveDate']=$positionData['sDate'];
 		$shPositionData=$this->createPositionData($positionData);
 		if($shPositionData)
 		{
@@ -912,12 +912,7 @@ class SyncHR
 		$fields = array("positionCode","positionTitle","positionEvent","effectiveDate","sDate","hrOrganization","eeoCode","companyOfficer","flsaProfile","flsaCode","mgmtClass","grade","workersCompProfile","workersCompCode","shiftCode","payOvertime");
 
 		foreach($fields as $key => $val)
-		{
-			if($val=="sDate")
-				$positionData['effectiveDate']=$data[$val];
-			else
-				$positionData[$val]=$data[$val];
-		}
+			$positionData[$val]=$data[$val];
 
 		return $this->shCreateAPI("positionData",$positionData);
 	}
