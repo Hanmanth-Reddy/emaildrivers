@@ -397,7 +397,7 @@
 				}
 				else
 				{
-					if(!$is_multipart && empty($c_type["BOUNDARY"]))
+					if(!$is_multipart)
 						$body=$text_body;
 				}
 			}
