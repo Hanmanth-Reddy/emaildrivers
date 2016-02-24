@@ -79,6 +79,14 @@ class SyncHR
 		return $result;
 	}
 
+	function isPreviousDate($date1,$date2)
+	{
+		if(strtotime($date1)<strtotime($date2))
+			return true;
+		else
+			return false;
+	}
+
 	function dataCheck($aCloudData,$syncHrArray,$cfields,$shElement)
 	{
 		$chkFlag=false;
@@ -297,8 +305,6 @@ class SyncHR
 
 	function insertPersonData($personData)
 	{
-		$personData['effectiveDate']=$personData['emplHireDate'];
-
 		$shPersonData=$this->createPersonData($personData);
 		if($shPersonData)
 		{
@@ -843,7 +849,7 @@ class SyncHR
 
 		$positionData=array();
 
-		$pque="SELECT sno,username,empNo,positionCode,positionTitle,positionEvent,effectiveDate,sDate,scheduleFrequency,scheduledHours,partialPercent,persPosEvent,managingPosition,hrOrganization,IF(eeoCode=0,50,eeoCode),companyOfficer,flsaProfile,flsaCode,mgmtClass,grade,workersCompProfile,workersCompCode,orgCode,budgetOrgCode,posOrgPercent,earningsCode,frequencyCode,currencyCode,compEvent,compAmount,compLimit,increaseAmount,compLimitCode,shiftCode,payOvertime,payUnitCode,SSN FROM syncHR_positionData WHERE process='N' AND username='".$personData['username']."' AND parid='".$personData['sno']."'";
+		$pque="SELECT sno,username,empNo,positionCode,positionTitle,positionEvent,effectiveDate,sDate,scheduleFrequency,scheduledHours,partialPercent,persPosEvent,managingPosition,hrOrganization as orgCode,IF(eeoCode=0,50,eeoCode),companyOfficer,flsaProfile,flsaCode,mgmtClass,grade,workersCompProfile,workersCompCode,orgCode,budgetOrgCode,posOrgPercent,earningsCode,frequencyCode,currencyCode,compEvent,compAmount,compLimit,increaseAmount,compLimitCode,shiftCode,payOvertime,payUnitCode,SSN FROM syncHR_positionData WHERE process='N' AND username='".$personData['username']."' AND parid='".$personData['sno']."'";
 		$pres=mysql_query($pque,$db);
 		$prow=mysql_fetch_assoc($pres);
 		if(mysql_num_rows($pres)>0)
@@ -870,13 +876,15 @@ class SyncHR
 	{
 		if($positionData=$this->getPersonPositionData($personData))
 		{
-			$positionData['effectiveDate']=$positionData['sDate'];
+			if($this->isPreviousDate($positionData['sDate'],$personData['emplHireDate']))
+				$positionData['sDate']=$positionData['emplHireDate'];
+
 			$shPositionData=$this->createPositionData($positionData);
 			if($shPositionData)
 			{
-				$this->createPersonCompensation($positionData);
-				$this->createPersonPostion($positionData);
-				$this->createPersonPayroll($positionData['effectiveDate'],$positionData['empNo'],$positionData['payUnitCode']);
+				$this->createPersonCompensation($positionData['sDate'],$positionData);
+				$this->createPersonPostion($positionData['sDate'],$positionData);
+				$this->createPersonPayroll($positionData['sDate'],$positionData['empNo'],$positionData['payUnitCode']);
 				$this->createPositionBudgetOrganization($positionData);
 				$this->updatePositionStatus($positionData,"Y");
 			}
@@ -894,8 +902,8 @@ class SyncHR
 		if($shPositionData)
 		{
 			$this->updatePersonCompensation($positionData);
-			$this->createPersonPostion($positionData);
-			$this->updatePersonPayroll($positionData);
+			$this->createPersonPostion($positionData['effectiveDate'],$positionData);
+			$this->updatePersonPayroll($positionData['effectiveDate'],$positionData);
 			$this->createPositionBudgetOrganization($positionData);
 			$this->updatePositionStatus($positionData,"Y");
 		}
@@ -909,7 +917,7 @@ class SyncHR
 	{
 		$this->client->setAuthorization($this->apiKey, $this->token);
 
-		$fields = array("positionCode","positionTitle","positionEvent","effectiveDate","sDate","hrOrganization","eeoCode","companyOfficer","flsaProfile","flsaCode","mgmtClass","grade","workersCompProfile","workersCompCode","shiftCode","payOvertime");
+		$fields = array("positionCode","positionTitle","positionEvent","effectiveDate","orgCode","eeoCode","companyOfficer","flsaProfile","flsaCode","mgmtClass","grade","workersCompProfile","workersCompCode","shiftCode","payOvertime");
 
 		foreach($fields as $key => $val)
 			$positionData[$val]=$data[$val];
@@ -917,11 +925,13 @@ class SyncHR
 		return $this->shCreateAPI("positionData",$positionData);
 	}
 
-	function createPersonCompensation($data)
+	function createPersonCompensation($effectiveDate,$data)
 	{
 		$this->client->setAuthorization($this->apiKey, $this->token);
 
-		$fields = array("effectiveDate","compEvent","empNo","positionCode","earningsCode","frequencyCode","currencyCode","compAmount","compLimit","increaseAmount","compLimitCode");
+		$personCompensation['effectiveDate']=$effectiveDate;
+
+		$fields = array("compEvent","empNo","positionCode","earningsCode","frequencyCode","currencyCode","compAmount","compLimit","increaseAmount","compLimitCode");
 
 		foreach($fields as $key => $val)
 			$personCompensation[$val]=$data[$val];
@@ -934,11 +944,13 @@ class SyncHR
 		return $this->shCreateAPI("personCompensation",$personCompensation);
 	}
 
-	function createPersonPostion($data)
+	function createPersonPostion($effectiveDate,$data)
 	{
 		$this->client->setAuthorization($this->apiKey, $this->token);
 
-		$fields = array("effectiveDate","persPosEvent","empNo","positionCode","scheduleFrequency","scheduledHours","partialPercent");
+		$personPosition['effectiveDate']=$effectiveDate;
+
+		$fields = array("persPosEvent","empNo","positionCode","scheduleFrequency","scheduledHours","partialPercent");
 
 		foreach($fields as $key => $val)
 			$personPosition[$val]=$data[$val];
@@ -1152,7 +1164,8 @@ class SyncHR
 		}
 		else
 		{
-			$yesday = mktime(0,0,0,date("m"),date("d")-1,date("Y"));
+			$sedate = explode("-",$posData['effectiveDate']);
+			$yesday = mktime(0,0,0,$sedate[1],$sedate[2]-1,$sedate[0]);
 			$endDate = date("Y-m-d",$yesday);
 			$posData['endDate']=$endDate;
 
@@ -1338,7 +1351,7 @@ class SyncHR
 			$csvfile=$bfolder."/".$this->bcode.".csv";
 
 			if($pri_production)
-				$to="ssorrells@qgsearch.com, s.anderson@qgsearch.com, lsabin@qgsearch.com, ijohnson2@qgsearch.com, kbond@qgsearch.com, mmalloy@qgsearch.com, rvempati@akkencloud.com";
+				$to="ssorrells@qgsearch.com, s.anderson@qgsearch.com, bhofstadter@quesths.com, ijohnson2@qgsearch.com, czugel@qgsearch.com, rvempati@akkencloud.com";
 			else
 				$to="rvempati@akkencloud.com";
 	
@@ -1493,7 +1506,7 @@ class SyncHR
 		}
 
 		if($pri_production)
-			$to="ssorrells@qgsearch.com, s.anderson@qgsearch.com, lsabin@qgsearch.com, ijohnson2@qgsearch.com, kbond@qgsearch.com, mmalloy@qgsearch.com, rvempati@akkencloud.com";
+			$to="ssorrells@qgsearch.com, s.anderson@qgsearch.com, bhofstadter@quesths.com, ijohnson2@qgsearch.com, czugel@qgsearch.com, rvempati@akkencloud.com";
 		else
 			$to="rvempati@akkencloud.com";
 
