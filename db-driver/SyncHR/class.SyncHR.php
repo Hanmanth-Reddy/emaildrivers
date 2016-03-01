@@ -897,7 +897,6 @@ class SyncHR
 
 	function insertNewPositionData($positionData)
 	{
-		$positionData['effectiveDate']=$positionData['sDate'];
 		$shPositionData=$this->createPositionData($positionData);
 		if($shPositionData)
 		{
@@ -1164,21 +1163,26 @@ class SyncHR
 		}
 		else
 		{
-			$sedate = explode("-",$posData['effectiveDate']);
-			$yesday = mktime(0,0,0,$sedate[1],$sedate[2]-1,$sedate[0]);
-			$endDate = date("Y-m-d",$yesday);
-			$posData['endDate']=$endDate;
-
 			$data = $posData;
-
 			if($shData=$this->checkPositionStatus($data['positionCode'],"positionData"))
 			{
 				$this->terminatePersonPosition($posData);
 
 				if(count($shData['positionData'])>0)
+				{
 					$this->updatePosition($posData,"");
+				}
 				else
+				{
+					$sedate = explode("-",$posData['sDate']);
+					$yesday = mktime(0,0,0,$sedate[1],$sedate[2]-1,$sedate[0]);
+					$endDate = date("Y-m-d",$yesday);
+
+					$posData['effectiveDate']=$posData['sDate'];
+					$posData['endDate']=$endDate;
+
 					$this->insertNewPositionData($posData);
+				}
 			}
 		}
 	}
