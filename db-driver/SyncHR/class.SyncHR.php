@@ -305,6 +305,9 @@ class SyncHR
 
 	function insertPersonData($personData)
 	{
+		if($this->isPreviousDate($personData['emplHireDate'],$personData['effectiveDate']))
+			$personData['effectiveDate']=$personData['emplHireDate'];
+
 		$shPersonData=$this->createPersonData($personData);
 		if($shPersonData)
 		{
@@ -877,7 +880,13 @@ class SyncHR
 		if($positionData=$this->getPersonPositionData($personData))
 		{
 			if($this->isPreviousDate($positionData['sDate'],$personData['emplHireDate']))
-				$positionData['sDate']=$positionData['emplHireDate'];
+				$positionData['sDate']=$personData['emplHireDate'];
+
+			if($this->isPreviousDate($personData['emplHireDate'],$positionData['effectiveDate']))
+			{
+				$positionData['effectiveDate']=$personData['emplHireDate'];
+				$positionData['sDate']=$personData['emplHireDate'];
+			}
 
 			$shPositionData=$this->createPositionData($positionData);
 			if($shPositionData)
@@ -916,7 +925,7 @@ class SyncHR
 	{
 		$this->client->setAuthorization($this->apiKey, $this->token);
 
-		$fields = array("positionCode","positionTitle","positionEvent","effectiveDate","orgCode","eeoCode","companyOfficer","flsaProfile","flsaCode","mgmtClass","grade","workersCompProfile","workersCompCode","shiftCode","payOvertime");
+		$fields = array("positionCode","positionTitle","positionEvent","effectiveDate","sDate","orgCode","eeoCode","companyOfficer","flsaProfile","flsaCode","mgmtClass","grade","workersCompProfile","workersCompCode","shiftCode","payOvertime");
 
 		foreach($fields as $key => $val)
 			$positionData[$val]=$data[$val];
@@ -1163,11 +1172,8 @@ class SyncHR
 		}
 		else
 		{
-			$data = $posData;
-			if($shData=$this->checkPositionStatus($data['positionCode'],"positionData"))
+			if($shData=$this->checkPositionStatus($posData['positionCode'],"positionData"))
 			{
-				$this->terminatePersonPosition($posData);
-
 				if(count($shData['positionData'])>0)
 				{
 					$this->updatePosition($posData,"");
@@ -1178,9 +1184,10 @@ class SyncHR
 					$yesday = mktime(0,0,0,$sedate[1],$sedate[2]-1,$sedate[0]);
 					$endDate = date("Y-m-d",$yesday);
 
-					$posData['effectiveDate']=$posData['sDate'];
 					$posData['endDate']=$endDate;
+					$this->terminatePersonPosition($posData);
 
+					$posData['effectiveDate']=$posData['sDate'];
 					$this->insertNewPositionData($posData);
 				}
 			}
