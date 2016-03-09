@@ -30,7 +30,7 @@
 				$nque="SELECT p.title, p.descri, c.sno 
 				FROM akken_notifications.notifications p 
 				LEFT JOIN akken_notifications.notifications_list c ON p.sno=c.psno 
-				WHERE p.alert='Y' AND c.alert_status='N' AND c.username='$username' ORDER BY p.cdate";
+				WHERE p.alert='Y' AND p.comp_id='".$companyuser."' AND c.alert_status='N' AND c.username='$username' ORDER BY p.cdate";
 				$nres=mysql_query($nque,$db);
 				while($nrow=mysql_fetch_row($nres))
 				{
