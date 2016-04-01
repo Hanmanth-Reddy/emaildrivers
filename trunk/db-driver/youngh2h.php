@@ -336,6 +336,9 @@
 		else
 		{
 			$msgid = $popper->decode_header($popper->headers->get("Message-ID"));
+			if($msgid=="")
+				$msgid=md5(time()).rand(100,999);
+
 			$orgbody="";
 		}
 
@@ -387,7 +390,7 @@
 				}
 				else
 				{
-					if(!$is_multipart && empty($c_type["BOUNDARY"]))
+					if(!$is_multipart)
 						$body=$text_body;
 				}
 			}

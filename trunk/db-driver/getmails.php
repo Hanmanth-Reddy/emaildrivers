@@ -346,6 +346,9 @@
 		else
 		{
 			$msgid = $popper->decode_header($popper->headers->get("Message-ID"));
+			if($msgid=="")
+				$msgid=md5(time()).rand(100,999);
+
 			$orgbody="";
 		}
 
