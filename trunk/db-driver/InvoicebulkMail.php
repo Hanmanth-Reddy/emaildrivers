@@ -557,6 +557,11 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 											$CompInfoRow=mysql_fetch_row($CompInfoRes);
 											$EmpCompanyName=$CompInfoRow[0];
 											
+											if($bill_invoice != '')
+												$chk_condi_bill = "AND billable='".$bill_invoice."'";
+											else
+												$chk_condi_bill = "AND billable='Yes'";
+											
 											$timesheet .= "
 												<style>@page {
 													margin: 0px, 35px, 35px, 35px;
@@ -590,7 +595,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 													<tr>
 														<td>
 														'.						
-															$objTimeInTimeOut->displayTimeInTimeOutEmail($addr1, $headtitle, $check, 'Billed', 'Accounting', 1, $emp_name, $start_date, $end_date).'
+															$objTimeInTimeOut->displayTimeInTimeOutEmail($addr1, $headtitle, $check, 'Billed', 'Accounting', 1, $emp_name, $start_date, $end_date, $chk_condi_bill, '', $chk_condi_bill).'
 														</td>
 													</tr>
 												</table>
@@ -645,10 +650,11 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 									</table>
 									';
 
-									if(bill_invoice != '')
+									if($bill_invoice != '')
 										$chk_condi_bill = "AND billable='".$bill_invoice."'";
 									else
 										$chk_condi_bill = "AND billable='Yes'";
+									
 									$timesheet .= $timesheetObj->displayTimesheetDetailsEmail($addr1, "approvedexp",$chk_condi_bill);
 								
 									if($Biltotal>"0")
