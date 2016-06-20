@@ -213,6 +213,8 @@
                                             Cost varchar(62) DEFAULT NULL,
                                             payrate varchar(9) DEFAULT NULL,
                                             billrate varchar(9) DEFAULT NULL,
+					    regular_payrate varchar(9) DEFAULT NULL,
+					    regular_billrate varchar(9) DEFAULT NULL,
                                             burden double(8,2) DEFAULT NULL,
                                             bill_burden double(8,2) DEFAULT NULL,
                                             hrcon_sno int(15),
@@ -253,6 +255,9 @@
                                             total_pay_burden_flat double (10,2),
                                             total_bill_burden_perc double (10,2),
                                             total_bill_burden_flat double (10,2),
+					    payrate_calcburden_on varchar(30) DEFAULT NULL,
+					    billrate_calcburden_on varchar(30) DEFAULT NULL,
+					    payburden_threshold_amt double (10,2), 
                                             PRIMARY KEY (rowid),
                                             KEY invoiceNo (invoiceNo),
                                             KEY cust_sno (cust_sno),
@@ -265,11 +270,11 @@
 
             //Temp - 3.1 - Insertion
             $tmpTableCreateSql_3_1  = "INSERT INTO rpt_tmp_InvComm_all_cmsn_details 
-                                            (invoiceNo, invoice_date, cust_sno, customer, assgn_name, emp_sno, emp_uname, emp_name, LineType, Quantity, Cost, payrate, billrate, burden, 
+                                            (invoiceNo, invoice_date, cust_sno, customer, assgn_name, emp_sno, emp_uname, emp_name, LineType, Quantity, Cost, payrate, billrate,regular_payrate, regular_billrate, burden, 
                                             bill_burden,hrcon_sno, markup, margin, placement_fee, AssignmentStartDate, Amount, Taxable, InvoiceTotal, AppliedCredits, feid, 
                                             location, deptname, Jotype, ServiceDate, HoursType, AmountReceived, cmsnSno, cmsnAmt, cmsnAmtType, cmsnBsdOn, cmsnType, 
                                             CommissionPerson, Roletitle, cmsnLevelSno, commissionTier, commissionTierStartDate, commissionTierEndDate, actualInvoiceAmt, 
-                                            pay_amount, bill_amount, total_pay_burden_perc, total_pay_burden_flat, total_bill_burden_perc, total_bill_burden_flat)
+						pay_amount, bill_amount, total_pay_burden_perc, total_pay_burden_flat, total_bill_burden_perc, total_bill_burden_flat, payrate_calcburden_on, billrate_calcburden_on,  payburden_threshold_amt)
                                         SELECT
                                             invoice.invoice_number AS invoiceNo,
                                             STR_TO_DATE(invoice.invoice_date,'%m/%d/%Y') AS invoice_date,
@@ -282,8 +287,10 @@
                                             'Timesheet' AS LineType,
                                             ROUND(SUM(timesheet.hours),2) AS Quantity,
                                             CONCAT(invoice_multiplerates.rate,'(',invoice_multiplerates.period,')') AS Cost,
-                                            IF(hrcon_jobs.mdate > invoice.stime, invComm_getAsgnRateValue(hrcon_jobs.pusername,invoice.stime,multiplerates_assignment.ratemasterid,multiplerates_assignment.ratetype), hrcon_jobs.pamount) AS payrate,
-                                            IF(hrcon_jobs.mdate > invoice.stime, invComm_getAsgnRateValue(hrcon_jobs.pusername,invoice.stime,mulbill.ratemasterid,mulbill.ratetype), hrcon_jobs.bamount) AS billrate,
+					    IF(hrcon_jobs.mdate > invoice.stime, invComm_getAsgnRateValue(hrcon_jobs.pusername,invoice.stime,multiplerates_assignment.ratemasterid,multiplerates_assignment.ratetype), multiplerates_assignment.rate) AS payrate,
+					    IF(hrcon_jobs.mdate > invoice.stime, invComm_getAsgnRateValue(hrcon_jobs.pusername,invoice.stime,mulbill.ratemasterid,mulbill.ratetype), mulbill.rate) AS billrate,
+					    IF(hrcon_jobs.mdate > invoice.stime, invComm_getAsgnRateValue(hrcon_jobs.pusername,invoice.stime,'rate1','payrate'), hrcon_jobs.pamount) AS regular_payrate,
+					    IF(hrcon_jobs.mdate > invoice.stime, invComm_getAsgnRateValue(hrcon_jobs.pusername,invoice.stime,'rate1','billrate'), hrcon_jobs.bamount) AS regular_billrate,
                                             hrcon_jobs.burden,
                                             hrcon_jobs.bill_burden AS bill_burden,
                                             hrcon_jobs.sno,
@@ -319,7 +326,10 @@
                                             invComm_getPayBurdenPerc(hrcon_jobs.sno,multiplerates_assignment.ratemasterid),
                                             invComm_getPayBurdenFlat(hrcon_jobs.sno,multiplerates_assignment.ratemasterid),
                                             invComm_getBillBurdenPerc(hrcon_jobs.sno,mulbill.ratemasterid),
-                                            invComm_getBillBurdenFlat(hrcon_jobs.sno,mulbill.ratemasterid) 
+					    invComm_getBillBurdenFlat(hrcon_jobs.sno,mulbill.ratemasterid),
+					    invComm_getPercCalcBurdenOn(hrcon_jobs.sno,'payrate'),
+					    invComm_getPercCalcBurdenOn(hrcon_jobs.sno,'billrate'),
+					    invComm_getPayBurdenThreshold(hrcon_jobs.sno,mulbill.ratemasterid) 
                                         FROM
                                             acc_transaction 
                                         JOIN
@@ -386,6 +396,8 @@
                                             CONCAT(invoice_multiplerates.rate,'(',invoice_multiplerates.period,')') AS Cost,
                                             hrcon_jobs.diem_total AS payrate,
                                             IF(hrcon_jobs.diem_billable='Y',hrcon_jobs.diem_total,'') AS billrate,
+					    hrcon_jobs.diem_total AS regular_payrate,
+					    IF(hrcon_jobs.diem_billable='Y',hrcon_jobs.diem_total,'') AS regular_billrate,
                                             hrcon_jobs.burden,
                                             hrcon_jobs.bill_burden,
                                             hrcon_jobs.sno,
@@ -421,7 +433,10 @@
                                             invComm_getPayBurdenPerc(hrcon_jobs.sno,''),
                                             invComm_getPayBurdenFlat(hrcon_jobs.sno,''),
                                             invComm_getBillBurdenPerc(hrcon_jobs.sno,''),
-                                            invComm_getBillBurdenFlat(hrcon_jobs.sno,'') 
+					    invComm_getBillBurdenFlat(hrcon_jobs.sno,''),
+					    invComm_getPercCalcBurdenOn(hrcon_jobs.sno,'payrate'),
+					    invComm_getPercCalcBurdenOn(hrcon_jobs.sno,'billrate'),
+					    invComm_getPayBurdenThreshold(hrcon_jobs.sno,'')
                                         FROM
                                             acc_transaction 
                                         JOIN
@@ -485,6 +500,8 @@
                                             IF(acc_transaction.txnLineType = 'Expense',expense.unitcost ,'----') AS Cost,
                                             '' payrate,
                                             '' billrate,
+					    '' regular_payrate,
+					    '' regular_billrate,
                                             hj.burden,
                                             hj.bill_burden,
                                             hj.sno,
@@ -520,7 +537,10 @@
                                             invComm_getPayBurdenPerc(hj.sno,''),
                                             invComm_getPayBurdenFlat(hj.sno,''),
                                             invComm_getBillBurdenPerc(hj.sno,''),
-                                            invComm_getBillBurdenFlat(hj.sno,'') 
+                                            invComm_getBillBurdenFlat(hj.sno,''),
+					    invComm_getPercCalcBurdenOn(hj.sno,'payrate'),
+					    invComm_getPercCalcBurdenOn(hj.sno,'billrate'),
+					    invComm_getPayBurdenThreshold(hj.sno,'') 
 					FROM
                                             staffacc_cinfo, Client_Accounts
 					LEFT JOIN
@@ -571,8 +591,8 @@
 
             //Temp - 3.2 - Updating
             $tmpTableCreateSql_3_2  = "UPDATE rpt_tmp_InvComm_all_cmsn_details SET 
-                                            pay_burden_amount = ROUND((((total_pay_burden_perc/100) * payrate * Quantity) + (total_pay_burden_flat * Quantity)), 2),
-                                            quantityMarginTotal = invComm_getQuanMarginTotalAmount(Quantity, payrate, billrate, total_pay_burden_perc, total_bill_burden_perc, total_pay_burden_flat, total_bill_burden_flat)";
+						pay_burden_amount = IF(HoursType != 'PerDiem', ROUND((((total_pay_burden_perc/100) * IF(payrate_calcburden_on='Regular',regular_payrate,payrate) * Quantity) + (total_pay_burden_flat * Quantity)), 2),'0.00'),
+						quantityMarginTotal = invComm_getQuanMarginTotalAmount(Quantity, IF(payrate_calcburden_on='Regular',regular_payrate,payrate), IF(billrate_calcburden_on='Regular',regular_billrate,billrate), total_pay_burden_perc, total_bill_burden_perc, total_pay_burden_flat, total_bill_burden_flat)";
             mysql_query($tmpTableCreateSql_3_2, $db);
 
             //Step 1 End
@@ -630,13 +650,15 @@
                                             customer, 
                                             emp_name, 
                                             Quantity, 
-                                            payrate, 
-                                            billrate, 
+					    IF(payrate_calcburden_on='Regular',regular_payrate,payrate) AS payrate, 
+					    IF(billrate_calcburden_on='Regular',regular_billrate,billrate) AS billrate, 
                                             SUM(pay_amount) AS pay_amount, 
                                             SUM(bill_amount) AS bill_amount, 
                                             burden, 
-                                            SUM(pay_burden_amount) AS pay_burden_amount,
-                                            invComm_getPayAdjExpense(cust_sno, emp_uname,'".$invoiceFrDate."','".$invoiceToDate."','') AS 'non_billed_paid_expense', 
+						IF(MAX(payburden_threshold_amt) != '0.00', (IF((SUM(pay_burden_amount) > MAX(payburden_threshold_amt)),MAX(payburden_threshold_amt),SUM(pay_burden_amount))), SUM(pay_burden_amount)) AS pay_burden_amount,
+					    invComm_getPayAdjExpense(cust_sno,emp_uname,
+					    DATE_FORMAT(STR_TO_DATE(SUBSTRING_INDEX(ServiceDate,'-',1), '%m/%d/%Y'), '%Y-%m-%d'),
+					    DATE_FORMAT(STR_TO_DATE(SUBSTRING_INDEX(ServiceDate,'-',-1), '%m/%d/%Y'), '%Y-%m-%d'),'') AS 'non_billed_paid_expense', 
                                             cmsnAmt, 
                                             CommissionPerson, 
                                             Roletitle, 
