@@ -721,6 +721,9 @@
             if(mysql_num_rows($tmpTableSelRs_1) > 0)
             {
                 $gpAccumTotalArray  = array();
+				$repStartingRecord	= "NO";
+				$prevCommTierSno	= 0;
+				$prevAccumGPTtotal	= 0;
     
                 while($tmpTableSelRw_1 = mysql_fetch_array($tmpTableSelRs_1))
                 {
@@ -729,14 +732,16 @@
                     if(isset($gpAccumTotalArray[$gpAccumKey]))
                     {
                         $gpAccumTotalArray[$gpAccumKey] = $gpAccumTotalArray[$gpAccumKey] + $tmpTableSelRw_1["gp_avail_comm"];
+						$repStartingRecord	= "NO";
                     }
                     else
                     {
                         $gpAccumTotalArray[$gpAccumKey] = $tmpTableSelRw_1["gp_avail_comm"];
+						$repStartingRecord	= "YES";
                     }
     
                     //Temp Select - 2
-                    $minMaxSelSql_2	= "SELECT ct.commission AS 'commVal', cl.amount_mode AS 'Type'
+                    $minMaxSelSql_2	= "SELECT ct.commission AS 'commVal', cl.amount_mode AS 'Type', ct.sno AS 'commTierSno' 
                                             FROM
                                                 commission_tiers ct 
                                             LEFT JOIN
@@ -747,16 +752,35 @@
                     $minMaxSelRs_2	= mysql_query($minMaxSelSql_2, $db);
                     $minMaxSelRw_2	= mysql_fetch_array($minMaxSelRs_2);
     
-                    if($minMaxSelRw_2['Type'] == 'PER')
-                    {			
-                        $gpAccuCommAmount   = round((($tmpTableSelRw_1["gp_avail_comm"] * $minMaxSelRw_2['commVal']) / 100), 2);
-                        $gpCommPerFlat      = $minMaxSelRw_2['commVal'];
-                    }
-                    else
-                    {
+					//Checking if the Rep has their first commission accumulation record that is more than the first Tier
+					if($repStartingRecord	== "YES" && $minMaxSelRw_2['Type'] == 'PER')
+					{
+						$gpAccuCommAmount	= getAllTiersCommissionAmount($tmpTableSelRw_1['commission_level_sno'], $minMaxSelRw_2['commTierSno'], $gpAccumTotalArray[$gpAccumKey]);
+						$gpCommPerFlat		= $minMaxSelRw_2['commVal'];
+					}
+					else if($repStartingRecord	== "NO" && $minMaxSelRw_2['Type'] == 'PER') //further tier jumps will identify the difference between Previous Accumulated GP Available Amount and Current Accumulated GP Available amount. Such differences will be calculated with respective consecutive tier range
+					{
+						//if previous Accumulated GP Available amount and Current Accumulated GP Available amount lies in same Commission Tier then
+						if($prevCommTierSno == $minMaxSelRw_2['commTierSno'])
+						{
+							$gpAccuCommAmount	= round(((($gpAccumTotalArray[$gpAccumKey] - $prevAccumGPTtotal) * $minMaxSelRw_2['commVal']) / 100), 2);
+						}
+						else
+						{
+							$gpAccuCommAmount	= getCommissionAmountBetweenTiers($tmpTableSelRw_1['commission_level_sno'],  $minMaxSelRw_2['commTierSno'], $prevCommTierSno, $gpAccumTotalArray[$gpAccumKey], $prevAccumGPTtotal);
+						}
+
+						$gpCommPerFlat		= $minMaxSelRw_2['commVal'];
+					}
+					else //if commission type is Flat Fee then
+					{
                         $gpAccuCommAmount   = $minMaxSelRw_2['commVal'];
                         $gpCommPerFlat      = round((($minMaxSelRw_2['commVal'] / $gpAccumTotalArray[$gpAccumKey]) * 100), 2);
                     }
+					
+					/* Getting previous Accumulated GP Available amount & Commission Tier table sno(primary key) into below variables */
+					$prevAccumGPTtotal		= $gpAccumTotalArray[$gpAccumKey];
+					$prevCommTierSno		= $minMaxSelRw_2['commTierSno'];
     
                     //Temp - 5.1 - Insertion
                     $tmpTableInsSql_5_1  = "INSERT INTO tmp_InvComm_Revenue_trans_details
@@ -828,4 +852,70 @@
     
             //Dropping Temporary Tables End
     }
+    
+	/* function to check tier jumps will identify the difference between Previous Accumulated GP Available Amount and Current Accumulated GP Available amount. Such differences will be calculated with respective consecutive tier range */
+	function getCommissionAmountBetweenTiers($get_cmsn_level_sno, $curr_cmsn_tier_sno, $prev_cmsn_tier_sno, $curr_accum_total_amount, $prev_accum_total_amount)
+	{
+		global $db;
+		
+		$get_final_cmsn_amount	= 0;
+		
+		$sel_cmsn_tiers = "SELECT minimum, maximum, commission FROM commission_tiers WHERE commission_level_sno = '".$get_cmsn_level_sno."' AND (sno >= '".$prev_cmsn_tier_sno."' AND sno <= '".$curr_cmsn_tier_sno."') ORDER BY sno ASC";
+		$cmsn_tiers_res	= mysql_query($sel_cmsn_tiers,$db);
+		$cmsn_tiers_num	= mysql_num_rows($cmsn_tiers_res);
+		
+		$i = 1;
+		while($cmsn_tiers_row	= mysql_fetch_array($cmsn_tiers_res))
+		{
+			if($cmsn_tiers_row[0] != 0)
+				$cmsn_tiers_row[0] = ($cmsn_tiers_row[0] - 0.99);
+
+			if($i == $cmsn_tiers_num) 
+				$get_maxmin_difference_amount	= $curr_accum_total_amount - $cmsn_tiers_row[0];
+			else if($i != 1)
+				$get_maxmin_difference_amount	= $cmsn_tiers_row[1] - $cmsn_tiers_row[0];
+			else
+				$get_maxmin_difference_amount	= $cmsn_tiers_row[1] - $prev_accum_total_amount;
+			
+			$get_ind_cmsn_amount	= (($get_maxmin_difference_amount * $cmsn_tiers_row[2]) / 100);
+			$get_final_cmsn_amount	+= $get_ind_cmsn_amount;
+			
+			$i++;
+		}
+		
+		return round($get_final_cmsn_amount,2);
+	}
+
+	/*function used to Check if the Rep has their first commission accumulation record that is more than the first Tier */
+	function getAllTiersCommissionAmount($get_cmsn_level_sno, $get_cmsn_tier_sno, $get_accum_total_amount)
+	{
+		global $db;
+		
+		$get_final_cmsn_amount	= 0;
+		
+		$sel_cmsn_tiers = "SELECT minimum, maximum, commission FROM commission_tiers WHERE commission_level_sno = '".$get_cmsn_level_sno."' AND sno <= '".$get_cmsn_tier_sno."' ORDER BY sno ASC";
+		$cmsn_tiers_res	= mysql_query($sel_cmsn_tiers,$db);
+		$cmsn_tiers_num	= mysql_num_rows($cmsn_tiers_res);
+		
+		$i = 1;
+		while($cmsn_tiers_row	= mysql_fetch_array($cmsn_tiers_res))
+		{
+			if($cmsn_tiers_row[0] != 0)
+				$cmsn_tiers_row[0] = ($cmsn_tiers_row[0] - 0.99);
+
+			if($i == $cmsn_tiers_num) 
+				$get_maxmin_difference_amount	= $get_accum_total_amount - $cmsn_tiers_row[0];
+			else if($i != 1)
+				$get_maxmin_difference_amount	= $cmsn_tiers_row[1] - $cmsn_tiers_row[0];
+			else
+				$get_maxmin_difference_amount	= $cmsn_tiers_row[1];
+			
+			$get_ind_cmsn_amount	= (($get_maxmin_difference_amount * $cmsn_tiers_row[2]) / 100);
+			$get_final_cmsn_amount	+= $get_ind_cmsn_amount;
+			
+			$i++;
+		}
+		
+		return round($get_final_cmsn_amount,2);
+	}
 ?>
