@@ -119,7 +119,7 @@
 			}
 		}
 
-		$que="SELECT count(1),e.fid,m.seen FROM mail_headers m LEFT JOIN e_folder e ON m.username=e.username LEFT JOIN users u ON e.username=u.username WHERE u.usertype!='' AND u.status!='DA' AND m.folder=e.fid AND e.parent!='system' AND m.status='Active' ".$wclause." GROUP BY m.username,m.folder,m.seen";
+		$que="SELECT count(1),m.folder,m.seen FROM mail_headers m LEFT JOIN users u ON m.username=u.username WHERE u.usertype!='' AND u.status!='DA' AND m.status='Active' AND CAST(m.folder AS UNSIGNED)>0 ".$wclause." GROUP BY m.username,m.folder,m.seen";
 		$res=mysql_query($que,$db);
 		while($row=mysql_fetch_row($res))
 		{
