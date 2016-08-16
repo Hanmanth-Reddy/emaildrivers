@@ -295,8 +295,10 @@ class SyncHR
 
 		$data['nametype'] = "DBA";
 
-		$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","fName" => "fName","mName" => "mName","lName" => "lName","DBA" => "name","nametype" => "nametype","emplEvent" => "emplEvent");
+		//$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","fName" => "fName","mName" => "mName","lName" => "lName","DBA" => "name","nametype" => "nametype","emplEvent" => "emplEvent");
+		$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","DBA" => "fName","DBA" => "name","nametype" => "nametype","emplEvent" => "emplEvent");
 
+		$personName['lName'] = ".";
 		foreach($fields as $key => $val)
 			$personName[$val]=$data[$key];
 
@@ -352,9 +354,12 @@ class SyncHR
 		{
 			$data['nametype'] = "DBA";
 
-			$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","fName" => "fname","mName" => "mname","lName" => "lname","DBA" => "name","nametype" => "nametype");
+			//$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","fName" => "fname","mName" => "mname","lName" => "lname","DBA" => "name","nametype" => "nametype");
+			$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","DBA" => "fname","DBA" => "name","nametype" => "nametype");
 
 			$personName['nameevent']="NameChg";
+			$personName['lName'] = ".";
+
 			foreach($fields as $key => $val)
 				$personName[$val]=$data[$key];
 
@@ -363,7 +368,7 @@ class SyncHR
 				$shElement=$this->checkElement($shData['personName'],"nametype",$data['nametype']);
 				if($shElement>=0)
 				{
-					$cfields = array("fName" => "fname","mName" => "mname","lName" => "lname","DBA" => "name","nametype" => "nametype");
+					$cfields = array("DBA" => "fname","DBA" => "name","nametype" => "nametype");
 					if(!$this->dataCheck($data,$shData['personName'],$cfields,$shElement))
 						return $this->shUpdateAPI("personName",$personName);
 					else
