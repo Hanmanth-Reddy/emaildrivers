@@ -295,10 +295,11 @@ class SyncHR
 
 		$data['nametype'] = "DBA";
 
-		//$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","fName" => "fName","mName" => "mName","lName" => "lName","DBA" => "name","nametype" => "nametype","emplEvent" => "emplEvent");
-		$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","DBA" => "fName","DBA" => "name","nametype" => "nametype","emplEvent" => "emplEvent");
+		$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","DBA" => "name","nametype" => "nametype","emplEvent" => "emplEvent");
 
-		$personName['lName'] = ".";
+		$personName['fName'] = "";
+		$personName['lName'] = $data['DBA'];
+
 		foreach($fields as $key => $val)
 			$personName[$val]=$data[$key];
 
@@ -354,11 +355,11 @@ class SyncHR
 		{
 			$data['nametype'] = "DBA";
 
-			//$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","fName" => "fname","mName" => "mname","lName" => "lname","DBA" => "name","nametype" => "nametype");
-			$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","DBA" => "fname","DBA" => "name","nametype" => "nametype");
+			$fields = array("empNo" => "empNo","effectiveDate" => "effectiveDate","DBA" => "name","nametype" => "nametype");
 
 			$personName['nameevent']="NameChg";
-			$personName['lName'] = ".";
+			$personName['fname'] = "";
+			$personName['lname'] = $data['DBA'];
 
 			foreach($fields as $key => $val)
 				$personName[$val]=$data[$key];
