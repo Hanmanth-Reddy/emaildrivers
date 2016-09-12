@@ -7,6 +7,8 @@
 	require("smtp.inc");
 	require("html2text.inc");
 	require("saveemails.inc");
+	// Required to perform full text search
+	require("include/quickSubCandidates.inc");
 
 	$smtp=new smtp_class;
 	$smtp->host_name="localhost";
@@ -22,8 +24,8 @@
 	$dque="select capp_info.comp_id, company_info.company_name from company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno LEFT JOIN options ON options.sno=company_info.sno where company_info.status='ER' ".$version_clause;
 	*******************/
 	
-	$dque="select capp_info.comp_id, company_info.company_name from company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno LEFT JOIN options ON options.sno=company_info.sno where company_info.status='ER' ".$version_clause;	
-	
+	$dque="select capp_info.comp_id, company_info.company_name from company_info LEFT JOIN capp_info ON capp_info.sno=company_info.sno LEFT JOIN options ON options.sno=company_info.sno where company_info.status='ER'".$version_clause;	
+
 	$dres=mysql_query($dque,$maindb);
 	while($drow=mysql_fetch_row($dres))
 	{
@@ -35,9 +37,6 @@
 		* JOB BOARDS: EMAIL NOTIFICATION TO APPLICANT
 		* Send an email to an applicant when a job order is created/updated
 		*/		
-		
-		// Required to perform full text search
-		require("include/quickSubCandidates.inc");
 		
 		// Array for holding recent job orders' ids
 		$recent_jo_arr = array();
@@ -130,54 +129,94 @@
 						$whereCond .= " AND country = '".$applicants_arr['country'][$i]."'";					
 					}
 				}
-				if(!empty($jobboards_searchstr)){
-					$jobboards_keywords_match_query = "SELECT posid, postitle, posdesc, requirements, post_job_chk, posted_date, company, location, joblocation FROM posdesc WHERE MATCH (posdesc.search_data) AGAINST ('".$jobboards_searchstr."' IN BOOLEAN MODE) AND posdesc.posid in (".$recent_jo_ids.")";
-				}else{
-					$jobboards_keywords_match_query = "SELECT posid, postitle, posdesc, requirements, post_job_chk, posted_date, company, location, joblocation FROM posdesc WHERE posdesc.posid in (".$recent_jo_ids.")";
+				
+				$sqlManage 	= "SELECT GROUP_CONCAT(sno) FROM manage WHERE name IN ('Closed', 'Cancelled', 'Filled') AND type='jostatus' AND status='Y'";
+				$resManage 	= mysql_query($sqlManage,$db);
+				$rowManage 	= mysql_fetch_row($resManage);
+				if(!empty($jobboards_searchstr)){					
+					$jobboards_keywords_match_query = "SELECT pd.postitle, pd.posdesc, pd.requirements,  pd.posted_date, pdo.company, pd.location, pd.joblocation, department.loc_id, pd.sno FROM api_jobs pd LEFT JOIN manage AS mg ON pd.postype = mg.sno LEFT JOIN hotjobs hj ON hj.sno = pd.req_id LEFT JOIN posdesc pdo ON pdo.posid = hj.req_id LEFT JOIN department ON department.sno = pdo.deptid LEFT JOIN contact_manage ON contact_manage.serial_no = department.loc_id WHERE pd.status IN('P','R') AND MATCH (pd.jo_data) AGAINST ('".$jobboards_searchstr."' IN BOOLEAN MODE) AND pd.posstatus NOT IN (".$rowManage[0].") AND pdo.posid IN (".$recent_jo_ids.")";
+					
+				}else{					
+					$jobboards_keywords_match_query = "SELECT pd.postitle, pd.posdesc, pd.requirements,  pd.posted_date, pdo.company, pd.location, pd.joblocation, department.loc_id, pd.sno FROM api_jobs pd LEFT JOIN manage AS mg ON pd.postype = mg.sno LEFT JOIN hotjobs hj ON hj.sno = pd.req_id LEFT JOIN posdesc pdo ON pdo.posid = hj.req_id LEFT JOIN department ON department.sno = pdo.deptid LEFT JOIN contact_manage ON contact_manage.serial_no = department.loc_id WHERE pd.status IN('P','R') AND pd.posstatus NOT IN (".$rowManage[0].") AND pdo.posid IN (".$recent_jo_ids.")";
 				}
 				
-				$jobboards_keywords_match_rs = mysql_query($jobboards_keywords_match_query,$db);
-				while($jobboards_keywords_match_row = mysql_fetch_assoc($jobboards_keywords_match_rs))
+				$jobboards_keywords_match_rs 		= mysql_query($jobboards_keywords_match_query,$db);
+				while($jobboards_keywords_match_row 	= mysql_fetch_assoc($jobboards_keywords_match_rs))
 				{
-					$jo_title = $jobboards_keywords_match_row['postitle'];
-					$jo_posteddate = $jobboards_keywords_match_row['posted_date'];
-					$jo_job_location = $jobboards_keywords_match_row['joblocation'];
-					if($jo_job_location != ""){
+					$jo_title		= $jobboards_keywords_match_row['postitle'];
+					$jo_posteddate 		= $jobboards_keywords_match_row['posted_date'];
+					$jo_posdesc 		= $jobboards_keywords_match_row['posdesc'];
+					$jo_id 			= $jobboards_keywords_match_row['sno'];
+					$jo_domain_location 	= $jo_job_location = $jobboards_keywords_match_row['joblocation'];
+
+					if($jo_job_location != "")
+					{
 						$jo_job_location = "(".$jo_job_location.") ";
 					}
 					
 					// Get Company Name
-					$company_name_query = "SELECT cname FROM staffoppr_cinfo WHERE sno = '".$jobboards_keywords_match_row['company']."'";
-					$company_name_rs = mysql_query($company_name_query,$db);
-					$company_name_row = mysql_fetch_row($company_name_rs);
-					$jo_companyname = $company_name_row[0];			
+					$company_name_query	= "SELECT cname FROM staffoppr_cinfo WHERE sno = '".$jobboards_keywords_match_row['company']."'";
+					$company_name_rs 	= mysql_query($company_name_query,$db);
+					$company_name_row 	= mysql_fetch_row($company_name_rs);
+					$jo_companyname 	= $company_name_row[0];			
 					
 					// Get Company Location
 					$company_location_query ="select CONCAT(title,' - ',address1,' ',address2,' ',city,' ',state,' ',zipcode) company_location from staffoppr_location where sno='".$jobboards_keywords_match_row['location']."' AND ltype in ('com','loc') AND status='A' ".$whereCond;
-					$company_location_rs = mysql_query($company_location_query,$db);
-					$company_location_row = mysql_fetch_row($company_location_rs);
-					$jo_location = $company_location_row[0];
 					
+					$company_location_rs 	= mysql_query($company_location_query,$db);
+					$company_location_row 	= mysql_fetch_row($company_location_rs);
+					$jo_location 		= $company_location_row[0];
+
+
 					// Donot send mail alerts if applicant's preferred job location zipcode not within X radius or state and country not matching.
-					if(empty($jo_location) && $whereCond != ""){
+					if(empty($jo_location) && $whereCond != "")
+					{
 						break;
 					}
 					
+					//Getting the domain based on the job order department id. So we can pull any matching domain name.
+					$jo_department 		= $jobboards_keywords_match_row['loc_id'];
+					$jo_domain		= getDomainNameByLocId($jo_department);
+					if($jo_domain == "")
+					{
+						break;
+					}
+					
+					//Applying the same functionality availble while displaying the job description in the job boards.
+					if($jo_posdesc!='')
+					{
+						$htmlTags = array("<p>&nbsp;</p>", "<div>&nbsp;</div>");
+						$jo_posdesc	=preg_replace('#(<br */?>\s*)+#i', '<br>',trim(nl2br(str_replace('','&nbsp;',html_entity_decode(htmlentities($jo_posdesc),ENT_QUOTES)))));
+						$jo_posdesc 	= str_replace($htmlTags, "", $jo_posdesc);
+					}
+					
+					//Preparing the Click Here link by checking the job location of posted job order.
+					if($jo_domain_location != "")
+					{
+						$jo_link 	= $jo_domain."/jobdetails/".generateSeoTitle(utf8_encode($jo_domain_location))."/".generateSeoTitle(utf8_encode($jo_title))."/".$jo_id;
+					}
+					else
+					{
+						$jo_link 	= $jo_domain."/jobdetails/".generateSeoTitle(utf8_encode($jo_title))."/".$jo_id;
+					}
+					
 					// Sends e-mail alert to applicant
-					$mailtype = "text/html";
-					$from = $companyname." Job Alert <donot-reply@akken.com>";					
-					$to = $applicants_arr['email'][$i];
-					$subject = $jo_title." ".date('m/d/Y',strtotime($jo_posteddate));
-					$message = "Dear ".$applicants_arr['lname'][$i]."\n\n  A new job order matching your skills/preferences has been posted on ".$companyname;
-					$message .= "\n\n Please see below for more details".
-							"\n\n Job Title: ".$jo_title.
-							"\n Company Name: ".$jo_companyname.
-							"\n Job Location: ".$jo_job_location.$jo_location;
+					$mailtype	= "text/html";
+					$from 		= $companyname." New Job Alert <donot-reply@akkencloud.com>";					
+					$to		= $applicants_arr['email'][$i];
+					$subject 	= $jo_title;
+					$message 	= "We just posted a new job and thought you might want to know about it.";
+					$message .= "\n\n <b>Job Title:</b> ".$jo_title."\n <b>Job Details: </b>".$jo_posdesc;
+					
+					$message .= "\n\n Please click <a target='_blank' href='http://".$jo_link."'>HERE</a>, if you are interested in this job. This is a system generated email, please don't reply to this message.";
+					
+					$message .= "\n\n Good luck in your job search!<br> - The ".$companyname." Team\n";	
+					
+					$unsubscibe_link = "http://".$jo_domain."/unsubscribe/".strtolower($to);
 							
-					$unsubscibe_link = "https://".$companyuser.".akken.com/unsubscribe/".strtolower($to);
-							
-					$message .= "\n\n\n Disclaimer: You have received this mail because you are a registered member on ".$jo_companyname.". This is a system generated email, please don't reply to this message. If you do not want to receive this mailer, <a target=_blank href='".$unsubscibe_link."'>Unsubscribe</a>";
-					$message = "<div style='font-family: arial; font-size: 10pt;'>".nl2br($message)."</div>";
+					$message .= "\n\n\n You are receiving this email because you registered for our new job alerts. <a target=_blank href='".$unsubscibe_link."'>Unsubscribe</a>, if you do not want to receive new job alerts.";
+					
+					$message 	= "<div style='font-family: arial; font-size: 10pt;'>".nl2br($message)."</div>";
 					
 					$ato = explode(",",$to);
 					
@@ -215,27 +254,27 @@
 		else
 			$questr = "";
 		
-		$que = "SELECT Latitude,Longitude FROM zipcodedb WHERE ZipCode = '$zipcode'".$questr;
-		$res = mysql_query($que, $maindb);
-		$row = mysql_fetch_assoc($res);
+		$que 	= "SELECT Latitude,Longitude FROM zipcodedb WHERE ZipCode = '$zipcode'".$questr;
+		$res 	= mysql_query($que, $maindb);
+		$row 	= mysql_fetch_assoc($res);
 
 		$zipCodeLatitude 	= $row['Latitude'];
 		$zipCodeLongitude 	= $row['Longitude'];		
 		
-		$iDistance = $zipmiles; // user preferred zipcode radius in miles
+		$iDistance	= $zipmiles; // user preferred zipcode radius in miles
 		//$iRadius = 6371; // earth radius in km
-		$iRadius = 3958; // earth radius in miles
-		$fLat = $zipCodeLatitude; // user preferred zipcode's latitude
-		$fLon = $zipCodeLongitude; // user preferred zipcode's longitude		
+		$iRadius 	= 3958; // earth radius in miles
+		$fLat 		= $zipCodeLatitude; // user preferred zipcode's latitude
+		$fLon 		= $zipCodeLongitude; // user preferred zipcode's longitude		
 		
-		$selQuery = "SELECT
+		$selQuery 	= "SELECT
 				Latitude, Longitude, ZipCode,
 				$iRadius * 2 * ASIN(SQRT(POWER(SIN(( $fLat - ABS(Latitude)) * PI() / 180 / 2),2) + COS( $fLat * PI()/180) * COS(ABS(Latitude) * PI() / 180) * POWER(SIN(( $fLon - Longitude) * PI() / 180 / 2), 2) )) AS distance
 				FROM zipcodedb
 				HAVING distance < $iDistance 
 				ORDER BY distance";
 				
-		$resGeo = mysql_query($selQuery, $maindb);
+		$resGeo 	= mysql_query($selQuery, $maindb);
 		while($rowGeo = mysql_fetch_assoc($resGeo))
 		{
 			$zipCodes[] = $rowGeo['ZipCode'];			
@@ -245,4 +284,31 @@
 			      
 	}
 	
+	/*
+	 *  Finds the domain name based on the depart of job order
+	 */
+	function getDomainNameByLocId($locId)
+	{
+		global $db;
+		$domainName 	= "";
+		$sqlGetDomain	= "SELECT * FROM seo_websites WHERE find_in_set('".$locId."',locations) <> 0";
+		$resDomain	= mysql_query($sqlGetDomain,$db);
+		if(mysql_num_rows($resDomain)>=1)
+		{
+			$domainRow 	= mysql_fetch_array($resDomain);
+			$domainName 	= $domainRow['domain'];
+		}
+		return $domainName;
+	}
+	/* takes input then removes non-alpha numeric characters and replace multiple hyphens to single one*/	
+	function generateSeoTitle($seotitle)
+	{
+		$seotitle 	= str_replace(" ","-",strtolower($seotitle));
+		if($seotitle!="")
+		{
+			$seotitle 	= preg_replace('/-$/', '',preg_replace('/-+/', '-', preg_replace('/[^a-zA-Z0-9\s]/', '-', $seotitle)));	
+		}
+		
+		return $seotitle;
+	}
 ?>
