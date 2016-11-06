@@ -403,7 +403,6 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 												$expensepdf->Cell(20, 6, $asgn['billrate']);
 												$expensepdf->Cell(40, 6, $asgn['approvedby']);
 												$expensepdf->Cell(20, 6, $asgn['dateapproved']);
-	
 												$expensepdf->Ln();
 											
 
@@ -417,17 +416,6 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 									$expensepdf->SetFont('Arial', '', 9);
 									$expensepdf->Cell(20, 7, 'Total');
 									$expensepdf->Cell(30, 7, "{$billrate}");
-									$expensepdf->Ln();
-									$expensepdf->Ln();
-									$expensepdf->Cell(100, 8, 'Office Use');
-									$expensepdf->Ln();
-									$expensepdf->Ln();
-									$expensepdf->Cell(130, 8, 'Signature :');
-									$expensepdf->Cell(130, 8, 'Signature :');
-									$expensepdf->Ln();
-									$expensepdf->Cell(130, 8, 'Date :');
-									$expensepdf->Cell(130, 8, 'Date :');
-									$expensepdf->Ln();
 									$expensepdf->Ln();
 								}
 							}
@@ -661,27 +649,7 @@ WHERE a.id IN (".$mailidList.") and invoice.deliver = 'Yes' AND invoice.status =
 										$timesheet .=  '<tr><td colspan=1><font class=afontstyle>&nbsp;</font></td><td colspan="1">&nbsp;</td><td align=right><font class=hfontstyle >Billable Hours: &nbsp;&nbsp;</font></td><td><font class=hfontstyle>'.number_format($Biltotal,2,"."," ").'</font></td><td>&nbsp;</td><td>&nbsp;</td></tr>';
 
 								}
-									$timesheet .=  '<tr>
-								<td colspan="8">
-									<table width="99%" border="0">
-									<tr>
-										<td colspan="2">&nbsp;</td>
-										</tr>
-										<tr class=hthbgcolor>
-										<td colspan="2"><font class=afontstylee><b>Office Use</b></font></td>
-									</tr>
-										
-									<tr height="25">
-											<td width="54%" height="40"><font class=afontstylee>Employee Signature&nbsp;&nbsp; :________________________________</font></td>
-											<td width="46%"><font class=afontstylee>Date :___________</font></td>
-									</tr>
-									<tr height="25">
-											<td height="40"><font class=afontstylee>Supervisor Signature :________________________________</font></td>
-											<td><font class=afontstylee>Date :___________</font></td>
-									</tr>
-									</table></td>
-								</tr>  </table></table>';
-
+								
 									if ($rr==$rec_cnt-1)
 										$timesheet .=  "";
 									else
