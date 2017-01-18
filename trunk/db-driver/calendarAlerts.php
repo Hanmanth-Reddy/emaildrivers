@@ -25,7 +25,7 @@
 	/////////////////////////////////////////////////////
 
 	$starttime = time();
-	$meteor = fsockopen("192.168.1.62", 4671, $errno, $errstr, 10);
+	$meteor = fsockopen("192.168.1.12", 4671, $errno, $errstr, 10);
 
 	if($meteor)
 	{
