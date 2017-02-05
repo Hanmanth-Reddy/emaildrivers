@@ -3,6 +3,7 @@
     ini_set("include_path",$include_path);
 
     require("global.inc");
+    require("akken_logs.inc");
     
     $dque   = "SELECT
                     capp_info.comp_id
@@ -34,14 +35,33 @@
                                 ORDER BY STR_TO_DATE(invoice_date,'%m/%d/%Y')";
             $getCurDateRes  = mysql_query($getCurDate, $db);
             
+	    $insertedIdsList = array();
             while($getCurDateRow  = mysql_fetch_array($getCurDateRes))
             {
                 $invoiceFrDate  = $getCurDateRow['fdate'];
                 $invoiceToDate  = $getCurDateRow['tdate'];
     
                 //Calling function to create temp tables and functions for Invoice Commission Revenue 
-                getCommRevenueData($invoiceFrDate, $invoiceToDate);
+                $insertedIdsList[] = getCommRevenueData($invoiceFrDate, $invoiceToDate);
             }
+	    
+	    //Calling function to insert the cron logs
+	    $fileName	= basename(__FILE__);
+	    $logIds 	= implode(",",$insertedIdsList);
+	    if(empty($logIds))
+	    {
+		    $logIds 	= "no records inserted.";
+	    }
+	    else
+	    {
+		    $logIds 	= "records with ids ".$logIds." are inserted";
+	    }
+	    $logMsg 	= "This cron is running for date ".date('Y-m-d', strtotime(' -1 day'))." and ".$logIds;
+	    insertCronLog($companyuser,$fileName,$akken_db_group,$logMsg);	    
+	    //End Logs Insertion
+	    
+	    //Calling function to delete the cron logs by specify the no of days
+	    deleteCronlog($fileName,365);
         }
     }
 
@@ -718,13 +738,15 @@
                                         tct.invoiceNo";
             $tmpTableSelRs_1    = mysql_query($tmpTableSelSql_1, $db);
 
+	    $insertedRecIds		= "";
             if(mysql_num_rows($tmpTableSelRs_1) > 0)
             {
-                $gpAccumTotalArray  = array();
-				$repStartingRecord	= "NO";
-				$prevCommTierSno	= 0;
-				$prevAccumGPTtotal	= 0;
-    
+                $gpAccumTotalArray  	= array();
+		$repStartingRecord	= "NO";
+		$prevCommTierSno	= 0;
+		$prevAccumGPTtotal	= 0;
+		
+
                 while($tmpTableSelRw_1 = mysql_fetch_array($tmpTableSelRs_1))
                 {
                     $gpAccumKey = $tmpTableSelRw_1["comm_person"];
@@ -819,6 +841,16 @@
                                                 '".$gpAccuCommAmount."',
                                                 '".$gpCommPerFlat."')";
                     mysql_query($tmpTableInsSql_5_1, $db);
+		    
+		    $newRecId = mysql_insert_id($db);
+		    if(empty($insertedRecIds))
+		    {
+			$insertedRecIds = $newRecId.",";
+		    }
+		    else
+		    {
+			$insertedRecIds.=$newRecId.",";
+		    }		    
                 }
             }
 
@@ -829,6 +861,8 @@
 
             /* Calling below function to truncate temp tables created and exists */
             truncatetemptables();
+	    
+	    return substr($insertedRecIds, 0, -1);
     }
 
     /* Function to Truncate temp tables created for Invoice Commission Revenue */
