@@ -606,7 +606,12 @@
                                             AND Client_Accounts.clienttype =  'CUST' AND staffacc_cinfo.type IN('CUST','BOTH')
                                             AND Client_Accounts.status =  'active' 
                                             AND IF(IFNULL(invoice.invoice_date,'')!='',(DATE_FORMAT(STR_TO_DATE(invoice.invoice_date,'%m/%d/%Y'),'%Y-%m-%d') >= '".$invoiceFrDate."'),1)
-                                            AND IF(IFNULL(invoice.invoice_date,'')!='',(DATE_FORMAT(STR_TO_DATE(invoice.invoice_date,'%m/%d/%Y'),'%Y-%m-%d') <= '".$invoiceToDate."'),1)";
+                                            AND IF(IFNULL(invoice.invoice_date,'')!='',(DATE_FORMAT(STR_TO_DATE(invoice.invoice_date,'%m/%d/%Y'),'%Y-%m-%d') <= '".$invoiceToDate."'),1)
+					GROUP BY
+					    invoice.sno,
+					    invoice.client_id,
+					    assgn_name,
+					    cmsn.sno,Roletitle";
             mysql_query($tmpTableCreateSql_3_1, $db);
 
             //Temp - 3.2 - Updating
