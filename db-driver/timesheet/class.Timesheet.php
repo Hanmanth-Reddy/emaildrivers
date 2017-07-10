@@ -1582,7 +1582,7 @@ function GetDays($strDateFrom,$strDateTo)
 	return $str;
     }
     
-    function buildSubHeaders($mainHeaders, $headerCount,$mode)
+    function buildSubHeaders($mainHeaders, $headerCount,$mode,$ts_type='')
     {
 	$arrMode = array('approved' => 'Approved','exported' => 'Approved','rejected' => 'Rejected','deleted' => 'Deleted','approvedexp' => 'Approved');
 	$str = '<tr>';
@@ -1595,7 +1595,12 @@ function GetDays($strDateFrom,$strDateTo)
 	{
 	    if($header >= $headerCount)
 	    {
-		$str .= '<td valign="top" class="bold"><table><tr><td><font class=afontstylee><b> Hours </font></td><td class="t-r"><font class=afontstylee><label  style="margin-left:4px;" title="Billable">$</label></b></span></font></td></tr></table></td>';
+			if($ts_type == 'UOM' ){
+				$str .= '<td valign="top" class="bold"><table><tr><td><font class=afontstylee><b> </font></td><td class="t-r"><font class=afontstylee><label  style="margin-left:4px;" title="Billable"></label></b></span></font></td></tr></table></td>';
+			}else{
+				$str .= '<td valign="top" class="bold"><table><tr><td><font class=afontstylee><b> Hours </font></td><td class="t-r"><font class=afontstylee><label  style="margin-left:4px;" title="Billable">$</label></b></span></font></td></tr></table></td>';
+			}
+		
 		
 	    }
 	    else
@@ -1614,9 +1619,10 @@ function GetDays($strDateFrom,$strDateTo)
 	return $str;
     }
     
-    function getTimesheetDetails($sno, $mode,$condinvoice,$conjoin,$module='')
+    function getTimesheetDetails($sno, $mode,$condinvoice,$conjoin,$module='',$ts_type='')
     {
 		global  $accountingExport;
+		$ts_con_table2 = '';
 		
 	$conjoin=str_replace("hrcon_jobs.","hj.",$conjoin);
 
@@ -1628,7 +1634,25 @@ function GetDays($strDateFrom,$strDateTo)
      $modeArr = array('pending'=>' and th.status ="ER"','approved' =>' AND th.status IN ("Approved","Billed") ','exported' =>' AND th.status IN ("Approved","Billed") and th.exported_status ="YES"','deleted'=>' and th.status IN ("Deleted")','rejected'=>' and th.status IN ("Rejected")','backup'=>' and th.status IN ("Backup")','errejected'=>' and th.status IN ("Rejected")','erer'=>' and th.status IN ("ER")','approvedexp' =>' AND th.status IN ("Approved","Billed")');
 
     }
-	
+	if($ts_type == 'UOM'){
+		$uom_table = " (select * from hrcon_jobs LEFT JOIN (SELECT asgnid,GROUP_CONCAT( CONCAT_WS( '^^', ratemasterid, period ) SEPARATOR '&&' ) AS mulrates 
+					FROM `multiplerates_assignment` 
+					WHERE ratetype = 'billrate' AND asgn_mode = 'hrcon' AND STATUS = 'Active' GROUP BY asgnid)
+					multi_rates ON multi_rates.asgnid=hrcon_jobs.sno ) ";
+		$uom_column = " ,hj.mulrates ";
+
+	}elseif($ts_type == 'Custom'){
+		$uom_table = " (select * from hrcon_jobs LEFT JOIN (SELECT asgnid,GROUP_CONCAT( CONCAT_WS( '^^', ratemasterid, period ) SEPARATOR '&&' ) AS mulrates 
+					FROM `multiplerates_assignment` 
+					WHERE ratetype = 'billrate' AND asgn_mode = 'hrcon' AND STATUS = 'Active' GROUP BY asgnid)
+					multi_rates ON multi_rates.asgnid=hrcon_jobs.sno ) ";
+		$uom_column = " ,hj.mulrates, p1.fname, p1.lname, pt.sno as parid, th.rowid,CONCAT(ct.type_name,IF(ct.code ='','',CONCAT(' (',ct.code,')'))) AS typeName,ct.sno AS typeSno ";
+			
+		$ts_con_table2 = " LEFT JOIN person_info p1 ON p1.sno = th.person_id AND p1.status !='Backup' ";
+		$ts_con_table3 = " LEFT JOIN custom_type ct ON ct.sno = th.cust_type";
+	}else{
+		$uom_table = " hrcon_jobs ";
+	}
 	if($sno != 0)
 	/*echo $sql = "SELECT count(*),th.assid, th.client, sc.cname, GROUP_CONCAT(th.sno) as sno, hj.sno as asgnsno, th.sdate, th.type, th.username, th.status, hj.project,".tzRetQueryStringDate('pt.sdate','Date','/')." AS pstartdate,DATE_FORMAT( pt.edate, '%m/%d/%Y' ) AS penddate,pt.notes, pt.ts_multiple,el.name, ".tzRetQueryStringDate('th.edate','Date','/')." AS enddate, DATE_FORMAT( th.sdate, '%W' ) AS weekday,".tzRetQueryStringDate('th.sdate','Date','/')." AS startdate, DATE_FORMAT( pt.stime, '%m/%d/%Y %H:%i:%s' ) AS starttimedate, SUM( th.hours ) AS sumhours, th.classid,th.auser, u.name,".tzRetQueryStringDTime('th.approvetime','DateTime24','/')." AS approvetime,pt.issues,pt.astatus,pt.pstatus,pt.atime,pt.ptime,pt.puser,pt.notes,u.type as utype,th.payroll,th.task,DATE_FORMAT( th.edate, '%W' ) AS eweekday
  FROM par_timesheet pt INNER JOIN timesheet_hours th ON pt.sno = th.parid LEFT JOIN hrcon_jobs AS hj ON th.assid = hj.pusername LEFT JOIN staffacc_cinfo sc ON th.client = sc.sno INNER JOIN emp_list el ON el.username = pt.username
@@ -1637,10 +1661,10 @@ LEFT JOIN users u ON u.username = th.auser
  WHERE th.parid = '".$sno."'  ".$modeArr[$mode]." ".$condinvoice." and th.username = pt.username GROUP BY th.rowid"; */
 
  $sql = "SELECT count(*),th.assid, th.client, sc.cname, GROUP_CONCAT(th.sno) as sno, hj.sno as asgnsno, th.sdate, th.type, th.username, th.status, hj.project,".tzRetQueryStringDate('pt.sdate','Date','/')." AS pstartdate,DATE_FORMAT( pt.edate, '%m/%d/%Y' ) AS penddate,pt.notes, pt.ts_multiple,el.name, ".tzRetQueryStringDate('th.edate','Date','/')." AS enddate, DATE_FORMAT( th.sdate, '%W' ) AS weekday,".tzRetQueryStringDate('th.sdate','Date','/')." AS startdate, DATE_FORMAT( pt.stime, '%m/%d/%Y %H:%i:%s' ) AS starttimedate,
-	GROUP_CONCAT( DISTINCT CONCAT( hourstype, '|', hours, '|', billable ) ) AS time_data, SUM( th.hours ) AS sumhours, th.classid,th.auser, u.name,".tzRetQueryStringDTime('th.approvetime','DateTime24','/')." AS approvetime,pt.issues,pt.astatus,pt.pstatus,pt.atime,pt.ptime,pt.puser,pt.notes,u.type as utype,th.payroll,th.task,DATE_FORMAT( th.edate, '%W' ) AS eweekday
- FROM par_timesheet pt INNER JOIN timesheet_hours th ON pt.sno = th.parid LEFT JOIN hrcon_jobs AS hj ON th.assid = hj.pusername LEFT JOIN staffacc_cinfo sc ON th.client = sc.sno INNER JOIN emp_list el ON el.username = pt.username
+	GROUP_CONCAT( DISTINCT CONCAT( hourstype, '|', hours, '|', billable ) ) AS time_data, SUM( th.hours ) AS sumhours, th.classid,th.auser, u.name,".tzRetQueryStringDTime('th.approvetime','DateTime24','/')." AS approvetime,pt.issues,pt.astatus,pt.pstatus,pt.atime,pt.ptime,pt.puser,pt.notes,u.type as utype,th.payroll,th.task,DATE_FORMAT( th.edate, '%W' ) AS eweekday ".$uom_column."
+ FROM par_timesheet pt INNER JOIN timesheet_hours th ON pt.sno = th.parid LEFT JOIN ".$uom_table." AS hj ON th.assid = hj.pusername LEFT JOIN staffacc_cinfo sc ON th.client = sc.sno INNER JOIN emp_list el ON el.username = pt.username
 LEFT JOIN users u ON u.username = th.auser 
-".$conjoin."
+".$conjoin."   ".$ts_con_table2." ".$ts_con_table3."
  WHERE th.parid = '".$sno."'  ".$modeArr[$mode]." ".$condinvoice." and th.username = pt.username GROUP BY th.rowid";
 
     else
@@ -1651,12 +1675,11 @@ LEFT JOIN users u ON u.username = th.auser ".$conjoin."
  WHERE 1=1  ".$modeArr[$mode]." ".$condinvoice." and th.username = pt.username GROUP BY th.rowid"; */
 
  $sql = "SELECT count(*),th.assid, th.client, sc.cname, th.sno, hj.sno as asgnsno, th.sdate, th.type, th.username, th.status, hj.project,".tzRetQueryStringDate('pt.sdate','Date','/')." AS pstartdate,DATE_FORMAT( pt.edate, '%m/%d/%Y' ) AS penddate,pt.notes, pt.ts_multiple,el.name, ".tzRetQueryStringDate('th.edate','Date','/')." AS enddate, DATE_FORMAT( th.sdate, '%W' ) AS weekday,".tzRetQueryStringDate('th.sdate','Date','/')." AS startdate, DATE_FORMAT( pt.stime, '%m/%d/%Y' ) AS starttimedate,
-	GROUP_CONCAT( DISTINCT CONCAT( hourstype, '|', hours, '|', billable) ) AS time_data, SUM( th.hours ) AS sumhours, th.classid,th.auser, u.name,".tzRetQueryStringDTime('th.approvetime','DateTime24','/')." AS approvetime,pt.issues,pt.astatus,pt.pstatus,pt.atime,pt.ptime,pt.puser,pt.notes,u.type as utype,th.payroll,th.task,DATE_FORMAT( th.edate, '%W' ) AS eweekday
- FROM par_timesheet pt INNER JOIN timesheet_hours th ON pt.sno = th.parid LEFT JOIN hrcon_jobs AS hj ON th.assid = hj.pusername LEFT JOIN staffacc_cinfo sc ON th.client = sc.sno INNER JOIN emp_list el ON el.username = pt.username
-LEFT JOIN users u ON u.username = th.auser ".$conjoin."
+	GROUP_CONCAT( DISTINCT CONCAT( hourstype, '|', hours, '|', billable) ) AS time_data, SUM( th.hours ) AS sumhours, th.classid,th.auser, u.name,".tzRetQueryStringDTime('th.approvetime','DateTime24','/')." AS approvetime,pt.issues,pt.astatus,pt.pstatus,pt.atime,pt.ptime,pt.puser,pt.notes,u.type as utype,th.payroll,th.task,DATE_FORMAT( th.edate, '%W' ) AS eweekday ".$uom_column."
+ FROM par_timesheet pt INNER JOIN timesheet_hours th ON pt.sno = th.parid LEFT JOIN ".$uom_table." AS hj ON th.assid = hj.pusername LEFT JOIN staffacc_cinfo sc ON th.client = sc.sno INNER JOIN emp_list el ON el.username = pt.username
+LEFT JOIN users u ON u.username = th.auser ".$conjoin." ".$ts_con_table2." ".$ts_con_table3."
  WHERE 1=1  ".$modeArr[$mode]." ".$condinvoice." and th.username = pt.username GROUP BY th.rowid";
  
-	//echo $sql;
 	$result = $this->mysqlobj->query($sql,$this->db);
 	
 	while($row = $this->mysqlobj->fetch_array($result))
@@ -1723,7 +1746,7 @@ LEFT JOIN users u ON u.username = th.auser ".$conjoin."
 	return $s;
     }
     
-    function buildRow($data, $rowid, $rateCount,$mode, $module='', $alldata='', $print='')
+    function buildRow($data, $rowid, $rateCount,$mode, $module='', $alldata='', $print='',$ts_type='')
     {
 	//echo $mode;
 	$arrMode = array('approved' => 'Approved','exported' => 'Approved','rejected' => 'Rejected','deleted' => 'Deleted');
@@ -1760,11 +1783,16 @@ LEFT JOIN users u ON u.username = th.auser ".$conjoin."
 				$str .= '<td ><span class="nowrap"><font class=afontstylee>('.$data['assid'].') '.$data['cname'].' - '.$data['project'].'</span><br/><font class=afontstylee><b>Task Details:</b>'.wordwrap($data['task'], 60, "\n", true);
 				$str .='</font></td>';
 			}
-	/////////////////////////// Classes ////////////////////////////////
-	if(MANAGE_CLASSES == 'Y')
-	{
-	    $str .= '<td class="nowrap"><font class=afontstylee>'.$class[0]['classname'].'</font></td>';
-	}
+			/////////////////////////// PERSONS ////////////////////////////////
+			if($ts_type == 'Custom') {
+				
+				$str .= '<td class="nowrap"><font class=afontstylee>'.ucfirst($data['fname']).' '.ucfirst($data['lname']).'</font></td>';   
+				$str .= '<td class="nowrap" valign="top"><font class=afontstylee>'.ucfirst($data['typeName']).'</font></td>';	
+			}
+			elseif(MANAGE_CLASSES == 'Y')
+			{
+				$str .= '<td class="nowrap"><font class=afontstylee>'.$class[0]['classname'].'</font></td>';
+			}
 	/////////////////////// Rate types ///////////////
 	    
 	// To handle a use case where there are multiple values for single ratetype and rowid is also same		
@@ -2489,6 +2517,591 @@ function displayTimesheetDetailsPrint($sno, $mode,$condinvoice ='',$conjoin='', 
 	}	
 	return $ratetimedata;
     }
-       
+    //UOM Timesheet 
+    function displayTimesheetDetailsEmail_UOM($sno, $mode,$condinvoice ='',$conjoin='', $module='')
+    {
+	$table = '<div id="grid_form" class="grid_forms" style="white-space:nowrap">';
+	$table .= '<table cellspacing="1" cellpadding="5" width="100%"  border=0 style="text-align:left;"> ';
+		
+	// get the timesheet details
+	$data = $this->getTimesheetDetails($sno, $mode,$condinvoice,$conjoin,$module,'UOM');
+
+	foreach($data as $val)
+	{
+
+          $usernamedb = $val['username'];
+	      $servicedateto = $val['penddate'];
+        $servicedate = $val['pstartdate'];
+	    //$asgnsnoarr[] = $val['asgnsno'];
+	}
+	 $this->getAssignments($usernamedb, '', $servicedate, $servicedateto, '0');
+	$ratesArr =     $this->getRateTypesForAllAsgnnames($this->assignments);
+
+	//$ratesArr = $this->getRateTypesForAllAsgn($asgnsnoarr);
+	
+	$headerArr = array('Date', 'Assignments');
+	
+	if(MANAGE_CLASSES == 'Y')
+	{
+	    array_push($headerArr, 'Class');
+	}
+	$headerCount = count($headerArr);
+	$ratetype = $this->getRateTypes();
+	$rateCount = count($ratesArr);
+	foreach($ratetype as $val)
+	{
+	    if(in_array($val['rateid'], $ratesArr))
+	    {
+		array_push($headerArr, $val['name']);
+	    }
+	}
+	/////////////////////////// Main Headers ///////////////////////
+	
+	$table .= $this->buildMainHeaders($headerArr,$mode);
+	//////////////////////// Sub Headers (Hour & Billable) ////////
+	$table .= $this->buildSubHeaders($headerArr, $headerCount,$mode,'UOM');
+	
+	
+	foreach($data as $key=>$val)
+	{
+	    //////////////////////// Sub Headers (Hour & Billable) ////////
+	    //$table .= $this->buildRow($val, $key, $rateCount,$mode, $module, $data);
+		$table .= $this->buildRow($val, $key, $rateCount,$mode, $module, $data,$print=True);
+	}
+	////////////// Total hours //////////
+	
+	$table .= $this->getUOMSumRowEmail($data,$headerArr);
+	
+	if($mode != 'pending' && $mode != 'errejected' && $mode != 'erer')
+	$count = count($headerArr) +2;
+	else if($mode == 'pending')
+	$count = count($headerArr);
+	else if($mode == 'errejected' || $mode =='erer')
+	$count = count($headerArr) - 1;
+	//////////////////////////// Submitted date ////////////////
+	$table .= '<tr class=hthbgcolor><td colspan='.$count.' class="nowrap"><font class=afontstylee>Submitted Date:&nbsp;<b>'.$data[0]['starttimedate'].'</font></td>';
+	if($mode == 'errejected' || $mode == 'erer')
+	{
+	$table .= '<td colspan='.$count.' class="nowrap"><font class=afontstylee>'.'</font></td>';
+	}
+	$table .='</tr>';
+	$table .= '</table> ';
+	$table .= '</div>';
+	
+	///////////////////////// Timesheet Attachments ////////////////
+	//$table .= $this->getTimesheetAttachments($sno);
+	
+	return $table;	
+    }
+
+    //Custom Timesheet 
+	function displayTimesheetDetailsEmail_CUSTOM($sno, $mode,$condinvoice ='',$conjoin='', $module='')
+	{
+		$table = '<div id="grid_form" class="grid_forms" style="white-space:nowrap">';
+		$table .= '<table cellspacing="1" cellpadding="5" width="100%"  border=0 style="text-align:left;"> ';
+			
+		// get the timesheet details
+		$data = $this->getTimesheetDetails($sno, $mode,$condinvoice,$conjoin,$module,'Custom');
+
+		foreach($data as $val)
+		{
+
+	          $usernamedb = $val['username'];
+		      $servicedateto = $val['penddate'];
+	        $servicedate = $val['pstartdate'];
+		    //$asgnsnoarr[] = $val['asgnsno'];
+		}
+		 $this->getAssignments($usernamedb, '', $servicedate, $servicedateto, '0');
+		 $ratesArr =     $this->getRateTypesForAllAsgnnames($this->assignments);
+
+		//$ratesArr = $this->getRateTypesForAllAsgn($asgnsnoarr);
+		
+		$headerArr = array('Date', 'Assignments');
+		
+		    array_push($headerArr, $this->getCustomHeaders());
+			array_push($headerArr, 'Type');
+		$headerCount = count($headerArr);
+		$ratetype = $this->getRateTypes();
+		$rateCount = count($ratesArr);
+		foreach($ratetype as $val)
+		{
+		    if(in_array($val['rateid'], $ratesArr))
+		    {
+			array_push($headerArr, $val['name']);
+		    }
+		}
+		/////////////////////////// Main Headers ///////////////////////
+		
+		$table .= $this->buildMainHeaders($headerArr,$mode);
+		//////////////////////// Sub Headers (Hour & Billable) ////////
+		$table .= $this->buildSubHeaders($headerArr, $headerCount,$mode,'UOM');
+		
+		
+		foreach($data as $key=>$val)
+		{
+		    //////////////////////// Sub Headers (Hour & Billable) ////////
+		    //$table .= $this->buildRow($val, $key, $rateCount,$mode, $module, $data);
+			$table .= $this->buildRow($val, $key, $rateCount,$mode, $module, $data,$print=True,'Custom');
+		}
+		////////////// Total hours //////////
+		
+		$table .= $this->getUOMSumRowEmail_CUSTOM($data,$headerArr, 'Custom');
+		
+		if($mode != 'pending' && $mode != 'errejected' && $mode != 'erer')
+		$count = count($headerArr) +2;
+		else if($mode == 'pending')
+		$count = count($headerArr);
+		else if($mode == 'errejected' || $mode =='erer')
+		$count = count($headerArr) - 1;
+		//////////////////////////// Submitted date ////////////////
+		$table .= '<tr class=hthbgcolor><td colspan='.$count.' class="nowrap"><font class=afontstylee>Submitted Date:&nbsp;<b>'.$data[0]['starttimedate'].'</font></td>';
+		if($mode == 'errejected' || $mode == 'erer')
+		{
+		$table .= '<td colspan='.$count.' class="nowrap"><font class=afontstylee>'.'</font></td>';
+		}
+		$table .='</tr>';
+		$table .= '</table> ';
+		$table .= '</div>';
+		
+		///////////////////////// Timesheet Attachments ////////////////
+		//$table .= $this->getTimesheetAttachments($sno);
+		
+		return $table;	
+	}
+
+	//Function to get headers
+	function getCustomHeaders(){
+		$headerqry		= "SELECT person FROM manage_person_details ";
+		$headerqry		= $this->mysqlobj->query($headerqry,$this->db);
+		$headerresults	= $this->mysqlobj->fetch_row($headerqry);
+		return $headerresults[0];
+	}
+
+	//Function to get Custom Sum rows
+
+    function getUOMSumRowEmail_CUSTOM($data,$headerArr='', $ts_type = '')
+    {
+		$rate_totalsort_arr = array();
+		$rate_totalunit_arr = array();
+		$ratetypes_ids = array();
+		$rate_inc ='';
+		
+		$sum_hours ='';
+		
+		$headerArr_rates=array();
+		$headerArr_rates = $headerArr;
+		array_shift($headerArr_rates);
+		$header_rates= implode(',',$headerArr_rates);
+		$header_rates=str_replace(",","','",$header_rates);
+		
+		$rate_que = "select sno,rateid,name from multiplerates_master where name IN ('".$header_rates."')";
+		$rate_que_sel=$this->mysqlobj->query($rate_que,$this->db);
+	
+		while($rate_que_myrow=$this->mysqlobj->fetch_array($rate_que_sel))
+		{
+			$rate_que_myrow['rateid'] =substr($rate_que_myrow['rateid'],4);
+			$ratetypes_ids[$rate_que_myrow['rateid']] = $rate_que_myrow['name'];			
+		}
+		//$count = $data[0][0];
+		$count = count($data);
+		$sum = 0;
+		$uomDay_sum = 0;
+		$uomMile_sum = 0;
+		$uomUnit_sum = 0;
+		$hourSum = 0;
+		$hr_inc = 0;$day_inc = 0;$mile_inc = 0;$unit_inc = 0;
+		for($i = 0; $i < $count; $i++)
+		{
+			$rateArr=array();
+			$rate_unit_arr = array();
+			
+			$ratesSel = explode(',',$data[$i]['time_data']);
+			
+			
+			//Multiple rates array START
+			if($data[$i]['mulrates'] !=''){
+				$multipleRates = explode('&&',$data[$i]['mulrates']);
+				for($p=0;$p<count($multipleRates);$p++){
+					$getType = explode('^^',$multipleRates[$p]);
+					$rate_unit_arr[$getType[0]]['rate_type'] = $getType[1];
+					
+				}
+			}
+			for($r=0;$r<count($ratesSel);$r++){
+				$rateVal = explode('|',$ratesSel[$r]);
+				$rateArr[$rateVal[0]] = $rateVal[1];
+				$rate_unit_arr[$rateVal[0]]['units_cover'] = $rateVal[1];
+			}
+			
+			if($rate_unit_arr){
+				foreach($rate_unit_arr as $rate_key=>$rate_val){
+					
+					if($rate_val['rate_type'] == 'UOM_MILE'){
+						$rate_totalunit_arr[$rate_key]['total_miles'] += $rate_val['units_cover'];
+						$mile_inc++;
+					}
+					elseif($rate_val['rate_type'] == 'UOM_DAY'){
+						$rate_totalunit_arr[$rate_key]['total_days'] += $rate_val['units_cover'];
+						$day_inc++;
+					}
+					elseif($rate_val['rate_type'] == 'UOM_UNIT'){
+						$rate_totalunit_arr[$rate_key]['total_units'] += $rate_val['units_cover'];
+						$unit_inc++;
+					}
+					else {
+						$rate_totalunit_arr[$rate_key]['total_hours'] += $rate_val['units_cover'];
+						$hr_inc++;
+					}
+					$rate_inc =substr($rate_key,4);
+					$rate_totalsort_arr[$rate_inc] = $rate_totalunit_arr[$rate_key];
+				}
+				
+			}
+			
+			$sum = $sum + $data[$i]['sumhours'];
+		}
+		foreach($ratetypes_ids as $ratetypes_ids_key=>$ratetypes_ids_val){
+			if(!array_key_exists($ratetypes_ids_key,$rate_totalsort_arr)){
+				$rate_totalsort_arr[$ratetypes_ids_key]=array();
+			}
+		}
+		ksort($rate_totalsort_arr);
+		
+		///////////////////////////// Total hours ////////////////////
+		$sum_hours .= '<tr class=hthbgcolor><td colspan="1" style="color:#000000;">';
+		$sum_hours .= '<font class=afontstyle>&nbsp;</font></td>';
+		if(in_array('Class',$headerArr)){
+			$sum_hours .= '<td></td>';
+		}elseif($ts_type == 'Custom'){			
+			$sum_hours .= '<td></td><td></td>';
+		}
+		$sum_hours .= '<td align=right style="color:#000000;">';
+		if($hr_inc != 0){
+			$sum_hours .= '<div><font class=afontstylee>Total Hours: &nbsp;&nbsp;</font><font class=afontstylee>&nbsp;</font></div>';
+		}
+		if($day_inc != 0){
+			$sum_hours .= '<div><font class=afontstylee >Total Days: &nbsp;&nbsp;</font><font class=afontstylee>&nbsp;</font></div>';
+		}
+		if($mile_inc != 0){
+			$sum_hours .= '<div><font class=afontstylee >Total Miles: &nbsp;&nbsp;</font><font class=afontstylee>&nbsp;</font></div>';
+		}
+		if($unit_inc != 0){
+			$sum_hours .= '<div><font class=afontstylee >Total Units: &nbsp;&nbsp;</font><font class=afontstylee>&nbsp;</font></div>';
+		}
+		$sum_hours .= '</td>';
+		foreach($rate_totalsort_arr as $total_key => $total_val){
+			$sum_hours .= '<td align=right style="color:#000000;">';
+			
+				if($total_val['total_hours'] != 0){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >'.number_format($total_val['total_hours'],2,'.','').'</font></div>';
+				}
+				else if($hr_inc != 0 ){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >0.00</font></div>';
+				}
+				if($total_val['total_days'] != 0){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >'.number_format($total_val['total_days'],2,'.','').'</font></div>';
+				}
+				else if($day_inc != 0 ){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >0.00</font></div>';
+				}
+				if($total_val['total_miles'] != 0){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >'.number_format($total_val['total_miles'],2,'.','').'</font></div>';
+				}
+				else if($mile_inc != 0 ){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >0.00</font></div>';
+				}
+				if($total_val['total_units'] != 0){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >'.number_format($total_val['total_units'],2,'.','').'</font></div>';
+				}
+				else if($unit_inc != 0){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >0.00</font></div>';
+				}
+			
+			$sum_hours .= '</td>';
+		}
+		$sum_hours .= '</tr>';
+		$sum_hours .= '<tr class=hthbgcolor><td colspan="1"></td>';
+		if(in_array('Class',$headerArr)){
+			$sum_hours .= '<td></td>';
+			$tu =5;
+		}else{
+			$tu =4;
+		}
+		if($ts_type == 'Custom'){			
+			$sum_hours .= '<td></td><td></td>';
+		}
+		$sum_hours .= '<td style="color:#000000;" align="right"><div><font class=afontstylee>Grand Total: &nbsp;&nbsp;</font><font class=afontstylee>&nbsp;</font></div></td>';
+		for($tu;$tu<count($headerArr)-1;$tu++){
+			$sum_hours .= '<td></td>';
+		}
+		$sum_hours .= '<td align=right style="color:#000000;"><div style="text-align:right;padding-right: 25px;"><font class=afontstylee >'.number_format($sum,2,'.','').'</font></div></td></tr>';
+		
+		return $sum_hours;
+	
+    }
+
+    function getUOMSumRowEmail($data,$headerArr='')
+    {
+		$rate_totalsort_arr = array();
+		$rate_totalunit_arr = array();
+		$rate_inc ='';
+		
+		$sum_hours ='';
+		$headerArr_rates=array();
+		$headerArr_rates = $headerArr;
+		array_shift($headerArr_rates);
+		$header_rates= implode(',',$headerArr_rates);
+		$header_rates=str_replace(",","','",$header_rates);
+		
+		$rate_que = "select sno,rateid,name from multiplerates_master where name IN ('".$header_rates."')";
+		$rate_que_sel=$this->mysqlobj->query($rate_que,$this->db);
+	
+		while($rate_que_myrow=$this->mysqlobj->fetch_array($rate_que_sel))
+		{
+			$rate_que_myrow['rateid'] =substr($rate_que_myrow['rateid'],4);
+			$ratetypes_ids[$rate_que_myrow['rateid']] = $rate_que_myrow['name'];			
+		}
+		//$count = $data[0][0];
+		$count = count($data);
+		$sum = 0;
+		$uomDay_sum = 0;
+		$uomMile_sum = 0;
+		$uomUnit_sum = 0;
+		$hourSum = 0;
+		$hr_inc = 0;$day_inc = 0;$mile_inc = 0;$unit_inc = 0;
+		for($i = 0; $i < $count; $i++)
+		{
+			$rateArr=array();
+			$rate_unit_arr = array();
+			
+			$ratesSel = explode(',',$data[$i]['time_data']);
+			
+			
+			//Multiple rates array START
+			if($data[$i]['mulrates'] !=''){
+				$multipleRates = explode('&&',$data[$i]['mulrates']);
+				for($p=0;$p<count($multipleRates);$p++){
+					$getType = explode('^^',$multipleRates[$p]);
+					$rate_unit_arr[$getType[0]]['rate_type'] = $getType[1];
+					
+				}
+			}
+			for($r=0;$r<count($ratesSel);$r++){
+				$rateVal = explode('|',$ratesSel[$r]);
+				$rateArr[$rateVal[0]] = $rateVal[1];
+				$rate_unit_arr[$rateVal[0]]['units_cover'] = $rateVal[1];
+			}
+			
+			if($rate_unit_arr){
+				foreach($rate_unit_arr as $rate_key=>$rate_val){
+					
+					if($rate_val['rate_type'] == 'UOM_MILE'){
+						$rate_totalunit_arr[$rate_key]['total_miles'] += $rate_val['units_cover'];
+						$mile_inc++;
+					}
+					elseif($rate_val['rate_type'] == 'UOM_DAY'){
+						$rate_totalunit_arr[$rate_key]['total_days'] += $rate_val['units_cover'];
+						$day_inc++;
+					}
+					elseif($rate_val['rate_type'] == 'UOM_UNIT'){
+						$rate_totalunit_arr[$rate_key]['total_units'] += $rate_val['units_cover'];
+						$unit_inc++;
+					}
+					else {
+						$rate_totalunit_arr[$rate_key]['total_hours'] += $rate_val['units_cover'];
+						$hr_inc++;
+					}
+					$rate_inc =substr($rate_key,4);
+					$rate_totalsort_arr[$rate_inc] = $rate_totalunit_arr[$rate_key];
+				}
+				
+			}
+			
+			$sum = $sum + $data[$i]['sumhours'];
+		}
+		foreach($ratetypes_ids as $ratetypes_ids_key=>$ratetypes_ids_val){
+			if(!array_key_exists($ratetypes_ids_key,$rate_totalsort_arr)){
+				$rate_totalsort_arr[$ratetypes_ids_key]=array();
+			}
+		}
+		ksort($rate_totalsort_arr);
+			
+		///////////////////////////// Total hours ////////////////////
+		$sum_hours .= '<tr class=hthbgcolor><td colspan="1" style="color:#000000;">';
+		$sum_hours .= '<font class=afontstyle>&nbsp;</font></td>';
+		if(in_array('Class',$headerArr)){
+			$sum_hours .= '<td></td>';
+		}
+		$sum_hours .= '<td align=right style="color:#000000;">';
+		if($hr_inc != 0){
+			$sum_hours .= '<div><font class=afontstylee>Total Hours: &nbsp;&nbsp;</font><font class=afontstylee>&nbsp;</font></div>';
+		}
+		if($day_inc != 0){
+			$sum_hours .= '<div><font class=afontstylee >Total Days: &nbsp;&nbsp;</font><font class=afontstylee>&nbsp;</font></div>';
+		}
+		if($mile_inc != 0){
+			$sum_hours .= '<div><font class=afontstylee >Total Miles: &nbsp;&nbsp;</font><font class=afontstylee>&nbsp;</font></div>';
+		}
+		if($unit_inc != 0){
+			$sum_hours .= '<div><font class=afontstylee >Total Units: &nbsp;&nbsp;</font><font class=afontstylee>&nbsp;</font></div>';
+		}
+		$sum_hours .= '</td>';
+		foreach($rate_totalsort_arr as $total_key => $total_val){
+			$sum_hours .= '<td align=right style="color:#000000;">';
+			
+				if($total_val['total_hours'] != 0){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >'.number_format($total_val['total_hours'],2,'.','').'</font></div>';
+				}
+				else if($hr_inc != 0 ){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >0.00</font></div>';
+				}
+				if($total_val['total_days'] != 0){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >'.number_format($total_val['total_days'],2,'.','').'</font></div>';
+				}
+				else if($day_inc != 0 ){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >0.00</font></div>';
+				}
+				if($total_val['total_miles'] != 0){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >'.number_format($total_val['total_miles'],2,'.','').'</font></div>';
+				}
+				else if($mile_inc != 0 ){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >0.00</font></div>';
+				}
+				if($total_val['total_units'] != 0){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >'.number_format($total_val['total_units'],2,'.','').'</font></div>';
+				}
+				else if($unit_inc != 0){
+					$sum_hours .= '<div style="text-align:right;padding-right: 25px;"><font class=afontstylee >0.00</font></div>';
+				}
+			
+			$sum_hours .= '</td>';
+		}
+		$sum_hours .= '</tr>';
+		$sum_hours .= '<tr class=hthbgcolor><td colspan="1"></td>';
+		if(in_array('Class',$headerArr)){
+			$sum_hours .= '<td></td>';
+			$tu =3;
+		}else{
+			$tu =2;
+		}
+		$sum_hours .= '<td style="color:#000000;" align="right"><div><font class=afontstylee>Grand Total: &nbsp;&nbsp;</font><font class=afontstylee>&nbsp;</font></div></td>';
+		for($tu;$tu<count($headerArr)-1;$tu++){
+			$sum_hours .= '<td></td>';
+		}
+		$sum_hours .= '<td align=right style="color:#000000;"><div style="text-align:right;padding-right: 25px;"><font class=afontstylee >'.number_format($sum,2,'.','').'</font></div></td></tr>';
+		
+		return $sum_hours;
+	
+    }  
+
+	function getCustomTimesheetNotes($parid,$mode,$condinvoice ='',$EmpCompanyName='',$logopath=''){
+		global  $accountingExport;
+		$person_parsno = array();
+		$notes_arr = array();
+		$notesCount = 0;
+		
+		$table = "<style>@page { margin: 0px, 35px, 35px, 35px; }</style>";
+		$table .= '<table width="99%" border="0" cellspacing="0" cellpadding="0">
+					  <tr>
+						<td width="50%" align="left" valign="top"><div></div></td>
+						<td width="50%" align="right">&nbsp;</td>
+					  </tr>
+					   <tr>
+						<td width="50%" align="left" valign="top"><div><img src="'.$logopath.'" border=0 height=48 width=165></div></td>
+						<td width="50%" align="right">&nbsp;</td>
+					  </tr>
+					  <tr>
+						<td><font class=afontstylee>Company Name : <b>'.stripslashes($EmpCompanyName).'</b></font></td>
+						
+					  </tr>
+					  <tr>
+						<td width="50%" align="left" valign="top"><div></div></td>
+						<td width="50%" align="right">&nbsp;</td>
+					  </tr>
+					  <tr>
+						<td><font class=afontstylee><b>Custom Timesheet Notes</b></font></td>
+					  </tr>
+					  <tr>
+						<td width="50%" align="left" valign="top"><div></div></td>
+						<td width="50%" align="right">&nbsp;</td>
+					  </tr>
+					 </table>
+					
+					';
+		$table .= '<div id="grid_form" class="grid_forms" style="white-space:nowrap">';
+		
+		if($accountingExport == 'Exported' ) {
+			$modeArr = array('pending'=>' and th.status ="ER"','approved' =>' AND th.status IN ("Approved","Billed") and th.exported_status !="YES"','approvedexp' =>' AND th.status IN ("Approved","Billed")','exported' =>' AND th.status IN ("Approved","Billed") and th.exported_status ="YES"','deleted'=>' and th.status IN ("Deleted")','rejected'=>' and th.status IN ("Rejected")','backup'=>' and th.status IN ("Backup")','errejected'=>' and th.status IN ("Rejected")','erer'=>' and th.status IN ("ER")');
+		} else {
+			 $modeArr = array('pending'=>' and th.status ="ER"','approved' =>' AND th.status IN ("Approved","Billed") ','exported' =>' AND th.status IN ("Approved","Billed") and th.exported_status ="YES"','deleted'=>' and th.status IN ("Deleted")','rejected'=>' and th.status IN ("Rejected")','backup'=>' and th.status IN ("Backup")','errejected'=>' and th.status IN ("Rejected")','erer'=>' and th.status IN ("ER")','approvedexp' =>' AND th.status IN ("Approved","Billed")');
+
+		}
+	
+		 $timehrs_que = "select th.sno,th.sdate,th.edate,th.hourstype,th.assid,th.rowid,th.person_id
+		, ".tzRetQueryStringDate('th.edate','Date','/')." AS enddate, DATE_FORMAT( th.sdate, '%W' ) AS weekday,".tzRetQueryStringDate('th.sdate','Date','/')." AS startdate,CONCAT(person_info.fname,' ',person_info.lname) as personName
+		from timesheet_hours th left join person_info on person_info.sno = th.person_id and person_info.status!='Backup' where th.parid='".$parid."' ".$condinvoice."  ".$modeArr[$mode]."  order by    th.sdate ASC ";
+		
+		$timehrs_res = $this->mysqlobj->query($timehrs_que,$this->db);
+		$zrowCount = mysql_num_rows($timehrs_res);//remove later
+		while($timehrs_row = $this->mysqlobj->fetch_array($timehrs_res)){
+			
+			$ts_notes_que = "select tssno,notes,tsrowid,person_id,tshourstype from person_ts_notes where parid='".$parid."' and tssno IN (0,".$timehrs_row['sno'].") and tsrowid='".$timehrs_row['rowid']."' and status!='Backup' and notes!='' order by tsrowid ASC,tssno ASC ";
+			
+			$ts_notes_res = $this->mysqlobj->query($ts_notes_que,$this->db);
+			$zrowCount1 = mysql_num_rows($ts_notes_res);//remove later
+			if($zrowCount1 > 0){
+				$notesCount = $notesCount+1;
+			}
+			
+			while($ts_notes_row = $this->mysqlobj->fetch_array($ts_notes_res)){
+			
+				if($ts_notes_row['tshourstype']=='person' && $ts_notes_row['tsrowid']==$timehrs_row['rowid'] && $ts_notes_row['tssno'] == 0 && !in_array($ts_notes_row['tsrowid'],$person_parsno)){
+					$table .= '<div><div id="leftdiv" style="float:left;width:25%;"><font class=afontstylee>';
+					if($timehrs_row['enddate'] !='00/00/0000'){
+						$table .= $timehrs_row['startdate'].' - '.$timehrs_row['enddate'];
+					}else{
+						$table .= $timehrs_row['startdate'].' '.$timehrs_row['weekday'];
+					}
+					$table .= '&nbsp;&nbsp;&nbsp;';
+					$table .= $timehrs_row['assid'];
+					$table .= '&nbsp;&nbsp;&nbsp;';
+					$table .= $timehrs_row['personName'].' Notes';
+					$table .= '&nbsp;&nbsp;&nbsp;';
+					$table .= '</font></div>';
+					$table .= '<div id="rightdiv" style="float:right;width:70%;"><font class=afontstylee>';
+					$table .= $ts_notes_row['notes'];
+					$table .= '</font></div></div><div class="clear" style="clear:both;margin:10px"></div>';
+					$person_parsno[]=$ts_notes_row['tsrowid'];
+					
+				}
+				if($ts_notes_row['tshourstype']==$timehrs_row['hourstype'] && $ts_notes_row['tsrowid']==$timehrs_row['rowid'] && $ts_notes_row['tssno'] == $timehrs_row['sno']){
+					$table .= '<div><div id="leftdiv" style="float:left;width:25%;"><font class=afontstylee>';
+					if($timehrs_row['enddate'] !='00/00/0000'){
+						$table .= $timehrs_row['startdate'].' - '.$timehrs_row['enddate'];
+					}else{
+						$table .= $timehrs_row['startdate'].' '.$timehrs_row['weekday'];
+					}
+					$table .= '&nbsp;&nbsp;&nbsp;';
+					$table .= $timehrs_row['assid'];
+					$table .= '&nbsp;&nbsp;&nbsp;';
+					$rateName_que = "select name from multiplerates_master where rateid='".$ts_notes_row['tshourstype']."' limit 1";
+					$rateName_res = $this->mysqlobj->query($rateName_que,$this->db);
+					$rateName_row = $this->mysqlobj->fetch_row($rateName_res);
+					$table .= $rateName_row[0].' Notes';
+					$table .= '&nbsp;&nbsp;&nbsp;';
+					$table .= '</font></div>';
+					$table .= '<div id="rightdiv" style="float:right;width:70%;"><font class=afontstylee>';
+					$table .= $ts_notes_row['notes'];
+					$table .= '</font></div></div><div class="clear" style="clear:both;margin:10px"></div>';
+				
+				}
+			}
+		
+		}
+		$table .='</div>';
+		$notes_arr[0] = $notesCount;
+		$notes_arr[1]=$table;
+		return $notes_arr;
+	}
 }
 ?>
